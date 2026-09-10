@@ -385,10 +385,10 @@ Thin platform adapters: macOS / Linux+WSL.
 
 ### Distribution
 
-- **npm first** — `npm i -g vmup` / `npx vmup`  
+- **npm first** — `npm i -g @nyxsky404/vmup` / `npx @nyxsky404/vmup` (unscoped `vmup` is too similar to existing npm names)  
 - **Homebrew soon after** CLI surface stabilizes (same v1.x line OK; not blocking day-one architecture)  
 - Runtime: Node 18+ (Bun-friendly)  
-- Confirm `vmup` name availability on npm before publish  
+- CLI bin name stays `vmup`  
 
 ### Testing bar
 

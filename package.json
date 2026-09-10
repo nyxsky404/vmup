@@ -1,10 +1,10 @@
 {
-  "name": "vmup",
+  "name": "@nyxsky404/vmup",
   "version": "0.1.0",
   "description": "Batch screenshots and media to a remote host for coding agents",
   "type": "module",
   "bin": {
-    "vmup": "./dist/cli.js"
+    "vmup": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -33,6 +33,9 @@
     "cli",
     "upload"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "dependencies": {
     "chokidar": "^4.0.3",

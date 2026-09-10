@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 ## 0.1.0 — 2026-09-10
 
-First public release.
+First public release. npm package: **`@nyxsky404/vmup`** (CLI command remains `vmup`).
 
 - `vmup init` wizard (Enter defaults; `-y` + env for CI)
 - Collect via file args, native picker, `--clip`, and `vmup watch`

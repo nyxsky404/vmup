@@ -5,15 +5,15 @@ Batch screenshots and media to a remote host over SSH, then give coding agents *
 ## Install
 
 ```bash
-npm i -g vmup
+npm i -g @nyxsky404/vmup
 vmup init
 ```
 
 Or without a global install:
 
 ```bash
-npx vmup init
-npx vmup shot.png
+npx @nyxsky404/vmup init
+npx @nyxsky404/vmup shot.png
 ```
 
 Requires **Node 18+** and **OpenSSH** (`ssh` / `scp` on your PATH).
@@ -107,7 +107,9 @@ ssh lab
 
 ## Name note
 
-This npm package is **not** the `vmup` command from [vmtools](https://github.com/WhiteWinterWolf/vmtools/) (a Qemu helper). If both are installed, `which -a vmup` shows which binary wins. After `npm i -g vmup`, npm’s bin directory should come first on `PATH`.
+The npm package is **`@nyxsky404/vmup`**. The command you run is still **`vmup`**.
+
+Unscoped `vmup` is blocked on npm (too similar to existing names). This package is also unrelated to the `vmup` command from [vmtools](https://github.com/WhiteWinterWolf/vmtools/) (a Qemu helper). If both are installed, `which -a vmup` shows which binary wins.
 
 ## License
 
