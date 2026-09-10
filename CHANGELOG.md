@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.1.1 — 2026-09-10
+
+- Add `main` / `exports` so package scanners can resolve an entry point
+
 ## 0.1.0 — 2026-09-10
 
 First public release. npm package: **`@nyxsky404/vmup`** (CLI command remains `vmup`).
