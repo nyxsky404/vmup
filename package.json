@@ -1,0 +1,42 @@
+{
+  "name": "vmup",
+  "version": "0.1.0",
+  "description": "Batch screenshots and media to a remote host for coding agents",
+  "type": "module",
+  "bin": {
+    "vmup": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "prepare": "npm run build",
+    "test": "node --test dist/**/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ssh",
+    "scp",
+    "screenshots",
+    "agents",
+    "cli",
+    "upload"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "commander": "^13.1.0",
+    "smol-toml": "^1.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2"
+  }
+}
