@@ -23,7 +23,8 @@ const program = new Command();
 program
   .name("vmup")
   .description("Batch media to a remote host for coding agents")
-  .version("0.1.0");
+  .version("0.1.0")
+  .enablePositionalOptions();
 
 program
   .command("init")
