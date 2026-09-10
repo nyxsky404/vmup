@@ -12,6 +12,7 @@ import { resolveTarget, type VmupConfig } from "./config.js";
 import { isImagePath, isVideoPath, validatePaths } from "./validate.js";
 import { assertKeyUsable, formatSshError } from "./ssh-key.js";
 import { fileSha256 } from "./hash.js";
+import { isNewer } from "./update-check.js";
 import { chmod, writeFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -180,5 +181,14 @@ describe("fileSha256", () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("isNewer", () => {
+  it("compares semver-ish versions", () => {
+    assert.equal(isNewer("0.2.1", "0.2.0"), true);
+    assert.equal(isNewer("0.2.0", "0.2.1"), false);
+    assert.equal(isNewer("0.2.0", "0.2.0"), false);
+    assert.equal(isNewer("1.0.0", "0.9.9"), true);
   });
 });

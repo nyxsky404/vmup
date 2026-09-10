@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.2.1 — 2026-09-10
+
+- After a command, mention a newer npm release (at most once per day) with `npm i -g @nyxsky404/vmup`
+- Skip with `VMUP_NO_UPDATE_CHECK=1` or in CI; never printed with `--json`
+
 ## 0.2.0 — 2026-09-10
 
 - Upload/SSH progress spinner (stderr) so the CLI does not look stuck

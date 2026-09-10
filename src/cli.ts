@@ -17,14 +17,22 @@ import {
   assertBatchId,
   preflight,
 } from "./transport/ssh.js";
-import { EXIT } from "./constants.js";
+import { EXIT, PACKAGE_VERSION } from "./constants.js";
+import { beginUpdateCheck, printUpdateNotice } from "./update-check.js";
+
+const pendingUpdate = beginUpdateCheck();
+
+async function done(code: number, json = false): Promise<never> {
+  await printUpdateNotice(pendingUpdate, json);
+  process.exit(code);
+}
 
 const program = new Command();
 
 program
   .name("vmup")
   .description("Batch files to a remote host for coding agents")
-  .version("0.2.0")
+  .version(PACKAGE_VERSION)
   .enablePositionalOptions();
 
 program
@@ -37,7 +45,7 @@ program
       yes: !!opts.yes,
       installSweeper: opts.sweeper !== false,
     });
-    process.exit(code);
+    await done(code);
   });
 
 program
@@ -54,7 +62,7 @@ program
       sweeper: !!opts.sweeper,
       json: !!opts.json,
     });
-    process.exit(code);
+    await done(code, !!opts.json);
   });
 
 program
@@ -74,6 +82,7 @@ program
         );
       }
     }
+    await done(EXIT.OK);
   });
 
 program
@@ -111,10 +120,10 @@ program
         const n = await pruneRemote(target, target.ttlHours);
         console.error(`Pruned ${n} remote batch(es)`);
       }
-      process.exit(EXIT.OK);
+      await done(EXIT.OK, !!opts.json);
     } catch (err) {
       console.error(err instanceof Error ? err.message : err);
-      process.exit(EXIT.SSH);
+      await done(EXIT.SSH, !!opts.json);
     }
   });
 
@@ -141,7 +150,7 @@ program
       json: !!opts.json,
       watch: true,
     });
-    process.exit(code);
+    await done(code, !!opts.json);
   });
 
 program
@@ -170,10 +179,10 @@ program
       watch: !!opts.watch,
       watchDir: opts.dir,
     });
-    process.exit(code);
+    await done(code, !!opts.json);
   });
 
-program.parseAsync(process.argv).catch((err) => {
+program.parseAsync(process.argv).catch(async (err) => {
   console.error(err instanceof Error ? err.message : err);
-  process.exit(EXIT.USAGE);
+  await done(EXIT.USAGE);
 });

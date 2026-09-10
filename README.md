@@ -107,6 +107,15 @@ vmup check --sweeper
 
 `--force` never skips connectivity checks. `NO_COLOR=1` disables colors.
 
+If a newer npm version exists, vmup prints a short notice (at most once per day):
+
+```text
+vmup 0.3.0 is available (you have 0.2.1)
+  Update:  npm i -g @nyxsky404/vmup
+```
+
+Disable with `VMUP_NO_UPDATE_CHECK=1`.
+
 ## Name note
 
 The npm package is **`@nyxsky404/vmup`**. The command you run is still **`vmup`**.

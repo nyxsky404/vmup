@@ -2,6 +2,8 @@ import { homedir, platform as osPlatform } from "node:os";
 import { join } from "node:path";
 
 export const APP_NAME = "vmup";
+export const PACKAGE_NAME = "@nyxsky404/vmup";
+export const PACKAGE_VERSION = "0.2.1";
 export const BATCH_PREFIX = "agents";
 export const DEFAULT_REMOTE_DIR = "~/vmup";
 export const DEFAULT_TTL_HOURS = 5;
