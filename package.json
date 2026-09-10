@@ -9,13 +9,17 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md",
+    "!dist/**/*.test.js",
+    "!dist/**/*.test.d.ts"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
     "prepare": "npm run build",
+    "prepublishOnly": "npm run build && npm test",
     "test": "node --test dist/**/*.test.js"
   },
   "engines": {

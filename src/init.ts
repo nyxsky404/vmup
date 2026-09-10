@@ -20,6 +20,7 @@ import {
 } from "./config.js";
 import { preflight, installRemoteSweeper } from "./transport/ssh.js";
 import { resolveTarget, assertTargetConnectable } from "./config.js";
+import { assertKeyUsable } from "./ssh-key.js";
 
 function ask(
   rl: ReturnType<typeof createInterface>,
@@ -106,6 +107,14 @@ export async function runInit(opts: {
 
       await saveConfig(cfg);
       console.log(`\nWrote ${configPath()}`);
+
+      if (key) {
+        try {
+          await assertKeyUsable(expandHome(key));
+        } catch (err) {
+          console.error(err instanceof Error ? err.message : err);
+        }
+      }
 
       if (host) {
         try {

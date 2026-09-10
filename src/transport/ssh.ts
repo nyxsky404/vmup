@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { expandHome } from "../constants.js";
 import type { ResolvedTarget } from "../config.js";
 import { isBatchDirName } from "../stage.js";
+import { assertKeyUsable, formatSshError } from "../ssh-key.js";
 
 export type SshSpec = {
   /** Arguments inserted after `ssh`/`scp` before destination */
@@ -87,6 +88,9 @@ function scpRemotePath(p: string): string {
 
 /** Expand ~/ on remote via shell; we pass paths as-is to ssh remote commands. */
 export async function preflight(target: ResolvedTarget): Promise<void> {
+  if (target.mode === "direct" && target.key) {
+    await assertKeyUsable(target.key);
+  }
   const spec = buildSshSpec(target);
   const rd = remoteShellPath(target.remoteDir);
   const script = `mkdir -p ${rd} && test -d ${rd} && echo OK`;
@@ -94,7 +98,7 @@ export async function preflight(target: ResolvedTarget): Promise<void> {
   const res = await run("ssh", args, { timeoutMs: 20_000 });
   if (res.code !== 0 || !res.stdout.includes("OK")) {
     const msg = res.stderr.trim() || res.stdout.trim() || "SSH preflight failed";
-    throw new Error(msg);
+    throw new Error(formatSshError(msg));
   }
 }
 
@@ -120,7 +124,7 @@ export async function uploadBatch(opts: {
     timeoutMs: 20_000,
   });
   if (prep.code !== 0) {
-    throw new Error(prep.stderr.trim() || "failed to prepare remote dir");
+    throw new Error(formatSshError(prep.stderr.trim() || "failed to prepare remote dir"));
   }
 
   const scpArgs = [
@@ -143,7 +147,7 @@ export async function uploadBatch(opts: {
       spec.destHost,
       `rm -rf ${shellPartial}`,
     ]).catch(() => undefined);
-    throw new Error(scp.stderr.trim() || "scp failed");
+    throw new Error(formatSshError(scp.stderr.trim() || "scp failed"));
   }
 
   const finalize = `mv ${shellPartial} ${shellFinal}`;
@@ -156,7 +160,7 @@ export async function uploadBatch(opts: {
       spec.destHost,
       `rm -rf ${shellPartial}`,
     ]).catch(() => undefined);
-    throw new Error(fin.stderr.trim() || "remote finalize failed");
+    throw new Error(formatSshError(fin.stderr.trim() || "remote finalize failed"));
   }
 
   return remoteFinal;
