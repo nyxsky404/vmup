@@ -8,8 +8,12 @@ export const DEFAULT_TTL_HOURS = 5;
 export const DEFAULT_PORT = 22;
 export const DEFAULT_USER = "ubuntu";
 export const DEFAULT_PROMPT =
-  "Please inspect all images in {{remote_path}}";
+  "Please inspect all files in {{remote_path}}";
 export const DEFAULT_PROFILE = "default";
+export const DEFAULT_MAX_FILE_MB = 200;
+export const DEFAULT_MAX_FILES = 200;
+export const DEFAULT_ACCEPT_ALL_FILES = true;
+export const DEFAULT_CLIP_DEDUP = true;
 
 export const IMAGE_EXTS = new Set([
   ".png",

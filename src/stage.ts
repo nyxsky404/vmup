@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, rm, readdir, copyFile, stat } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
 import { BATCH_PREFIX, cacheDir } from "./constants.js";
+import { fileKind, type FileKind } from "./validate.js";
 
 export function createBatchId(now = new Date()): string {
   const y = now.getFullYear();
@@ -21,30 +22,37 @@ export type StagingSession = {
   batchId: string;
   localDir: string;
   files: string[];
+  kindCounts: Record<FileKind, number>;
 };
 
 export async function createStagingSession(): Promise<StagingSession> {
   const batchId = createBatchId();
   const localDir = join(cacheDir(), batchId);
   await mkdir(localDir, { recursive: true });
-  return { batchId, localDir, files: [] };
+  return {
+    batchId,
+    localDir,
+    files: [],
+    kindCounts: { image: 0, video: 0, file: 0 },
+  };
 }
 
 export async function destroyStaging(session: StagingSession): Promise<void> {
   await rm(session.localDir, { recursive: true, force: true });
 }
 
-function nextMediaName(index: number, sourcePath: string): string {
-  const ext = extname(sourcePath).toLowerCase() || ".png";
-  return `media-${String(index).padStart(2, "0")}${ext}`;
+export function stagedName(kind: FileKind, index: number, sourcePath: string): string {
+  const ext = extname(sourcePath).toLowerCase() || (kind === "image" ? ".png" : "");
+  return `${kind}-${String(index).padStart(2, "0")}${ext}`;
 }
 
 export async function stageFile(
   session: StagingSession,
   sourcePath: string,
 ): Promise<string> {
-  const index = session.files.length + 1;
-  const name = nextMediaName(index, sourcePath);
+  const kind = fileKind(sourcePath);
+  session.kindCounts[kind] += 1;
+  const name = stagedName(kind, session.kindCounts[kind], sourcePath);
   const dest = join(session.localDir, name);
   await copyFile(sourcePath, dest);
   session.files.push(dest);
@@ -52,11 +60,7 @@ export async function stageFile(
 }
 
 export async function listStaged(session: StagingSession): Promise<string[]> {
-  const entries = await readdir(session.localDir);
-  return entries
-    .filter((e) => e.startsWith("media-"))
-    .sort()
-    .map((e) => join(session.localDir, e));
+  return [...session.files];
 }
 
 export async function pruneLocalOrphans(maxAgeHours = 24): Promise<number> {

@@ -22,9 +22,12 @@ import {
   uploadBatch,
   removeRemoteBatch,
   scheduleClientDelete,
+  remoteSweeperPresent,
 } from "./transport/ssh.js";
 import { emitSuccess, emitJsonError } from "./output.js";
 import { EXIT } from "./constants.js";
+import { withSpinner } from "./progress.js";
+import { color } from "./color.js";
 
 export type RunOptions = ResolveOptions & {
   json?: boolean;
@@ -66,7 +69,17 @@ export async function runUpload(opts: RunOptions): Promise<number> {
     return EXIT.USAGE;
   }
 
+  if (opts.clip && opts.watch) {
+    const msg = "Use either --clip or --watch, not both";
+    if (opts.json) emitJsonError(msg);
+    else console.error(msg);
+    return EXIT.USAGE;
+  }
+
   const includeVideo = opts.includeVideo ?? target.watchIncludeVideo;
+  const acceptAll = target.acceptAllFiles;
+  const maxBytes = target.maxFileMb * 1024 * 1024;
+  const quiet = !!opts.json;
   const session = await createStagingSession();
 
   const preflightPromise = preflight(target).then(
@@ -81,12 +94,12 @@ export async function runUpload(opts: RunOptions): Promise<number> {
 
   try {
     await withCancelCleanup(session, async () => {
-      // Collect
       if (opts.watch) {
         try {
           await collectFromWatch(session, {
             dir: opts.watchDir ?? target.watchDir,
             includeVideo,
+            acceptAll,
           });
         } catch (err) {
           if ((err as { code?: number }).code === 130) {
@@ -96,29 +109,42 @@ export async function runUpload(opts: RunOptions): Promise<number> {
           throw err;
         }
       } else if (opts.clip) {
-        await collectFromClipboard(session);
+        try {
+          await collectFromClipboard(session, { dedup: target.clipDedup });
+        } catch (err) {
+          if ((err as { code?: number }).code === 130) {
+            cancelled = true;
+            return;
+          }
+          throw err;
+        }
       } else if (opts.files && opts.files.length > 0) {
-        // Explicit paths: allow images + videos (user chose them).
-        const found = await collectFromArgs(opts.files, true);
+        const found = await collectFromArgs(opts.files, {
+          includeVideo: true,
+          acceptAll,
+        });
         const { accepted, skipped } = await validatePaths(found, {
           force: opts.force,
           includeVideo: true,
+          acceptAll,
+          maxBytes,
         });
         for (const s of skipped) {
-          console.error(`skip: ${s.path} (${s.reason})`);
+          console.error(color.yellow(`skip: ${s.path} (${s.reason})`));
         }
         for (const p of accepted) {
           await stageFile(session, p);
         }
       } else {
-        // Parallel: picker while preflight runs
         const paths = await collectFromPicker();
         const { accepted, skipped } = await validatePaths(paths, {
           force: opts.force,
           includeVideo,
+          acceptAll,
+          maxBytes,
         });
         for (const s of skipped) {
-          console.error(`skip: ${s.path} (${s.reason})`);
+          console.error(color.yellow(`skip: ${s.path} (${s.reason})`));
         }
         for (const p of accepted) {
           await stageFile(session, p);
@@ -134,31 +160,35 @@ export async function runUpload(opts: RunOptions): Promise<number> {
     const staged = await listStaged(session);
     if (staged.length === 0) {
       await destroyStaging(session);
-      const msg = "No media to upload";
+      const msg = "No files to upload";
       if (opts.json) emitJsonError(msg);
       else console.error(msg);
       return EXIT.EMPTY;
     }
 
-    // Await preflight before upload
-    const pf = await preflightPromise;
+    const pf = await withSpinner("Checking SSH…", quiet, () => preflightPromise);
     if (!pf.ok) {
       const msg = `SSH preflight failed: ${pf.error}\nLocal staging kept: ${session.localDir}`;
       if (opts.json) {
         emitJsonError(pf.error, { localStaging: session.localDir });
       } else {
-        console.error(msg);
+        console.error(color.red(msg));
       }
       return EXIT.SSH;
     }
 
     let remotePath: string;
     try {
-      remotePath = await uploadBatch({
-        target,
-        localDir: session.localDir,
-        batchId: session.batchId,
-      });
+      remotePath = await withSpinner(
+        `Uploading ${staged.length} file${staged.length === 1 ? "" : "s"}…`,
+        quiet,
+        () =>
+          uploadBatch({
+            target,
+            localDir: session.localDir,
+            batchId: session.batchId,
+          }),
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       try {
@@ -169,7 +199,7 @@ export async function runUpload(opts: RunOptions): Promise<number> {
       if (opts.json) {
         emitJsonError(msg, { localStaging: session.localDir });
       } else {
-        console.error(`Upload failed: ${msg}`);
+        console.error(color.red(`Upload failed: ${msg}`));
         console.error(`Local staging kept: ${session.localDir}`);
       }
       return EXIT.UPLOAD;
@@ -181,11 +211,17 @@ export async function runUpload(opts: RunOptions): Promise<number> {
       console.error(`Local staging kept: ${session.localDir}`);
     }
 
-    // Best-effort client-side TTL fallback
     try {
       await scheduleClientDelete(target, session.batchId, target.ttlHours);
     } catch {
       // ignore
+    }
+
+    let sweeper: boolean | undefined;
+    try {
+      sweeper = await remoteSweeperPresent(target);
+    } catch {
+      sweeper = undefined;
     }
 
     await emitSuccess({
@@ -195,6 +231,7 @@ export async function runUpload(opts: RunOptions): Promise<number> {
       remotePath,
       files: staged,
       copy: opts.copy,
+      sweeper,
     });
     return EXIT.OK;
   } catch (err) {
@@ -203,7 +240,6 @@ export async function runUpload(opts: RunOptions): Promise<number> {
       await destroyStaging(session).catch(() => undefined);
       return EXIT.CANCEL;
     }
-    // Keep staging on unexpected failure
     if (opts.json) emitJsonError(msg, { localStaging: session.localDir });
     else {
       console.error(msg);

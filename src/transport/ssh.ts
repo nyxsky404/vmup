@@ -250,6 +250,23 @@ find "$DIR" -maxdepth 1 -type d -name 'agents-*.partial' -mmin +${minutes} -exec
   }
 }
 
+export async function remoteSweeperPresent(
+  target: ResolvedTarget,
+): Promise<boolean> {
+  const spec = buildSshSpec(target);
+  const scriptPath = remoteJoin(target.remoteDir, ".cleanup.sh");
+  const res = await run(
+    "ssh",
+    [
+      ...spec.baseArgs,
+      spec.destHost,
+      `test -x ${remoteShellPath(scriptPath)} && echo YES || echo NO`,
+    ],
+    { timeoutMs: 15_000 },
+  );
+  return res.stdout.includes("YES");
+}
+
 export async function scheduleClientDelete(
   target: ResolvedTarget,
   batchId: string,

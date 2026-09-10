@@ -86,7 +86,7 @@ export async function runInit(opts: {
       const remoteDir = await ask(rl, "Remote dir", DEFAULT_REMOTE_DIR);
       const ttlStr = await ask(rl, "TTL hours", String(DEFAULT_TTL_HOURS));
       const watchDir = await ask(rl, "Screenshots / watch folder", defaultWatchDir());
-      const videoAns = await ask(rl, "Include screen recordings by default? (y/N)", "n");
+      const allAns = await ask(rl, "Accept all file types (pdf, video, …), not just images? (Y/n)", "Y");
       const sweeperAns = await ask(rl, "Install remote cleanup sweeper? (Y/n)", "Y");
 
       const profile: ProfileConfig = {
@@ -102,7 +102,8 @@ export async function runInit(opts: {
       cfg.remote_dir = remoteDir;
       cfg.ttl_hours = Number(ttlStr) || DEFAULT_TTL_HOURS;
       cfg.watch_dir = watchDir;
-      cfg.watch_include_video = /^y(es)?$/i.test(videoAns);
+      cfg.accept_all_files = !/^n(o)?$/i.test(allAns);
+      cfg.watch_include_video = cfg.accept_all_files;
       cfg.profiles = { [cfg.default_profile]: profile };
 
       await saveConfig(cfg);
@@ -131,7 +132,8 @@ export async function runInit(opts: {
           console.error(
             `SSH setup incomplete: ${err instanceof Error ? err.message : err}`,
           );
-          console.error("You can fix config and re-run: vmup init");
+          console.error("Config is saved. Retry SSH with: vmup check");
+          console.error("Install sweeper later with: vmup check --sweeper");
         }
       } else {
         console.log(
@@ -158,10 +160,11 @@ export async function runInit(opts: {
   }
 
   console.log("\nNext:");
-  console.log("  vmup file1.png file2.png");
-  console.log("  vmup              # file picker");
-  console.log("  vmup --clip       # clipboard loop");
-  console.log("  vmup watch        # watch screenshots folder");
+  console.log("  vmup check         # retry SSH without re-asking questions");
+  console.log("  vmup file1.png file2.pdf");
+  console.log("  vmup               # file picker");
+  console.log("  vmup --clip        # clipboard loop");
+  console.log("  vmup watch         # watch folder (also: vmup --watch)");
   return 0;
 }
 

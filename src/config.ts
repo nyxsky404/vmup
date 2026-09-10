@@ -8,6 +8,9 @@ import {
   DEFAULT_REMOTE_DIR,
   DEFAULT_TTL_HOURS,
   DEFAULT_USER,
+  DEFAULT_MAX_FILE_MB,
+  DEFAULT_ACCEPT_ALL_FILES,
+  DEFAULT_CLIP_DEDUP,
   configDir,
   configPath as getConfigPath,
   defaultSshKeyHint,
@@ -32,6 +35,12 @@ export type VmupConfig = {
   ttl_hours?: number;
   watch_dir?: string;
   watch_include_video?: boolean;
+  /** When true (default), accept pdf/video/any file. When false, images only (+ video if enabled). */
+  accept_all_files?: boolean;
+  /** Per-file size limit in megabytes. */
+  max_file_mb?: number;
+  /** Skip identical clipboard captures in --clip (default true). */
+  clip_dedup?: boolean;
   profiles?: Record<string, ProfileConfig>;
 };
 
@@ -48,6 +57,9 @@ export type ResolvedTarget = {
   promptTemplate: string;
   watchDir: string;
   watchIncludeVideo: boolean;
+  acceptAllFiles: boolean;
+  maxFileMb: number;
+  clipDedup: boolean;
 };
 
 export function configPath(): string {
@@ -123,6 +135,32 @@ export function resolveTarget(
       ? true
       : (cfg.watch_include_video ?? false));
 
+  const acceptAllFiles =
+    envOverride("VMUP_ACCEPT_ALL") === "0"
+      ? false
+      : envOverride("VMUP_ACCEPT_ALL") === "1"
+        ? true
+        : (cfg.accept_all_files ?? DEFAULT_ACCEPT_ALL_FILES);
+
+  const maxFileMb = Number(
+    envOverride("VMUP_MAX_FILE_MB") ?? cfg.max_file_mb ?? DEFAULT_MAX_FILE_MB,
+  );
+
+  const clipDedup =
+    envOverride("VMUP_CLIP_DEDUP") === "0"
+      ? false
+      : envOverride("VMUP_CLIP_DEDUP") === "1"
+        ? true
+        : (cfg.clip_dedup ?? DEFAULT_CLIP_DEDUP);
+
+  const extras = {
+    watchDir,
+    watchIncludeVideo,
+    acceptAllFiles,
+    maxFileMb: Number.isFinite(maxFileMb) && maxFileMb > 0 ? maxFileMb : DEFAULT_MAX_FILE_MB,
+    clipDedup,
+  };
+
   if (opts.sshHost || envOverride("VMUP_SSH_HOST")) {
     const alias = opts.sshHost ?? envOverride("VMUP_SSH_HOST")!;
     return {
@@ -133,8 +171,7 @@ export function resolveTarget(
       remoteDir: globalRemote,
       ttlHours: globalTtl,
       promptTemplate,
-      watchDir,
-      watchIncludeVideo,
+      ...extras,
     };
   }
 
@@ -154,8 +191,7 @@ export function resolveTarget(
       remoteDir: profile.remote_dir ?? globalRemote,
       ttlHours: profile.ttl_hours ?? globalTtl,
       promptTemplate,
-      watchDir,
-      watchIncludeVideo,
+      ...extras,
     };
   }
 
@@ -176,8 +212,7 @@ export function resolveTarget(
     remoteDir: profile.remote_dir ?? globalRemote,
     ttlHours: profile.ttl_hours ?? globalTtl,
     promptTemplate,
-    watchDir,
-    watchIncludeVideo,
+    ...extras,
   };
 }
 
@@ -212,6 +247,9 @@ export function emptyTemplateConfig(): VmupConfig {
     ttl_hours: DEFAULT_TTL_HOURS,
     watch_dir: defaultWatchDir(),
     watch_include_video: false,
+    accept_all_files: DEFAULT_ACCEPT_ALL_FILES,
+    max_file_mb: DEFAULT_MAX_FILE_MB,
+    clip_dedup: DEFAULT_CLIP_DEDUP,
     profiles: {
       [DEFAULT_PROFILE]: {
         user: DEFAULT_USER,

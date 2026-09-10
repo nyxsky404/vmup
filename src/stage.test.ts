@@ -11,6 +11,7 @@ import {
 import { resolveTarget, type VmupConfig } from "./config.js";
 import { isImagePath, isVideoPath, validatePaths } from "./validate.js";
 import { assertKeyUsable, formatSshError } from "./ssh-key.js";
+import { fileSha256 } from "./hash.js";
 import { chmod, writeFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -77,9 +78,19 @@ describe("validatePaths", () => {
     const txt = join(dir, "b.txt");
     await writeFile(img, "x");
     await writeFile(txt, "y");
-    const res = await validatePaths([img, txt], { includeVideo: false });
+    const res = await validatePaths([img, txt], { includeVideo: false, acceptAll: false });
     assert.deepEqual(res.accepted, [img]);
     assert.equal(res.skipped.length, 1);
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("accepts all types when acceptAll", async () => {
+    const dir = join(tmpdir(), `vmup-all-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+    const pdf = join(dir, "a.pdf");
+    await writeFile(pdf, "pdf");
+    const res = await validatePaths([pdf], { acceptAll: true });
+    assert.deepEqual(res.accepted, [pdf]);
     await rm(dir, { recursive: true, force: true });
   });
 
@@ -89,8 +100,8 @@ describe("validatePaths", () => {
   });
 });
 
-describe("stageFile media-NN", () => {
-  it("renames staged files to media-NN.ext", async () => {
+describe("stageFile kind names", () => {
+  it("renames to image-NN / video-NN / file-NN", async () => {
     const prevCache = process.env.VMUP_CACHE_DIR;
     const cache = join(tmpdir(), `vmup-stage-${Date.now()}`);
     process.env.VMUP_CACHE_DIR = cache;
@@ -98,15 +109,18 @@ describe("stageFile media-NN", () => {
     await mkdir(srcDir, { recursive: true });
     const a = join(srcDir, "Screenshot 1.PNG");
     const b = join(srcDir, "clip.mov");
+    const c = join(srcDir, "notes.pdf");
     await writeFile(a, "img");
     await writeFile(b, "vid");
+    await writeFile(c, "pdf");
     const session = await createStagingSession();
     try {
       await stageFile(session, a);
       await stageFile(session, b);
+      await stageFile(session, c);
       const staged = await listStaged(session);
       const names = staged.map((p) => p.split(/[/\\]/).pop());
-      assert.deepEqual(names, ["media-01.png", "media-02.mov"]);
+      assert.deepEqual(names, ["image-01.png", "video-01.mov", "file-01.pdf"]);
     } finally {
       await destroyStaging(session);
       await rm(srcDir, { recursive: true, force: true });
@@ -150,5 +164,21 @@ describe("ssh key checks", () => {
   it("hints chmod on unprotected key errors", () => {
     const msg = formatSshError("UNPROTECTED PRIVATE KEY FILE!");
     assert.match(msg, /chmod 600/);
+  });
+});
+
+describe("fileSha256", () => {
+  it("hashes identical content the same", async () => {
+    const dir = join(tmpdir(), `vmup-hash-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+    const a = join(dir, "a.bin");
+    const b = join(dir, "b.bin");
+    await writeFile(a, "same");
+    await writeFile(b, "same");
+    try {
+      assert.equal(await fileSha256(a), await fileSha256(b));
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

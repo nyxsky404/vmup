@@ -5,14 +5,15 @@ import { basename } from "node:path";
 import { expandHome } from "../constants.js";
 import type { StagingSession } from "../stage.js";
 import { stageFile } from "../stage.js";
-import { isMediaPath } from "../validate.js";
+import { color } from "../color.js";
+import { isAllowedPath } from "../validate.js";
 import { looksLikeJunk } from "./args.js";
 
 export type WatchOptions = {
   dir: string;
   includeVideo: boolean;
+  acceptAll: boolean;
   onCaptured?: (name: string) => void;
-  /** Called when user requests stop-and-upload (Enter / stop). Ctrl+C should reject/cancel externally. */
 };
 
 function sleep(ms: number): Promise<void> {
@@ -63,13 +64,17 @@ export async function collectFromWatch(
     );
   }
 
-  console.error(`Watching: ${dir}`);
+  console.error(color.bold(`Watching: ${dir}`));
   console.error(
-    opts.includeVideo
-      ? "  Capturing new images and videos created after start."
-      : "  Capturing new images created after start. (use --video for recordings)",
+    color.dim(
+      opts.acceptAll
+        ? "  Capturing new files created after start."
+        : opts.includeVideo
+          ? "  Capturing new images and videos created after start."
+          : "  Capturing new images created after start. (use --video for recordings, or accept_all_files in config)",
+    ),
   );
-  console.error('  Press Enter or type "stop" to upload. Ctrl+C cancels.');
+  console.error(color.dim('  Press Enter or type "stop" to upload. Ctrl+C cancels.'));
 
   let stopping = false;
   let count = 0;
@@ -79,7 +84,7 @@ export async function collectFromWatch(
     if (looksLikeJunk(path)) return;
     if (seenAtStart.has(path)) return;
     if (stagedPaths.has(path)) return;
-    if (!isMediaPath(path, opts.includeVideo)) return;
+    if (!isAllowedPath(path, { includeVideo: opts.includeVideo, acceptAll: opts.acceptAll })) return;
 
     try {
       const s = await stat(path);
@@ -101,7 +106,7 @@ export async function collectFromWatch(
       const name = basename(staged);
       count += 1;
       opts.onCaptured?.(name);
-      console.error(`  + ${name}  ← ${basename(path)}`);
+      console.error(color.green(`  + ${name}  ← ${basename(path)}`));
     } catch (err) {
       stagedPaths.delete(path);
       console.error(`  ! ${err instanceof Error ? err.message : err}`);
@@ -159,5 +164,13 @@ export async function collectFromWatch(
 
   // Brief drain for in-flight stages
   await sleep(500);
+  try {
+    process.stdin.pause();
+  } catch {
+    // ignore
+  }
+  if (count > 0) {
+    console.error(color.dim(`Captured ${count} file${count === 1 ? "" : "s"}.`));
+  }
   return count;
 }

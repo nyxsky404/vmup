@@ -1,16 +1,21 @@
 import { extname } from "node:path";
 import { stat } from "node:fs/promises";
-import { IMAGE_EXTS, VIDEO_EXTS } from "./constants.js";
+import {
+  IMAGE_EXTS,
+  VIDEO_EXTS,
+  DEFAULT_MAX_FILE_MB,
+  DEFAULT_MAX_FILES,
+} from "./constants.js";
+
+export type FileKind = "image" | "video" | "file";
 
 export type ValidateOptions = {
   force?: boolean;
   includeVideo?: boolean;
+  acceptAll?: boolean;
   maxBytes?: number;
   maxFiles?: number;
 };
-
-const DEFAULT_MAX_BYTES = 200 * 1024 * 1024; // 200MB per file
-const DEFAULT_MAX_FILES = 200;
 
 export function isImagePath(p: string): boolean {
   return IMAGE_EXTS.has(extname(p).toLowerCase());
@@ -20,10 +25,25 @@ export function isVideoPath(p: string): boolean {
   return VIDEO_EXTS.has(extname(p).toLowerCase());
 }
 
-export function isMediaPath(p: string, includeVideo: boolean): boolean {
+export function fileKind(p: string): FileKind {
+  if (isImagePath(p)) return "image";
+  if (isVideoPath(p)) return "video";
+  return "file";
+}
+
+export function isAllowedPath(
+  p: string,
+  opts: { includeVideo?: boolean; acceptAll?: boolean },
+): boolean {
+  if (opts.acceptAll) return true;
   if (isImagePath(p)) return true;
-  if (includeVideo && isVideoPath(p)) return true;
+  if (opts.includeVideo && isVideoPath(p)) return true;
   return false;
+}
+
+/** @deprecated use isAllowedPath */
+export function isMediaPath(p: string, includeVideo: boolean): boolean {
+  return isAllowedPath(p, { includeVideo, acceptAll: false });
 }
 
 export type ValidateResult = {
@@ -36,8 +56,9 @@ export async function validatePaths(
   opts: ValidateOptions = {},
 ): Promise<ValidateResult> {
   const includeVideo = opts.includeVideo ?? false;
+  const acceptAll = opts.acceptAll ?? true;
   const force = opts.force ?? false;
-  const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
+  const maxBytes = opts.maxBytes ?? DEFAULT_MAX_FILE_MB * 1024 * 1024;
   const maxFiles = opts.maxFiles ?? DEFAULT_MAX_FILES;
   const accepted: string[] = [];
   const skipped: { path: string; reason: string }[] = [];
@@ -59,14 +80,15 @@ export async function validatePaths(
       continue;
     }
     if (s.size > maxBytes) {
-      skipped.push({ path: p, reason: `too large (>${maxBytes} bytes)` });
+      const mb = Math.round(maxBytes / (1024 * 1024));
+      skipped.push({ path: p, reason: `too large (>${mb} MB)` });
       continue;
     }
-    if (!isMediaPath(p, includeVideo)) {
+    if (!isAllowedPath(p, { includeVideo, acceptAll })) {
       if (force) {
         accepted.push(p);
       } else {
-        skipped.push({ path: p, reason: "not an allowed media type" });
+        skipped.push({ path: p, reason: "not an allowed type (images-only mode)" });
       }
       continue;
     }

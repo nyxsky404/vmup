@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import { runUpload } from "./pipeline.js";
 import { runInit } from "./init.js";
+import { runCheck } from "./check.js";
 import {
   loadConfig,
   resolveTarget,
@@ -22,8 +23,8 @@ const program = new Command();
 
 program
   .name("vmup")
-  .description("Batch media to a remote host for coding agents")
-  .version("0.1.1")
+  .description("Batch files to a remote host for coding agents")
+  .version("0.2.0")
   .enablePositionalOptions();
 
 program
@@ -35,6 +36,23 @@ program
     const code = await runInit({
       yes: !!opts.yes,
       installSweeper: opts.sweeper !== false,
+    });
+    process.exit(code);
+  });
+
+program
+  .command("check")
+  .description("Test SSH using saved config (no wizard)")
+  .option("-p, --profile <name>", "Profile name")
+  .option("--ssh-host <alias>", "SSH config alias")
+  .option("--sweeper", "Install/refresh remote cleanup sweeper")
+  .option("--json", "JSON output")
+  .action(async (opts) => {
+    const code = await runCheck({
+      profile: opts.profile,
+      sshHost: opts.sshHost,
+      sweeper: !!opts.sweeper,
+      json: !!opts.json,
     });
     process.exit(code);
   });
@@ -102,11 +120,11 @@ program
 
 program
   .command("watch")
-  .description("Watch screenshots folder and upload a batch when you stop")
+  .description("Watch a folder and upload a batch when you stop")
   .option("-p, --profile <name>", "Profile name")
   .option("--ssh-host <alias>", "SSH config alias")
   .option("--dir <path>", "Folder to watch")
-  .option("--video", "Include screen recordings")
+  .option("--video", "Include videos when in images-only mode")
   .option("--force", "Allow non-media with --force semantics")
   .option("--keep-local", "Keep local staging after success")
   .option("--ttl <hours>", "TTL override", (v) => Number(v))
@@ -131,13 +149,14 @@ program
   .option("-p, --profile <name>", "Profile name")
   .option("--ssh-host <alias>", "SSH config alias")
   .option("--clip", "Clipboard capture loop")
+  .option("--watch", "Watch screenshots folder (same as vmup watch)")
+  .option("--dir <path>", "Folder to watch (with --watch)")
   .option("--video", "Include videos when collecting")
   .option("--force", "Allow non-media files")
   .option("--keep-local", "Keep local staging after success")
   .option("--ttl <hours>", "TTL override", (v) => Number(v))
   .option("--json", "JSON output")
   .action(async (files: string[], opts) => {
-    // If user ran a subcommand, commander won't hit this with subcommand name as file
     const code = await runUpload({
       files,
       profile: opts.profile,
@@ -148,6 +167,8 @@ program
       keepLocal: !!opts.keepLocal,
       ttlHours: opts.ttl,
       json: !!opts.json,
+      watch: !!opts.watch,
+      watchDir: opts.dir,
     });
     process.exit(code);
   });

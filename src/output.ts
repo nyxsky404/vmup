@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { platform } from "node:os";
 import type { ResolvedTarget } from "./config.js";
 import { renderPrompt } from "./config.js";
+import { color } from "./color.js";
 
 export type HumanResult = {
   count: number;
@@ -21,14 +22,15 @@ export type JsonResult = {
   files?: string[];
   error?: string;
   localStaging?: string;
+  sweeper?: boolean;
 };
 
 export function buildHumanOutput(r: HumanResult): string {
   const lines = [
-    `Uploaded ${r.count} file${r.count === 1 ? "" : "s"} → ${r.profileName}`,
-    `Agent folder: ${r.remotePath}`,
+    `${color.green(`Uploaded ${r.count} file${r.count === 1 ? "" : "s"}`)} ${color.dim("→")} ${r.profileName}`,
+    `${color.dim("Agent folder:")} ${color.cyan(r.remotePath)}`,
     "",
-    "Prompt:",
+    color.dim("Prompt:"),
     r.prompt,
   ];
   return lines.join("\n");
@@ -80,6 +82,7 @@ export async function emitSuccess(opts: {
   remotePath: string;
   files: string[];
   copy?: boolean;
+  sweeper?: boolean;
 }): Promise<void> {
   const remotePath = opts.remotePath.endsWith("/")
     ? opts.remotePath
@@ -96,6 +99,7 @@ export async function emitSuccess(opts: {
       prompt,
       count: opts.files.length,
       files: fileNames,
+      sweeper: opts.sweeper,
     };
     console.log(JSON.stringify(payload, null, 2));
     return;
@@ -114,10 +118,19 @@ export async function emitSuccess(opts: {
   if (opts.copy !== false) {
     const ok = await copyToClipboard(remotePath);
     if (!ok) {
-      console.error("(clipboard copy unavailable)");
+      console.error(color.dim("(clipboard copy unavailable)"));
     } else {
-      console.error("(copied agent folder path to clipboard)");
+      console.error(color.dim("(copied agent folder path to clipboard)"));
     }
+  }
+
+  if (opts.sweeper === false) {
+    console.error("");
+    console.error(
+      color.yellow("Remote sweeper is not installed.") +
+        color.dim(" Batches may linger after TTL if this machine sleeps."),
+    );
+    console.error(color.dim("  Reinstall:  vmup check --sweeper"));
   }
 }
 

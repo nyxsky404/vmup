@@ -32,7 +32,7 @@ export async function collectFromPicker(): Promise<string[]> {
 
 async function macPicker(): Promise<string[]> {
   const script = `
-set theFiles to choose file with prompt "Select media to upload with vmup" with multiple selections allowed
+set theFiles to choose file with prompt "Select files to upload with vmup" with multiple selections allowed
 set out to ""
 repeat with f in theFiles
   set out to out & POSIX path of f & linefeed
@@ -58,7 +58,7 @@ async function linuxPicker(): Promise<string[]> {
       "--file-selection",
       "--multiple",
       "--separator=\n",
-      "--title=Select media to upload with vmup",
+      "--title=Select files to upload with vmup",
     ]);
     if (res.code !== 0) return [];
     return res.stdout

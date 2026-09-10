@@ -1,12 +1,12 @@
 import { readdir, stat } from "node:fs/promises";
 import { join, extname, basename } from "node:path";
-import { isMediaPath } from "../validate.js";
+import { isAllowedPath } from "../validate.js";
 
 const IGNORE_NAMES = new Set([".DS_Store", "Thumbs.db", "desktop.ini"]);
 
 export async function collectFromArgs(
   inputs: string[],
-  includeVideo: boolean,
+  opts: { includeVideo: boolean; acceptAll: boolean },
 ): Promise<string[]> {
   const out: string[] = [];
   for (const input of inputs) {
@@ -27,7 +27,7 @@ export async function collectFromArgs(
         const full = join(input, name);
         try {
           const st = await stat(full);
-          if (st.isFile() && isMediaPath(full, includeVideo)) {
+          if (st.isFile() && isAllowedPath(full, opts)) {
             out.push(full);
           }
         } catch {
