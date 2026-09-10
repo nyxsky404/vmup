@@ -3,14 +3,18 @@ import { join } from "node:path";
 
 export const APP_NAME = "vmup";
 export const PACKAGE_NAME = "@nyxsky404/vmup";
-export const PACKAGE_VERSION = "0.2.1";
+export const PACKAGE_VERSION = "0.3.0";
 export const BATCH_PREFIX = "agents";
 export const DEFAULT_REMOTE_DIR = "~/vmup";
+export const DEFAULT_TTL_MINUTES = 5;
+/** @deprecated use DEFAULT_TTL_MINUTES; kept for reading old configs */
 export const DEFAULT_TTL_HOURS = 5;
 export const DEFAULT_PORT = 22;
 export const DEFAULT_USER = "ubuntu";
 export const DEFAULT_PROMPT =
   "Please inspect all files in {{remote_path}}";
+export const LEGACY_IMAGES_PROMPT =
+  "Please inspect all images in {{remote_path}}";
 export const DEFAULT_PROFILE = "default";
 export const DEFAULT_MAX_FILE_MB = 200;
 export const DEFAULT_MAX_FILES = 200;

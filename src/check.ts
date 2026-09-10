@@ -48,7 +48,7 @@ export async function runCheck(opts: {
   if (opts.sweeper) {
     try {
       await withSpinner("Installing remote sweeper…", !!opts.json, () =>
-        installRemoteSweeper(target, target.ttlHours),
+        installRemoteSweeper(target, target.ttlMinutes),
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

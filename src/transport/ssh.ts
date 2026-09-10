@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process";
+import { stat } from "node:fs/promises";
+import { basename } from "node:path";
 import { expandHome } from "../constants.js";
 import type { ResolvedTarget } from "../config.js";
 import { isBatchDirName } from "../stage.js";
@@ -102,19 +104,33 @@ export async function preflight(target: ResolvedTarget): Promise<void> {
   }
 }
 
+function scpBaseArgs(target: ResolvedTarget): string[] {
+  return [
+    ...(target.mode === "direct"
+      ? ["-P", String(target.port), ...(target.key ? ["-i", target.key] : [])]
+      : []),
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "StrictHostKeyChecking=accept-new",
+  ];
+}
+
 export async function uploadBatch(opts: {
   target: ResolvedTarget;
   localDir: string;
   batchId: string;
+  files?: string[];
+  onProgress?: (uploadedBytes: number) => void;
 }): Promise<string> {
-  const { target, localDir, batchId } = opts;
+  const { target, localDir, batchId, files } = opts;
   const spec = buildSshSpec(target);
   const remoteFinal = remoteJoin(target.remoteDir, batchId);
   const remotePartial = `${remoteFinal}.partial`;
   const shellFinal = remoteShellPath(remoteFinal);
   const shellPartial = remoteShellPath(remotePartial);
+  const remoteDest = `${spec.destHost}:${scpRemotePath(remotePartial)}/`;
 
-  // Clean any leftover partial, create partial dir, scp contents, rename.
   const prepare = [
     `rm -rf ${shellPartial} ${shellFinal}`,
     `mkdir -p ${shellPartial}`,
@@ -127,27 +143,47 @@ export async function uploadBatch(opts: {
     throw new Error(formatSshError(prep.stderr.trim() || "failed to prepare remote dir"));
   }
 
-  const scpArgs = [
-    "-r",
-    ...(target.mode === "direct"
-      ? ["-P", String(target.port), ...(target.key ? ["-i", target.key] : [])]
-      : []),
-    "-o",
-    "BatchMode=yes",
-    "-o",
-    "StrictHostKeyChecking=accept-new",
-    `${localDir}/.`,
-    `${spec.destHost}:${scpRemotePath(remotePartial)}/`,
-  ];
-
-  const scp = await run("scp", scpArgs, { timeoutMs: 600_000 });
-  if (scp.code !== 0) {
-    await run("ssh", [
+  const cleanupPartial = () =>
+    run("ssh", [
       ...spec.baseArgs,
       spec.destHost,
       `rm -rf ${shellPartial}`,
     ]).catch(() => undefined);
-    throw new Error(formatSshError(scp.stderr.trim() || "scp failed"));
+
+  const scpCommon = scpBaseArgs(target);
+
+  try {
+    if (files && files.length > 0) {
+      let uploaded = 0;
+      for (const file of files) {
+        const scp = await run(
+          "scp",
+          [...scpCommon, file, `${remoteDest}${basename(file)}`],
+          { timeoutMs: 600_000 },
+        );
+        if (scp.code !== 0) {
+          throw new Error(formatSshError(scp.stderr.trim() || "scp failed"));
+        }
+        try {
+          uploaded += (await stat(file)).size;
+        } catch {
+          // size is only for progress
+        }
+        opts.onProgress?.(uploaded);
+      }
+    } else {
+      const scp = await run(
+        "scp",
+        ["-r", ...scpCommon, `${localDir}/.`, remoteDest],
+        { timeoutMs: 600_000 },
+      );
+      if (scp.code !== 0) {
+        throw new Error(formatSshError(scp.stderr.trim() || "scp failed"));
+      }
+    }
+  } catch (err) {
+    await cleanupPartial();
+    throw err;
   }
 
   const finalize = `mv ${shellPartial} ${shellFinal}`;
@@ -155,11 +191,7 @@ export async function uploadBatch(opts: {
     timeoutMs: 20_000,
   });
   if (fin.code !== 0) {
-    await run("ssh", [
-      ...spec.baseArgs,
-      spec.destHost,
-      `rm -rf ${shellPartial}`,
-    ]).catch(() => undefined);
+    await cleanupPartial();
     throw new Error(formatSshError(fin.stderr.trim() || "remote finalize failed"));
   }
 
@@ -182,10 +214,10 @@ export async function removeRemoteBatch(
 
 export async function pruneRemote(
   target: ResolvedTarget,
-  ttlHours: number,
+  ttlMinutes: number,
 ): Promise<number> {
   const spec = buildSshSpec(target);
-  const minutes = Math.max(1, Math.floor(ttlHours * 60));
+  const minutes = Math.max(1, Math.floor(ttlMinutes));
   const script = `
 set -e
 dir=${remoteShellPath(target.remoteDir)}
@@ -216,10 +248,10 @@ echo $count
 
 export async function installRemoteSweeper(
   target: ResolvedTarget,
-  ttlHours: number,
+  ttlMinutes: number,
 ): Promise<void> {
   const spec = buildSshSpec(target);
-  const minutes = Math.max(1, Math.floor(ttlHours * 60));
+  const minutes = Math.max(1, Math.floor(ttlMinutes));
   const scriptPath = remoteJoin(target.remoteDir, ".cleanup.sh");
   const dirExpr = target.remoteDir.startsWith("~/")
     ? `$HOME/${target.remoteDir.slice(2)}`
@@ -239,7 +271,7 @@ find "$DIR" -maxdepth 1 -type d -name 'agents-*.partial' -mmin +${minutes} -exec
     `mkdir -p ${remoteShellPath(target.remoteDir)}`,
     `echo ${shellQuote(b64)} | base64 -d > ${remoteShellPath(scriptPath)}`,
     `chmod +x ${remoteShellPath(scriptPath)}`,
-    `(crontab -l 2>/dev/null | grep -v '.cleanup.sh' || true; echo '*/10 * * * * ${scriptPathExpr}') | crontab -`,
+    `(crontab -l 2>/dev/null | grep -v '.cleanup.sh' || true; echo '* * * * * ${scriptPathExpr}') | crontab -`,
   ].join(" && ");
 
   const res = await run("ssh", [...spec.baseArgs, spec.destHost, install], {
@@ -270,10 +302,10 @@ export async function remoteSweeperPresent(
 export async function scheduleClientDelete(
   target: ResolvedTarget,
   batchId: string,
-  ttlHours: number,
+  ttlMinutes: number,
 ): Promise<void> {
   // Best-effort; only runs while this machine stays awake.
-  const delaySec = Math.max(60, Math.floor(ttlHours * 3600));
+  const delaySec = Math.max(60, Math.floor(ttlMinutes * 60));
   const spec = buildSshSpec(target);
   const remoteFinal = remoteJoin(target.remoteDir, batchId);
   const sshCmd = [

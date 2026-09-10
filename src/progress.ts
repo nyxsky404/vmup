@@ -1,29 +1,49 @@
 const FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 export type Spinner = {
+  update: (label: string) => void;
   stop: (finalLine?: string) => void;
 };
 
-/** TTY spinner on stderr. Quiet when --json or non-TTY (prints the label once). */
+export function formatBytes(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return "0 B";
+  if (n < 1024) return `${Math.round(n)} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(n / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+/**
+ * TTY spinner on stderr (same braille animation as `vmup check`).
+ * Animates when stderr is a TTY even with --json (JSON stays on stdout).
+ * Non-TTY: prints the label once unless quiet.
+ */
 export function startSpinner(label: string, quiet: boolean): Spinner {
-  if (quiet || !process.stderr.isTTY) {
-    console.error(label);
-    return { stop: (finalLine) => {
-      if (finalLine) console.error(finalLine);
-    } };
+  if (!process.stderr.isTTY) {
+    if (!quiet) console.error(label);
+    return {
+      update: () => undefined,
+      stop: (finalLine) => {
+        if (finalLine && !quiet) console.error(finalLine);
+      },
+    };
   }
 
+  let current = label;
   let i = 0;
   const started = Date.now();
   const write = () => {
     const sec = Math.floor((Date.now() - started) / 1000);
-    process.stderr.write(`\r${FRAMES[i % FRAMES.length]} ${label}  ${sec}s`);
+    process.stderr.write(`\r${FRAMES[i % FRAMES.length]} ${current}  ${sec}s`);
     i += 1;
   };
   write();
   const id = setInterval(write, 80);
   let stopped = false;
   return {
+    update: (next) => {
+      current = next;
+    },
     stop: (finalLine) => {
       if (stopped) return;
       stopped = true;

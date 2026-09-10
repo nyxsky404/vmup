@@ -93,6 +93,7 @@ program
   .option("--local", "Also prune local staging orphans")
   .option("--id <batchId>", "Delete a specific remote batch id")
   .option("--install-sweeper", "Install/refresh remote cleanup cron")
+  .option("--ttl <minutes>", "TTL override in minutes", (v) => Number(v))
   .option("--json", "JSON output")
   .action(async (opts) => {
     try {
@@ -104,12 +105,13 @@ program
       const target = resolveTarget(cfg, {
         profile: opts.profile,
         sshHost: opts.sshHost,
+        ttlMinutes: opts.ttl,
       });
       assertTargetConnectable(target);
       await preflight(target);
 
       if (opts.installSweeper) {
-        await installRemoteSweeper(target, target.ttlHours);
+        await installRemoteSweeper(target, target.ttlMinutes);
         console.error("Remote sweeper installed");
       }
       if (opts.id) {
@@ -117,7 +119,7 @@ program
         await removeRemoteBatch(target, opts.id);
         console.error(`Removed ${opts.id}`);
       } else {
-        const n = await pruneRemote(target, target.ttlHours);
+        const n = await pruneRemote(target, target.ttlMinutes);
         console.error(`Pruned ${n} remote batch(es)`);
       }
       await done(EXIT.OK, !!opts.json);
@@ -133,10 +135,10 @@ program
   .option("-p, --profile <name>", "Profile name")
   .option("--ssh-host <alias>", "SSH config alias")
   .option("--dir <path>", "Folder to watch")
-  .option("--video", "Include videos when in images-only mode")
-  .option("--force", "Allow non-media with --force semantics")
+  .option("--video", "Include videos when accept_all_files is false")
+  .option("--force", "Allow extra types in images-only mode")
   .option("--keep-local", "Keep local staging after success")
-  .option("--ttl <hours>", "TTL override", (v) => Number(v))
+  .option("--ttl <minutes>", "TTL override in minutes", (v) => Number(v))
   .option("--json", "JSON output")
   .action(async (opts) => {
     const code = await runUpload({
@@ -146,7 +148,7 @@ program
       includeVideo: !!opts.video,
       force: !!opts.force,
       keepLocal: !!opts.keepLocal,
-      ttlHours: opts.ttl,
+      ttlMinutes: opts.ttl,
       json: !!opts.json,
       watch: true,
     });
@@ -160,10 +162,10 @@ program
   .option("--clip", "Clipboard capture loop")
   .option("--watch", "Watch screenshots folder (same as vmup watch)")
   .option("--dir <path>", "Folder to watch (with --watch)")
-  .option("--video", "Include videos when collecting")
-  .option("--force", "Allow non-media files")
+  .option("--video", "Include videos when accept_all_files is false")
+  .option("--force", "Allow extra types in images-only mode")
   .option("--keep-local", "Keep local staging after success")
-  .option("--ttl <hours>", "TTL override", (v) => Number(v))
+  .option("--ttl <minutes>", "TTL override in minutes", (v) => Number(v))
   .option("--json", "JSON output")
   .action(async (files: string[], opts) => {
     const code = await runUpload({
@@ -174,7 +176,7 @@ program
       includeVideo: !!opts.video,
       force: !!opts.force,
       keepLocal: !!opts.keepLocal,
-      ttlHours: opts.ttl,
+      ttlMinutes: opts.ttl,
       json: !!opts.json,
       watch: !!opts.watch,
       watchDir: opts.dir,

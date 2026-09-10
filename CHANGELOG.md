@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.0 — 2026-09-11
+
+- `vmup init` can add a profile or overwrite an existing one (shows current values; name-exists asks overwrite vs rename). New profiles ask whether to become the default.
+- TTL is in **minutes** (default **5**). `--ttl`, `ttl_minutes`, `VMUP_TTL_MINUTES`. Old `ttl_hours` is still read (hours × 60).
+- Remote sweeper cron runs every minute (`~/vmup/.cleanup.sh`). Reinstall with `vmup check --sweeper` after changing TTL.
+- Upload spinner shows `uploaded / total` size; same animation on TTY even with `--json` (JSON still on stdout).
+- Watch mode captures Finder copies in the folder (copies keep old timestamps). Existing files at start are still ignored.
+- Prompt default: `Please inspect all files in …` (old “images” prompt is migrated).
+- `--video` / `--force` only apply when `accept_all_files = false`.
+- Install via npm, pnpm, yarn, bun, npx/dlx/bunx, or `curl … | sh` (`scripts/install.sh`). Update notice uses the matching command.
+
 ## 0.2.1 — 2026-09-10
 
 - After a command, mention a newer npm release (at most once per day) with `npm i -g @nyxsky404/vmup`

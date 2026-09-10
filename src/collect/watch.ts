@@ -1,7 +1,7 @@
 import { watch as chokidarWatch } from "chokidar";
 import { createInterface } from "node:readline";
-import { stat } from "node:fs/promises";
-import { basename } from "node:path";
+import { readdir, stat } from "node:fs/promises";
+import { basename, join, resolve } from "node:path";
 import { expandHome } from "../constants.js";
 import type { StagingSession } from "../stage.js";
 import { stageFile } from "../stage.js";
@@ -16,7 +16,7 @@ export type WatchOptions = {
   onCaptured?: (name: string) => void;
 };
 
-function sleep(ms: number): Promise<void> {
+function wait(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
@@ -31,13 +31,15 @@ async function waitUntilStable(path: string, tries = 10): Promise<boolean> {
     } catch {
       return false;
     }
-    await sleep(350);
+    await wait(350);
   }
   return last > 0;
 }
 
 /**
- * Foreground folder watcher. Ignores files that existed at start.
+ * Foreground folder watcher. Ignores files that were already in the folder
+ * at start (unless they are overwritten). Finder copies often keep the original
+ * timestamps, so new names are captured even when mtime is old.
  * Stop with Enter, "stop", or Ctrl+D → upload.
  * Ctrl+C → cancel (caller handles).
  */
@@ -45,19 +47,13 @@ export async function collectFromWatch(
   session: StagingSession,
   opts: WatchOptions,
 ): Promise<number> {
-  const dir = expandHome(opts.dir);
-  const startedAt = Date.now();
-  const seenAtStart = new Set<string>();
+  const dir = resolve(expandHome(opts.dir));
+  const initialNames = new Set<string>();
   const stagedPaths = new Set<string>();
 
-  // Snapshot existing files
-  const { readdir } = await import("node:fs/promises");
   try {
     const entries = await readdir(dir);
-    for (const name of entries) {
-      seenAtStart.add(`${dir}/${name}`);
-      seenAtStart.add(`${dir}\\${name}`);
-    }
+    for (const name of entries) initialNames.add(name);
   } catch (err) {
     throw new Error(
       `Watch dir not accessible: ${dir} (${err instanceof Error ? err.message : err})`,
@@ -68,7 +64,7 @@ export async function collectFromWatch(
   console.error(
     color.dim(
       opts.acceptAll
-        ? "  Capturing new files created after start."
+        ? "  Capturing files added or copied after start (existing files ignored)."
         : opts.includeVideo
           ? "  Capturing new images and videos created after start."
           : "  Capturing new images created after start. (use --video for recordings, or accept_all_files in config)",
@@ -79,37 +75,52 @@ export async function collectFromWatch(
   let stopping = false;
   let count = 0;
 
-  const maybeStage = async (path: string) => {
+  const maybeStage = async (path: string, allowExisting: boolean) => {
     if (stopping) return;
-    if (looksLikeJunk(path)) return;
-    if (seenAtStart.has(path)) return;
-    if (stagedPaths.has(path)) return;
-    if (!isAllowedPath(path, { includeVideo: opts.includeVideo, acceptAll: opts.acceptAll })) return;
+    const full = join(dir, basename(path));
+    const name = basename(full);
+    if (!allowExisting && initialNames.has(name)) return;
+    if (looksLikeJunk(full)) return;
+    if (stagedPaths.has(full)) return;
+    if (!isAllowedPath(full, { includeVideo: opts.includeVideo, acceptAll: opts.acceptAll })) {
+      return;
+    }
 
     try {
-      const s = await stat(path);
-      // Ignore ancient files that somehow appear
-      if (s.mtimeMs + 2000 < startedAt && s.birthtimeMs + 2000 < startedAt) {
-        return;
-      }
+      const s = await stat(full);
+      if (!s.isFile()) return;
     } catch {
       return;
     }
 
-    const stable = await waitUntilStable(path);
+    const stable = await waitUntilStable(full);
     if (!stable || stopping) return;
-    if (stagedPaths.has(path)) return;
-    stagedPaths.add(path);
+    if (stagedPaths.has(full)) return;
+    stagedPaths.add(full);
 
     try {
-      const staged = await stageFile(session, path);
-      const name = basename(staged);
+      const staged = await stageFile(session, full);
+      const stagedName = basename(staged);
       count += 1;
-      opts.onCaptured?.(name);
-      console.error(color.green(`  + ${name}  ← ${basename(path)}`));
+      opts.onCaptured?.(stagedName);
+      console.error(color.green(`  + ${stagedName}  ← ${name}`));
     } catch (err) {
-      stagedPaths.delete(path);
+      stagedPaths.delete(full);
       console.error(`  ! ${err instanceof Error ? err.message : err}`);
+    }
+  };
+
+  const scanNew = async () => {
+    if (stopping) return;
+    let names: string[] = [];
+    try {
+      names = await readdir(dir);
+    } catch {
+      return;
+    }
+    for (const name of names) {
+      if (initialNames.has(name)) continue;
+      await maybeStage(join(dir, name), false);
     }
   };
 
@@ -117,18 +128,23 @@ export async function collectFromWatch(
     ignoreInitial: true,
     awaitWriteFinish: { stabilityThreshold: 400, pollInterval: 100 },
     depth: 0,
+    ignorePermissionErrors: true,
   });
 
   watcher.on("add", (p) => {
-    void maybeStage(p);
+    void maybeStage(p, false);
   });
   watcher.on("change", (p) => {
-    void maybeStage(p);
+    void maybeStage(p, true);
   });
+
+  const scanTimer = setInterval(() => {
+    void scanNew();
+  }, 1000);
 
   const rl = createInterface({ input: process.stdin, output: process.stderr });
 
-  await new Promise<void>((resolve, reject) => {
+  await new Promise<void>((resolvePromise, reject) => {
     const onSigInt = () => {
       stopping = true;
       cleanup();
@@ -137,6 +153,7 @@ export async function collectFromWatch(
 
     const cleanup = () => {
       process.off("SIGINT", onSigInt);
+      clearInterval(scanTimer);
       rl.close();
       void watcher.close();
     };
@@ -148,22 +165,20 @@ export async function collectFromWatch(
       if (t === "" || t === "stop" || t === "done" || t === "q") {
         stopping = true;
         cleanup();
-        resolve();
+        resolvePromise();
       }
     });
 
     rl.on("close", () => {
-      // Ctrl+D
       if (!stopping) {
         stopping = true;
         cleanup();
-        resolve();
+        resolvePromise();
       }
     });
   });
 
-  // Brief drain for in-flight stages
-  await sleep(500);
+  await wait(500);
   try {
     process.stdin.pause();
   } catch {

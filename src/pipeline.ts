@@ -26,8 +26,9 @@ import {
 } from "./transport/ssh.js";
 import { emitSuccess, emitJsonError } from "./output.js";
 import { EXIT } from "./constants.js";
-import { withSpinner } from "./progress.js";
+import { startSpinner, withSpinner, formatBytes } from "./progress.js";
 import { color } from "./color.js";
+import { stat } from "node:fs/promises";
 
 export type RunOptions = ResolveOptions & {
   json?: boolean;
@@ -177,19 +178,32 @@ export async function runUpload(opts: RunOptions): Promise<number> {
       return EXIT.SSH;
     }
 
+    let totalBytes = 0;
+    for (const p of staged) {
+      try {
+        totalBytes += (await stat(p)).size;
+      } catch {
+        // progress only
+      }
+    }
+    const nFiles = staged.length;
+    const fileWord = nFiles === 1 ? "file" : "files";
+    const uploadLabel = (done: number) =>
+      `Uploading ${nFiles} ${fileWord}  ${formatBytes(done)} / ${formatBytes(totalBytes)}`;
+
     let remotePath: string;
+    const spin = startSpinner(uploadLabel(0), quiet);
     try {
-      remotePath = await withSpinner(
-        `Uploading ${staged.length} file${staged.length === 1 ? "" : "s"}…`,
-        quiet,
-        () =>
-          uploadBatch({
-            target,
-            localDir: session.localDir,
-            batchId: session.batchId,
-          }),
-      );
+      remotePath = await uploadBatch({
+        target,
+        localDir: session.localDir,
+        batchId: session.batchId,
+        files: staged,
+        onProgress: (uploaded) => spin.update(uploadLabel(uploaded)),
+      });
+      spin.stop();
     } catch (err) {
+      spin.stop();
       const msg = err instanceof Error ? err.message : String(err);
       try {
         await removeRemoteBatch(target, session.batchId);
@@ -212,7 +226,7 @@ export async function runUpload(opts: RunOptions): Promise<number> {
     }
 
     try {
-      await scheduleClientDelete(target, session.batchId, target.ttlHours);
+      await scheduleClientDelete(target, session.batchId, target.ttlMinutes);
     } catch {
       // ignore
     }

@@ -1,6 +1,6 @@
 {
   "name": "@nyxsky404/vmup",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Batch screenshots and media to a remote host for coding agents",
   "type": "module",
   "main": "./dist/cli.js",
@@ -12,6 +12,7 @@
   },
   "files": [
     "dist",
+    "scripts/install.sh",
     "README.md",
     "LICENSE",
     "CHANGELOG.md",

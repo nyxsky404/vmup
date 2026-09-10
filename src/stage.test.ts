@@ -10,9 +10,10 @@ import {
 } from "./stage.js";
 import { resolveTarget, type VmupConfig } from "./config.js";
 import { isImagePath, isVideoPath, validatePaths } from "./validate.js";
+import { formatBytes } from "./progress.js";
 import { assertKeyUsable, formatSshError } from "./ssh-key.js";
 import { fileSha256 } from "./hash.js";
-import { isNewer } from "./update-check.js";
+import { isNewer, detectPackageManager, updateCommand } from "./update-check.js";
 import { chmod, writeFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -42,6 +43,7 @@ describe("resolveTarget", () => {
         key: "~/.ssh/id_ed25519",
       },
       lab: { ssh_host: "lab", ttl_hours: 8 },
+      short: { host: "5.6.7.8", ttl_minutes: 5 },
     },
   };
 
@@ -56,18 +58,41 @@ describe("resolveTarget", () => {
     const t = resolveTarget(cfg, { profile: "lab" });
     assert.equal(t.mode, "ssh_host");
     assert.equal(t.sshHostAlias, "lab");
-    assert.equal(t.ttlHours, 8);
+    assert.equal(t.ttlMinutes, 480);
   });
 
   it("one-shot --ssh-host", () => {
     const t = resolveTarget(cfg, { sshHost: "work" });
     assert.equal(t.mode, "ssh_host");
     assert.equal(t.sshHostAlias, "work");
-    assert.equal(t.ttlHours, 5);
+    assert.equal(t.ttlMinutes, 300);
   });
 
   it("errors when both profile and ssh-host set", () => {
     assert.throws(() => resolveTarget(cfg, { profile: "default", sshHost: "lab" }));
+  });
+
+  it("migrates ttl_hours to minutes", () => {
+    const t = resolveTarget(cfg, {});
+    assert.equal(t.ttlMinutes, 300);
+  });
+
+  it("prefers ttl_minutes over ttl_hours", () => {
+    const t = resolveTarget(cfg, { profile: "short" });
+    assert.equal(t.ttlMinutes, 5);
+  });
+
+  it("--ttl minutes overrides profile", () => {
+    const t = resolveTarget(cfg, { ttlMinutes: 7 });
+    assert.equal(t.ttlMinutes, 7);
+  });
+
+  it("migrates legacy images prompt to files", () => {
+    const t = resolveTarget(
+      { ...cfg, prompt_template: "Please inspect all images in {{remote_path}}" },
+      {},
+    );
+    assert.equal(t.promptTemplate, "Please inspect all files in {{remote_path}}");
   });
 });
 
@@ -184,11 +209,58 @@ describe("fileSha256", () => {
   });
 });
 
+describe("formatBytes", () => {
+  it("formats sizes", () => {
+    assert.equal(formatBytes(0), "0 B");
+    assert.equal(formatBytes(512), "512 B");
+    assert.equal(formatBytes(2048), "2.0 KB");
+    assert.equal(formatBytes(2 * 1024 * 1024), "2.0 MB");
+  });
+});
+
 describe("isNewer", () => {
   it("compares semver-ish versions", () => {
     assert.equal(isNewer("0.2.1", "0.2.0"), true);
     assert.equal(isNewer("0.2.0", "0.2.1"), false);
     assert.equal(isNewer("0.2.0", "0.2.0"), false);
     assert.equal(isNewer("1.0.0", "0.9.9"), true);
+  });
+});
+
+describe("detectPackageManager", () => {
+  it("detects pnpm, bun, yarn, npx, npm from install paths", () => {
+    const env = {};
+    assert.equal(
+      detectPackageManager("/Users/x/Library/pnpm/global/5/node_modules/@nyxsky404/vmup/dist/cli.js", env),
+      "pnpm",
+    );
+    assert.equal(
+      detectPackageManager("/Users/x/.local/share/pnpm/global/5/.pnpm/@nyxsky404+vmup@0.3.0/node_modules/@nyxsky404/vmup/dist/cli.js", env),
+      "pnpm",
+    );
+    assert.equal(
+      detectPackageManager("/Users/x/.bun/install/global/node_modules/@nyxsky404/vmup/dist/cli.js", env),
+      "bun",
+    );
+    assert.equal(
+      detectPackageManager("/Users/x/.config/yarn/global/node_modules/@nyxsky404/vmup/dist/cli.js", env),
+      "yarn",
+    );
+    assert.equal(
+      detectPackageManager("/Users/x/.npm/_npx/123/@nyxsky404/vmup/dist/cli.js", env),
+      "npx",
+    );
+    assert.equal(
+      detectPackageManager("/usr/local/lib/node_modules/@nyxsky404/vmup/dist/cli.js", env),
+      "npm",
+    );
+  });
+
+  it("maps each manager to an update command", () => {
+    assert.equal(updateCommand("pnpm"), "pnpm add -g @nyxsky404/vmup");
+    assert.equal(updateCommand("bun"), "bun install -g @nyxsky404/vmup");
+    assert.equal(updateCommand("yarn"), "yarn global add @nyxsky404/vmup");
+    assert.equal(updateCommand("npx"), "npx @nyxsky404/vmup@latest");
+    assert.equal(updateCommand("npm"), "npm i -g @nyxsky404/vmup");
   });
 });

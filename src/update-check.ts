@@ -69,11 +69,50 @@ async function fetchLatest(): Promise<string | null> {
   }
 }
 
-export function formatUpdateNotice(latest: string): string {
+export function detectPackageManager(
+  argv1 = process.argv[1] ?? "",
+  env: NodeJS.ProcessEnv = process.env,
+): "npm" | "pnpm" | "yarn" | "bun" | "npx" {
+  const blob = [
+    argv1,
+    env.npm_execpath,
+    env.npm_config_user_agent,
+    env.PNPM_HOME,
+    env.BUN_INSTALL,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (blob.includes("_npx") || blob.includes("/npx/")) return "npx";
+  if (blob.includes("bun")) return "bun";
+  if (blob.includes("pnpm") || blob.includes(".pnpm")) return "pnpm";
+  if (blob.includes("yarn")) return "yarn";
+  return "npm";
+}
+
+export function updateCommand(
+  pm: ReturnType<typeof detectPackageManager> = detectPackageManager(),
+): string {
+  switch (pm) {
+    case "pnpm":
+      return `pnpm add -g ${PACKAGE_NAME}`;
+    case "yarn":
+      return `yarn global add ${PACKAGE_NAME}`;
+    case "bun":
+      return `bun install -g ${PACKAGE_NAME}`;
+    case "npx":
+      return `npx ${PACKAGE_NAME}@latest`;
+    default:
+      return `npm i -g ${PACKAGE_NAME}`;
+  }
+}
+
+export function formatUpdateNotice(latest: string, pm = detectPackageManager()): string {
   return [
     color.yellow(`vmup ${latest} is available`) +
       color.dim(` (you have ${PACKAGE_VERSION})`),
-    color.dim("  Update:  ") + color.cyan(`npm i -g ${PACKAGE_NAME}`),
+    color.dim("  Update:  ") + color.cyan(updateCommand(pm)),
   ].join("\n");
 }
 

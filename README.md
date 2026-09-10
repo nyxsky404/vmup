@@ -4,19 +4,35 @@ Batch files to a remote host over SSH, then give coding agents **one folder path
 
 ## Install
 
+Requires **Node 18+** and **OpenSSH** (`ssh` / `scp` on your PATH).
+
 ```bash
 npm i -g @nyxsky404/vmup
-vmup init
+pnpm add -g @nyxsky404/vmup
+yarn global add @nyxsky404/vmup
+bun install -g @nyxsky404/vmup
 ```
 
-Or without a global install:
+One-shot (no global install):
 
 ```bash
 npx @nyxsky404/vmup init
-npx @nyxsky404/vmup shot.png notes.pdf
+pnpm dlx @nyxsky404/vmup init
+yarn dlx @nyxsky404/vmup init
+bunx @nyxsky404/vmup init
 ```
 
-Requires **Node 18+** and **OpenSSH** (`ssh` / `scp` on your PATH).
+curl (picks npm, then pnpm / yarn / bun; override with `VMUP_PM=pnpm`):
+
+```bash
+curl -fsSL https://unpkg.com/@nyxsky404/vmup/scripts/install.sh | sh
+```
+
+Then:
+
+```bash
+vmup init
+```
 
 On macOS, clipboard **images** also need [pngpaste](https://github.com/jcsalterego/pngpaste):
 
@@ -48,13 +64,16 @@ Precedence: **flags → env → config file**.
 
 | Key | Default | Init? |
 |---|---|---|
-| `accept_all_files` | `true` | Yes |
+| `accept_all_files` | `true` | Yes (first-time init) |
 | `max_file_mb` | `200` | No — edit config |
 | `clip_dedup` | `true` | No |
+| `ttl_minutes` | `5` | Yes |
 
-Useful env vars: `VMUP_HOST`, `VMUP_USER`, `VMUP_KEY`, `VMUP_PROFILE`, `VMUP_SSH_HOST`, `VMUP_REMOTE_DIR`, `VMUP_TTL_HOURS`, `VMUP_MAX_FILE_MB`, `VMUP_ACCEPT_ALL`, `VMUP_CLIP_DEDUP`.
+Useful env vars: `VMUP_HOST`, `VMUP_USER`, `VMUP_KEY`, `VMUP_PROFILE`, `VMUP_SSH_HOST`, `VMUP_REMOTE_DIR`, `VMUP_TTL_MINUTES`, `VMUP_MAX_FILE_MB`, `VMUP_ACCEPT_ALL`, `VMUP_CLIP_DEDUP`.
 
-Set `accept_all_files = false` for images-only (then `--video` to include recordings).
+Set `accept_all_files = false` for images-only (then `--video` to include recordings, `--force` for other types).
+
+Re-run `vmup init` to add another profile or overwrite one (Enter keeps the current value). Do not pass `--profile` and `--ssh-host` together.
 
 ### Profiles vs `--ssh-host`
 
@@ -70,7 +89,8 @@ vmup --watch --dir ~/Desktop
 ```
 
 - Holds the terminal (not a background daemon)
-- Only files **created after** the command starts
+- Only files **added or copied after** the command starts (files already in the folder are ignored)
+- Finder duplicates in the same folder are captured; paste-overwrite of an existing name is also captured
 - Press Enter or type `stop` to upload; Ctrl+C cancels
 
 ## Clipboard (`--clip`)
@@ -82,8 +102,8 @@ vmup --watch --dir ~/Desktop
 
 ## Cleanup
 
-- Local staging: `~/.cache/vmup/` (deleted after successful upload)
-- Remote batches expire after TTL (default 5 hours)
+- Local staging: `~/.cache/vmup/` (deleted after successful upload unless `--keep-local`)
+- Remote batches expire after TTL (default 5 minutes)
 - `vmup check --sweeper` reinstalls remote cleanup if it was deleted
 - `vmup prune` / `vmup prune --local` / `vmup prune --id <batch>`
 
@@ -113,6 +133,8 @@ If a newer npm version exists, vmup prints a short notice (at most once per day)
 vmup 0.3.0 is available (you have 0.2.1)
   Update:  npm i -g @nyxsky404/vmup
 ```
+
+The update line matches how vmup was installed (npm, pnpm, yarn, bun, or npx).
 
 Disable with `VMUP_NO_UPDATE_CHECK=1`.
 

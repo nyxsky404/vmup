@@ -6,11 +6,12 @@ import {
   DEFAULT_PROFILE,
   DEFAULT_PROMPT,
   DEFAULT_REMOTE_DIR,
-  DEFAULT_TTL_HOURS,
+  DEFAULT_TTL_MINUTES,
   DEFAULT_USER,
   DEFAULT_MAX_FILE_MB,
   DEFAULT_ACCEPT_ALL_FILES,
   DEFAULT_CLIP_DEDUP,
+  LEGACY_IMAGES_PROMPT,
   configDir,
   configPath as getConfigPath,
   defaultSshKeyHint,
@@ -24,6 +25,8 @@ export type ProfileConfig = {
   key?: string;
   port?: number;
   remote_dir?: string;
+  ttl_minutes?: number;
+  /** @deprecated read-only fallback; prefer ttl_minutes */
   ttl_hours?: number;
   ssh_host?: string;
 };
@@ -32,6 +35,8 @@ export type VmupConfig = {
   default_profile?: string;
   prompt_template?: string;
   remote_dir?: string;
+  ttl_minutes?: number;
+  /** @deprecated read-only fallback; prefer ttl_minutes */
   ttl_hours?: number;
   watch_dir?: string;
   watch_include_video?: boolean;
@@ -53,7 +58,7 @@ export type ResolvedTarget = {
   key?: string;
   port: number;
   remoteDir: string;
-  ttlHours: number;
+  ttlMinutes: number;
   promptTemplate: string;
   watchDir: string;
   watchIncludeVideo: boolean;
@@ -97,11 +102,63 @@ function envOverride(name: string): string | undefined {
 export type ResolveOptions = {
   profile?: string;
   sshHost?: string;
-  ttlHours?: number;
+  ttlMinutes?: number;
   remoteDir?: string;
   watchDir?: string;
   includeVideo?: boolean;
 };
+
+export function clampTtlMinutes(n: number): number {
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_TTL_MINUTES;
+  return Math.max(1, Math.round(n));
+}
+
+/** Effective TTL in minutes: explicit minutes, else hours * 60. */
+export function ttlMinutesFromFields(opts: {
+  minutes?: number;
+  hours?: number;
+}): number | undefined {
+  if (opts.minutes != null && Number.isFinite(opts.minutes)) {
+    return clampTtlMinutes(opts.minutes);
+  }
+  if (opts.hours != null && Number.isFinite(opts.hours)) {
+    return clampTtlMinutes(opts.hours * 60);
+  }
+  return undefined;
+}
+
+/**
+ * flags → env → profile → global config → default 5 minutes.
+ * `ttl_hours` is only read when `ttl_minutes` is absent (old configs).
+ */
+export function resolveTtlMinutes(
+  cfg: VmupConfig,
+  opts: ResolveOptions = {},
+  profile?: ProfileConfig,
+): number {
+  if (opts.ttlMinutes != null) return clampTtlMinutes(opts.ttlMinutes);
+  const envMin = envOverride("VMUP_TTL_MINUTES");
+  if (envMin) return clampTtlMinutes(Number(envMin));
+  const envHours = envOverride("VMUP_TTL_HOURS");
+  if (envHours) return clampTtlMinutes(Number(envHours) * 60);
+  const fromProfile = ttlMinutesFromFields({
+    minutes: profile?.ttl_minutes,
+    hours: profile?.ttl_hours,
+  });
+  if (fromProfile != null) return fromProfile;
+  const fromGlobal = ttlMinutesFromFields({
+    minutes: cfg.ttl_minutes,
+    hours: cfg.ttl_hours,
+  });
+  if (fromGlobal != null) return fromGlobal;
+  return DEFAULT_TTL_MINUTES;
+}
+
+function resolvePrompt(cfg: VmupConfig): string {
+  const raw = envOverride("VMUP_PROMPT") ?? cfg.prompt_template;
+  if (!raw || raw === LEGACY_IMAGES_PROMPT) return DEFAULT_PROMPT;
+  return raw;
+}
 
 export function resolveTarget(
   cfg: VmupConfig,
@@ -111,19 +168,12 @@ export function resolveTarget(
     throw new Error("Use either --profile or --ssh-host, not both");
   }
 
-  const promptTemplate =
-    envOverride("VMUP_PROMPT") ?? cfg.prompt_template ?? DEFAULT_PROMPT;
+  const promptTemplate = resolvePrompt(cfg);
   const globalRemote =
     opts.remoteDir ??
     envOverride("VMUP_REMOTE_DIR") ??
     cfg.remote_dir ??
     DEFAULT_REMOTE_DIR;
-  const globalTtl = Number(
-    opts.ttlHours ??
-      envOverride("VMUP_TTL_HOURS") ??
-      cfg.ttl_hours ??
-      DEFAULT_TTL_HOURS,
-  );
   const watchDir =
     opts.watchDir ??
     envOverride("VMUP_WATCH_DIR") ??
@@ -169,7 +219,7 @@ export function resolveTarget(
       sshHostAlias: alias,
       port: DEFAULT_PORT,
       remoteDir: globalRemote,
-      ttlHours: globalTtl,
+      ttlMinutes: resolveTtlMinutes(cfg, opts),
       promptTemplate,
       ...extras,
     };
@@ -189,7 +239,7 @@ export function resolveTarget(
       sshHostAlias: profile.ssh_host,
       port: profile.port ?? DEFAULT_PORT,
       remoteDir: profile.remote_dir ?? globalRemote,
-      ttlHours: profile.ttl_hours ?? globalTtl,
+      ttlMinutes: resolveTtlMinutes(cfg, opts, profile),
       promptTemplate,
       ...extras,
     };
@@ -210,7 +260,7 @@ export function resolveTarget(
     key: key ? expandHome(key) : undefined,
     port,
     remoteDir: profile.remote_dir ?? globalRemote,
-    ttlHours: profile.ttl_hours ?? globalTtl,
+    ttlMinutes: resolveTtlMinutes(cfg, opts, profile),
     promptTemplate,
     ...extras,
   };
@@ -244,7 +294,7 @@ export function emptyTemplateConfig(): VmupConfig {
     default_profile: DEFAULT_PROFILE,
     prompt_template: DEFAULT_PROMPT,
     remote_dir: DEFAULT_REMOTE_DIR,
-    ttl_hours: DEFAULT_TTL_HOURS,
+    ttl_minutes: DEFAULT_TTL_MINUTES,
     watch_dir: defaultWatchDir(),
     watch_include_video: false,
     accept_all_files: DEFAULT_ACCEPT_ALL_FILES,
@@ -255,7 +305,7 @@ export function emptyTemplateConfig(): VmupConfig {
         user: DEFAULT_USER,
         key: defaultSshKeyHint(),
         remote_dir: DEFAULT_REMOTE_DIR,
-        ttl_hours: DEFAULT_TTL_HOURS,
+        ttl_minutes: DEFAULT_TTL_MINUTES,
         port: DEFAULT_PORT,
       },
     },
