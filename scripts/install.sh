@@ -1,8 +1,8 @@
 #!/bin/sh
 # Install @nyxsky404/vmup globally using whatever Node package manager is available.
 # Usage:
-#   curl -fsSL https://unpkg.com/@nyxsky404/vmup/scripts/install.sh | sh
-#   VMUP_PM=pnpm curl -fsSL https://unpkg.com/@nyxsky404/vmup/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/nyxsky404/vmup/main/scripts/install.sh | sh
+#   VMUP_PM=pnpm curl -fsSL https://raw.githubusercontent.com/nyxsky404/vmup/main/scripts/install.sh | sh
 set -eu
 
 PKG="@nyxsky404/vmup"

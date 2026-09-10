@@ -1,14 +1,14 @@
 # vmup — Production Design
 
-**Date:** 2026-09-10  
-**Status:** Validated (brainstorming complete)  
-**Goal:** General-purpose CLI to batch screenshots/media to a remote host over SSH and return **one folder path** for coding agents.
+**Date:** 2026-09-10 (updated 2026-09-11 for 0.3.0)  
+**Status:** Implemented — aligns with published CLI 0.3.0  
+**Goal:** General-purpose CLI to batch files to a remote host over SSH and return **one folder path** for coding agents.
 
 ---
 
 ## 1. Product definition
 
-**vmup** collects media (images by default; video optional), stages a unique local batch, uploads it to a remote directory over SSH, and prints/copies **one remote folder path** plus a ready-to-paste agent prompt.
+**vmup** collects files (any type by default; optional images-only mode), stages a unique local batch, uploads it to a remote directory over SSH, and prints/copies **one remote folder path** plus a ready-to-paste agent prompt.
 
 ### Platforms (v1)
 
@@ -33,7 +33,7 @@ Transports and input sources plug into this pipeline; they are not the product.
 |---|---|
 | Product / CLI / remote root | `vmup` |
 | Batch folder prefix | `agents-` |
-| Staged files | `media-01.png`, `media-02.mov`, … |
+| Staged files | `image-01.png`, `video-01.mov`, `file-01.pdf`, … |
 | Success label | `Agent folder:` |
 | No vendor names | No Azure / Codex / company-specific defaults in templates |
 
@@ -112,30 +112,29 @@ Flow:
 
 1. Start SSH preflight in background  
 2. Watch the screenshots folder (OS default, overridable)  
-3. Each **new** screenshot/recording (after start) stages as `media-01`, `media-02`, …  
+3. Each **new** file (after start) stages as `image-01` / `video-01` / `file-01`, …  
 4. Log captures live in the terminal  
 5. Stop with `stop`, Enter, or Ctrl+C  
 6. If count > 0 → upload → one agent folder; if 0 → clean exit, no upload  
 
 **Foreground only** — holds the terminal; not a detached daemon.
 
-#### Ensuring only new media
+#### Ensuring only new files
 
 At watch start:
 
-1. Record `watch_started_at`  
-2. Snapshot existing paths + sizes + mtimes  
-3. Accept only files that:
-   - were **not** in the snapshot, and  
-   - have created/mtime ≥ start (small skew tolerance), and  
-   - match allowed media types  
+1. Snapshot existing **names** in the folder  
+2. Accept files that:
+   - were **not** in the snapshot (Finder copies with a new name), or  
+   - were overwritten after start (`change` events)  
+3. Do **not** require mtime/birthtime ≥ start — Finder copies often keep original timestamps  
 
 Also:
 
 - **Settle check** — size stable ~300–500ms before staging  
 - **Ignore junk** — `.DS_Store`, `.*`, `*.tmp`, incomplete writes  
 - **Dedup** — one stage per file  
-- **Type filter** — images by default; video with `--video` / config  
+- **Type filter** — all types by default; images-only when `accept_all_files = false` (then `--video` / `--force`)  
 
 #### Watch folder defaults
 
@@ -150,12 +149,10 @@ Asked during `vmup init`; overridable via config/flags.
 
 ## 4. Validation & `--force`
 
-- Accept images by default (png/jpeg/webp/gif, etc.)  
-- Video only when enabled  
-- Skip/warn on non-media; `--force` allows edge overrides in v1  
+- Default: accept all file types (`accept_all_files = true`)  
+- Images-only when `accept_all_files = false`; then `--video` includes recordings and `--force` allows other types  
 - Size/count limits with clear errors before upload  
-- Validate broken/partial images before staging when feasible  
-- Rename all staged files to `media-NN.ext` for a consistent remote batch  
+- Rename staged files to `image-NN` / `video-NN` / `file-NN` for a consistent remote batch  
 
 ---
 
@@ -178,7 +175,7 @@ On failure: keep local staging; non-zero exit; never print success.
 
 ### Profiles (saved remotes — default path for everyone)
 
-Bookmarks in config. Created by `vmup init`.
+Bookmarks in config. First `vmup init` creates one profile. Re-running asks **new vs overwrite**; overwrite shows current values; a new profile asks whether to become the default.
 
 ```toml
 default_profile = "default"
@@ -188,7 +185,7 @@ host = "USER_PROVIDED_HOST"
 user = "ubuntu"
 key = "~/.ssh/id_ed25519"
 remote_dir = "~/vmup"
-ttl_hours = 5
+ttl_minutes = 5
 port = 22
 ```
 
@@ -205,7 +202,7 @@ A profile may reference `~/.ssh/config` instead of duplicating host/user/key:
 [profiles.lab]
 ssh_host = "lab"
 remote_dir = "~/vmup"
-ttl_hours = 8
+ttl_minutes = 5
 ```
 
 ### One-shot power option
@@ -244,10 +241,11 @@ Ask at least:
 - SSH key `[~/.ssh/id_ed25519]` (or detected key)  
 - SSH port `[22]`  
 - Remote dir `[~/vmup]`  
-- TTL hours `[5]`  
-- Screenshots / watch folder `[OS default]`  
-- Include screen recordings by default? `[n]`  
+- TTL minutes `[5]`  
+- Screenshots / watch folder `[OS default]` (first-time only)  
+- Accept all file types? `[Y]` (first-time only)  
 - Install remote cleanup sweeper? `[Y/n]`  
+- New profile only: make this the default? `[n]`  
 
 Never ship real IPs, cloud usernames, or branded key paths in templates.
 
@@ -256,9 +254,9 @@ Non-interactive: `-y` + env for CI.
 ### Global defaults (when using `--ssh-host` or incomplete profile)
 
 - `remote_dir = ~/vmup`  
-- `ttl_hours = 5`  
-- `prompt_template = "Please inspect all images in {{remote_path}}"`  
-- `watch_include_video = false`  
+- `ttl_minutes = 5` (legacy `ttl_hours` still read as hours × 60)  
+- `prompt_template = "Please inspect all files in {{remote_path}}"`  
+- `accept_all_files = true`  
 
 ---
 
@@ -266,7 +264,7 @@ Non-interactive: `-y` + env for CI.
 
 | Command | Purpose |
 |---|---|
-| `vmup init` | Wizard, SSH test, ensure `~/vmup`, optional sweeper |
+| `vmup init` | Wizard: first-time setup, or add/overwrite a profile |
 | `vmup` | Picker → upload |
 | `vmup --clip` | Clipboard loop → upload |
 | `vmup watch` | Foreground folder watch → upload |
@@ -285,7 +283,7 @@ Non-interactive: `-y` + env for CI.
 - `--force`  
 - `--keep-local`  
 - `--json`  
-- `--ttl <hours>`  
+- `--ttl <minutes>`  
 - `-y, --yes`  
 
 ### Success UX (human)
@@ -295,12 +293,12 @@ Uploaded 3 files → default
 Agent folder: ~/vmup/agents-…/
 
 Prompt:
-Please inspect all images in ~/vmup/agents-…/
+Please inspect all files in ~/vmup/agents-…/
 ```
 
 - Print path + prompt snippet  
-- Copy path (or prompt) to local clipboard  
-- `--json` for scripts/tools  
+- Copy path to local clipboard  
+- Spinner on stderr (`uploaded / total` bytes); `--json` keeps JSON on stdout  
 
 ### Exit codes (sketch)
 
@@ -344,8 +342,8 @@ Transport v1: OpenSSH (`scp` / `sftp` / `ssh` + tar). Interface kept swappable f
 
 | Case | Behavior |
 |---|---|
-| TTL | Delete matching batches after ~5 hours |
-| Sweeper | Installed by init; run every **10 minutes**; `mmin +300` |
+| TTL | Delete matching batches after ~5 minutes |
+| Sweeper | Installed by init; run every **minute**; `mmin +5` |
 | No sweeper | Client schedules delayed `ssh rm -rf` as backup |
 | Both fire | Idempotent |
 | Naming | Only `agents-<date>-<time>-<uuid>` dirs; never wipe all of `~/vmup` |
@@ -363,7 +361,7 @@ CLI (vmup)
   ├─ config      file → env → flags
   ├─ collect     args | picker | --clip | watch
   ├─ validate    type/size/count; --force
-  ├─ stage       ~/.cache/vmup/<batch-id>/media-NN.ext
+  ├─ stage       ~/.cache/vmup/<batch-id>/image-NN.ext
   ├─ transport   ssh (v1); pluggable later
   ├─ cleanup     local GC + remote sweeper / client delayed rm
   └─ output      human + clipboard + --json
@@ -372,7 +370,7 @@ CLI (vmup)
 **Module rules**
 
 - `collect` never talks SSH  
-- `stage` owns batch id + `media-NN` naming  
+- `stage` owns batch id + `image-NN` / `video-NN` / `file-NN` naming  
 - `transport` returns remote path; atomic partial → final  
 - `cleanup` / `init` own sweeper install  
 - `output` has no upload logic  
@@ -385,14 +383,15 @@ Thin platform adapters: macOS / Linux+WSL.
 
 ### Distribution
 
-- **npm first** — `npm i -g @nyxsky404/vmup` / `npx @nyxsky404/vmup` (unscoped `vmup` is too similar to existing npm names)  
-- **Homebrew soon after** CLI surface stabilizes (same v1.x line OK; not blocking day-one architecture)  
-- Runtime: Node 18+ (Bun-friendly)  
-- CLI bin name stays `vmup`  
+- **npm** — `npm i -g @nyxsky404/vmup` / `npx @nyxsky404/vmup` (unscoped `vmup` is too similar to existing npm names)  
+- Also: `pnpm add -g`, `yarn global add`, `bun install -g`, `pnpm dlx` / `yarn dlx` / `bunx`  
+- **curl** — `scripts/install.sh` from GitHub raw (`main`); still requires Node 18+  
+- **Homebrew later** (not blocking)  
+- Runtime: Node 18+  
 
 ### Testing bar
 
-- Unit: batch id, `media-NN` rename, config merge, profile vs `ssh_host` vs `--ssh-host`  
+- Unit: batch id, `image-NN` / `video-NN` / `file-NN` rename, config merge, profile vs `ssh_host` vs `--ssh-host`  
 - Integration: mock SSH / sshd fixture; atomic rename  
 - Failure: empty collect, bad key perms, unreachable host, cancel, partial upload  
 - Smoke: macOS picker/clipboard/watch; Linux args + clipboard tools; WSL args  
@@ -426,25 +425,22 @@ Thin platform adapters: macOS / Linux+WSL.
 | Audience | General product for coding agents |
 | Platforms | macOS + Linux; WSL as Linux; native Windows later |
 | Inputs | Hybrid: args / picker / `--clip` / `watch` |
-| Staging names | `media-NN.ext` |
+| Staging names | `image-NN` / `video-NN` / `file-NN` |
 | Remote root | `~/vmup` (visible) |
 | Local staging | `~/.cache/vmup` |
 | Transport | SSH-first, pluggable internals |
 | Hosts | Profiles + `--ssh-host` + profile `ssh_host` field |
 | Config | File + env + flags |
-| Cleanup | Remote sweeper + client fallback |
+| TTL | Minutes (default 5); legacy `ttl_hours` still read |
+| Cleanup | Remote sweeper every minute + client fallback |
 | Output | Print + copy + prompt; optional `--json` |
-| Install | npm first; Homebrew after stabilize |
-| Watch | Foreground; OS default dir; only files new after start |
+| Install | npm / pnpm / yarn / bun / npx; curl via GitHub; Homebrew later |
+| Watch | Foreground; OS default dir; only files new after start (copies included) |
 | Brands | No Azure/Codex/vendor defaults |
 
 ---
 
 ## 14. Next steps
 
-1. Confirm npm package name availability  
-2. Implementation plan (modules, milestones, tests)  
-3. Scaffold TypeScript CLI + `vmup init`  
-4. SSH upload path + cleanup  
-5. Picker / `--clip` / `watch` adapters  
-6. Publish npm; then Homebrew formula  
+1. Publish npm 0.3.0  
+2. Homebrew formula (later)  

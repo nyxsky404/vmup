@@ -1,7 +1,7 @@
 {
   "name": "@nyxsky404/vmup",
   "version": "0.3.0",
-  "description": "Batch screenshots and media to a remote host for coding agents",
+  "description": "Batch files to a remote host over SSH for coding agents",
   "type": "module",
   "main": "./dist/cli.js",
   "exports": {
@@ -9,6 +9,14 @@
   },
   "bin": {
     "vmup": "dist/cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nyxsky404/vmup.git"
+  },
+  "homepage": "https://github.com/nyxsky404/vmup#readme",
+  "bugs": {
+    "url": "https://github.com/nyxsky404/vmup/issues"
   },
   "files": [
     "dist",
@@ -33,6 +41,7 @@
   "keywords": [
     "ssh",
     "scp",
+    "files",
     "screenshots",
     "agents",
     "cli",
