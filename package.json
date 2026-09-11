@@ -33,7 +33,7 @@
     "start": "node dist/cli.js",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build && npm test",
-    "test": "node --test dist/**/*.test.js"
+    "test": "node --test dist/*.test.js"
   },
   "engines": {
     "node": ">=18"
