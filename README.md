@@ -3,6 +3,7 @@
 *Batch files to a remote host over SSH for coding agents*
 
 [![npm version](https://img.shields.io/npm/v/@nyxsky404/vmup?style=flat-square)](https://www.npmjs.com/package/@nyxsky404/vmup)
+[![CI](https://github.com/nyxsky404/vmup/actions/workflows/ci.yml/badge.svg)](https://github.com/nyxsky404/vmup/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-3c873a?style=flat-square)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](https://github.com/nyxsky404/vmup/blob/main/LICENSE)
@@ -361,4 +362,4 @@ A working `ssh lab` and a failing `vmup -p lab` usually means the profile is in 
 
 ## Development
 
-Source and issues: [github.com/nyxsky404/vmup](https://github.com/nyxsky404/vmup). Clone, then `npm install && npm run build && npm test`.
+Source and issues: [github.com/nyxsky404/vmup](https://github.com/nyxsky404/vmup). How to send a change: [CONTRIBUTING.md](CONTRIBUTING.md). Clone, then `npm install && npm run build && npm test`.

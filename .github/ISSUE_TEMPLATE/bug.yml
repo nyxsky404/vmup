@@ -1,0 +1,56 @@
+name: Bug report
+description: A command failed, or behavior does not match the docs
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For SSH errors, see [Troubleshooting](https://github.com/nyxsky404/vmup#troubleshooting) first.
+        Vulnerabilities go to a [private advisory](https://github.com/nyxsky404/vmup/security/advisories/new), not this form.
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact command you ran.
+      placeholder: vmup ./shot.png
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: vmup version
+      description: Output of `vmup --version`.
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      description: Output of `node -v`.
+      placeholder: v22.14.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - macOS
+        - Linux
+        - Windows (WSL)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The printed error string. Paste `--json` output if you have it.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
