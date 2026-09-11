@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 ## 0.3.1 — 2026-09-11
 
-- Docs site is [vmup.vercel.app](https://vmup.vercel.app). npm homepage and README point there.
+- Docs site is [vmup.dev](https://vmup.dev). npm homepage and README point there.
 
 ## 0.3.0 — 2026-09-11
 

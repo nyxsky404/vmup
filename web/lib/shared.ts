@@ -34,12 +34,18 @@ export function docsBrowserTitle(_slug: string[] | undefined, pageName: string) 
   return browserTitle(pageName);
 }
 
+export const productionSiteOrigin = 'https://vmup.dev';
+
 export function siteUrl() {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;
   if (explicit) return new URL(explicit);
-  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  if (vercel) return new URL(`https://${vercel}`);
-  return new URL('http://localhost:3000');
+  if (process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL) {
+    return new URL(`https://${process.env.VERCEL_URL}`);
+  }
+  if (process.env.NODE_ENV === 'development') {
+    return new URL('http://localhost:3000');
+  }
+  return new URL(productionSiteOrigin);
 }
 
 export function absoluteUrl(pathname = '/') {

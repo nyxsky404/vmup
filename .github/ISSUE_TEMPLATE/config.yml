@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/nyxsky404/vmup/security/advisories/new
     about: Private vulnerability report. Do not file a public issue.
   - name: Documentation
-    url: https://vmup.vercel.app/docs
+    url: https://vmup.dev/docs
     about: Install, commands, and troubleshooting
