@@ -16,7 +16,7 @@ import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { docsJsonLd } from '@/lib/schema';
 import {
   appName,
-  docsBrowserTitle,
+  docsSeoTitle,
   getPageImageUrl,
   getPageMarkdownUrl,
   gitConfig,
@@ -86,7 +86,7 @@ export async function generateMetadata(
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  const title = docsBrowserTitle(params.slug, page.data.title);
+  const title = docsSeoTitle(page.url, page.data.title);
   const description = page.data.description;
   const image = getPageImageUrl(page).url;
 

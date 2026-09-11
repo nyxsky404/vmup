@@ -8,17 +8,17 @@ import { BrandMark } from '@/components/logo';
 import { WorkflowDiagram } from '@/components/workflow-diagram';
 import { GITHUB_ISSUES_URL, GITHUB_URL, NPM_URL } from '@/lib/install';
 import { homeJsonLd } from '@/lib/schema';
-import { appDescription, appName, appTitle } from '@/lib/shared';
+import { absoluteUrl, appDescription, appName, appTitle } from '@/lib/shared';
 
 export const metadata: Metadata = {
   title: { absolute: appTitle },
   description: appDescription,
   alternates: {
-    canonical: '/',
+    canonical: absoluteUrl('/'),
   },
   openGraph: {
     type: 'website',
-    url: '/',
+    url: absoluteUrl('/'),
     title: appTitle,
     description: appDescription,
     siteName: appName,
