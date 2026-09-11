@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.2 — 2026-09-12
+
+- Republish so the npm package homepage and README point at [vmup.dev](https://vmup.dev) (0.3.1 still listed `vmup.vercel.app`).
+
 ## 0.3.1 — 2026-09-11
 
 - Docs site is [vmup.dev](https://vmup.dev). npm homepage and README point there.
