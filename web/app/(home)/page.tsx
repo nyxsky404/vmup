@@ -8,7 +8,13 @@ import { BrandMark } from '@/components/logo';
 import { WorkflowDiagram } from '@/components/workflow-diagram';
 import { GITHUB_ISSUES_URL, GITHUB_URL, NPM_URL } from '@/lib/install';
 import { homeJsonLd } from '@/lib/schema';
-import { absoluteUrl, appDescription, appName, appTitle } from '@/lib/shared';
+import {
+  absoluteUrl,
+  appDescription,
+  appName,
+  appTitle,
+  homeOgImage,
+} from '@/lib/shared';
 
 export const metadata: Metadata = {
   title: { absolute: appTitle },
@@ -22,11 +28,13 @@ export const metadata: Metadata = {
     title: appTitle,
     description: appDescription,
     siteName: appName,
+    images: [homeOgImage],
   },
   twitter: {
     card: 'summary_large_image',
     title: appTitle,
     description: appDescription,
+    images: [homeOgImage.url],
   },
 };
 
@@ -155,11 +163,11 @@ const facts: { id: string; body: ReactNode }[] = [
 
 const docs = [
   { href: '/docs/quickstart', label: 'First upload' },
+  { href: '/docs/guides/screenshots-to-agent', label: 'Screenshots to agent' },
+  { href: '/docs/guides/clipboard-for-agents', label: 'Clipboard for agents' },
   { href: '/docs/guides/watch', label: 'Watch a folder' },
-  { href: '/docs/guides/profiles', label: 'Profiles' },
   { href: '/docs/explain/ttl', label: 'TTL and cleanup' },
   { href: '/docs/explain/vs-scp', label: 'vs scp / rsync' },
-  { href: '/docs/reference/commands', label: 'Commands' },
 ];
 
 export default function HomePage() {
@@ -378,7 +386,7 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
       <footer className="mt-24 border-t border-border pt-8 text-sm text-muted-foreground max-lg:pb-[max(2rem,env(safe-area-inset-bottom))]">
         <nav
           aria-label="Documentation"
-          className="flex flex-wrap gap-x-6 gap-y-2 max-lg:gap-y-3"
+          className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 sm:gap-x-6 max-lg:gap-y-0"
         >
           {docs.map((item) => (
             <Link
@@ -390,43 +398,51 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
             </Link>
           ))}
         </nav>
-        <p className="mt-8">
-          MIT ·{' '}
+        <p className="mt-8 max-w-xl">
+          Maintained by{' '}
+          <a
+            href={GITHUB_URL}
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+          >
+            nyxsky404
+          </a>{' '}
+          on GitHub. MIT
+        </p>
+        <nav
+          aria-label="Project"
+          className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 max-lg:gap-y-0"
+        >
           <a
             href={GITHUB_URL}
             className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
           >
             GitHub
           </a>
-          {' · '}
           <a
             href={NPM_URL}
             className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
           >
             npm
           </a>
-          {' · '}
           <a
             href={GITHUB_ISSUES_URL}
             className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
           >
             Issues
           </a>
-          {' · '}
           <Link
             href="/docs/contact"
             className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
           >
             Security
           </Link>
-          {' · '}
           <Link
             href="/docs/changelog"
             className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
           >
             Changelog
           </Link>
-        </p>
+        </nav>
       </footer>
     </main>
   );

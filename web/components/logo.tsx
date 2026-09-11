@@ -38,8 +38,9 @@ export function BrandMark({
         opacityBase={0.22}
         opacityMid={0.4}
         opacityPeak={1}
-        ariaLabel={title || 'vmup'}
-        className={cn('vmup-mark shrink-0', className)}
+        decorative={!title}
+        ariaLabel={title}
+        className={cn('vmup-mark vmup-mark-animated shrink-0', className)}
       />
     );
   }

@@ -40,11 +40,31 @@ const docsSeoTitles: Record<string, string> = {
   '/docs/install': 'Install vmup on macOS, Linux, or WSL',
   '/docs/quickstart': 'First SSH upload for a coding agent',
   '/docs/changelog': 'vmup changelog and release notes',
+  '/docs/contact': 'Report vmup bugs and security issues',
+  '/docs/guides/clipboard': 'Clipboard to SSH folder for a coding agent',
+  '/docs/guides/watch': 'Watch a folder and upload new files over SSH',
+  '/docs/guides/upload': 'Upload files, folders, or the picker over SSH',
+  '/docs/guides/init': 'Run vmup init again or add a profile',
+  '/docs/guides/profiles': 'Point vmup at another VM with profiles',
+  '/docs/guides/ssh': 'Fix SSH failures before a vmup upload',
+  '/docs/guides/scripting': 'Script vmup with env overlays and --json',
+  '/docs/guides/cleanup': 'Clean up remote vmup batches and TTL',
+  '/docs/guides/restrict-types': 'Restrict vmup uploads to images or video',
+  '/docs/guides/screenshots-to-agent':
+    'Upload screenshots to a remote coding agent',
+  '/docs/guides/clipboard-for-agents':
+    'Clipboard to SSH for Claude Code or Cursor',
+  '/docs/explain/how-it-works': 'How vmup builds an SSH batch',
+  '/docs/explain/ttl': 'Why vmup batches expire after 5 minutes',
+  '/docs/explain/ssh-modes': 'Direct SSH vs ssh_host in vmup',
   '/docs/reference/commands': 'vmup CLI commands: init, check, watch, prune',
   '/docs/reference/flags': 'vmup CLI flags for upload, watch, and prune',
   '/docs/reference/config': 'vmup config.toml keys, defaults, and profiles',
   '/docs/reference/exit-codes': 'vmup exit codes (0, 1, 2, 3, 4, 130)',
   '/docs/reference/json': 'vmup --json stdout schema for upload and check',
+  '/docs/reference/env': 'vmup environment variables and overlays',
+  '/docs/reference/errors': 'vmup error strings and what they mean',
+  '/docs/reference/file-types': 'vmup file types, size limits, and names',
 };
 
 export function docsSeoTitle(pageUrl: string, pageName: string) {
@@ -52,6 +72,13 @@ export function docsSeoTitle(pageUrl: string, pageName: string) {
 }
 
 export const productionSiteOrigin = 'https://vmup.dev';
+
+export const homeOgImage = {
+  url: '/opengraph-image.png',
+  width: 1200,
+  height: 630,
+  alt: appTitle,
+};
 
 function originUrl(value: string) {
   return new URL(`${new URL(value).origin}/`);

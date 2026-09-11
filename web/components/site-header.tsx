@@ -2,7 +2,6 @@
 
 import type { ComponentProps, ReactNode } from 'react';
 import Link from 'fumadocs-core/link';
-import { BookOpen } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { buttonVariants } from 'fumadocs-ui/components/ui/button';
 import { Logo } from '@/components/logo';
@@ -102,9 +101,19 @@ export function SiteHeader({ className, ...props }: ComponentProps<'header'>) {
           <Logo className="max-[22rem]:[&_[data-wordmark]]:sr-only" />
         </Link>
         <div className="flex shrink-0 items-center gap-1">
-          <NavIconLink href="/docs" label="Docs" active={docsActive}>
-            <BookOpen aria-hidden="true" />
-          </NavIconLink>
+          <Link
+            href="/docs"
+            aria-current={docsActive ? 'page' : undefined}
+            className={cn(
+              buttonVariants({ color: 'ghost', size: 'sm' }),
+              'text-fd-muted-foreground max-lg:min-h-11 max-lg:px-3',
+              'motion-safe:transition-[color,background-color,scale] motion-safe:duration-150 motion-safe:ease-out',
+              'motion-safe:active:scale-[0.96]',
+              docsActive && 'text-fd-foreground',
+            )}
+          >
+            Docs
+          </Link>
           <NavIconLink href={NPM_URL} label="npm" external>
             <NpmIcon />
           </NavIconLink>

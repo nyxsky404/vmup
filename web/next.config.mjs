@@ -7,6 +7,7 @@ const withMDX = createMDX();
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  skipTrailingSlashRedirect: true,
   turbopack: {
     root: dirname(fileURLToPath(import.meta.url)),
   },
@@ -15,6 +16,16 @@ const config = {
       {
         source: '/docs/index',
         destination: '/docs',
+        permanent: true,
+      },
+      {
+        source: '/docs/index/',
+        destination: '/docs',
+        permanent: true,
+      },
+      {
+        source: '/security.txt',
+        destination: '/.well-known/security.txt',
         permanent: true,
       },
     ];

@@ -38,17 +38,18 @@ export default function PerWordCrossfade({
   const words = children.split(" ");
 
   return (
-    <span aria-label={children} className={className} ref={ref}>
+    <span className={className} ref={ref}>
+      <span className="sr-only">{children}</span>
       {words.map((word, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: words have no stable id
-        <span key={index} style={{ display: "inline-block" }}>
+        <span key={index} aria-hidden="true" style={{ display: "inline-block" }}>
           <motion.span
-            animate={play ? { opacity: 1, y: 0 } : undefined}
+            animate={{ opacity: 1, y: 0 }}
             aria-hidden="true"
-            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 8 }}
             style={{ display: "inline-block", whiteSpace: "pre" }}
             transition={
-              shouldReduceMotion
+              !play
                 ? { duration: 0 }
                 : {
                     delay: delay / MS + (index * stagger) / MS,

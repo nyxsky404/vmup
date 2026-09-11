@@ -1,0 +1,51 @@
+---
+title: Upload screenshots to a remote coding agent
+description: "Send laptop screenshots to an agent on a VM: capture with --clip or watch a folder, upload over SSH, paste one remote folder path."
+icon: Camera
+---
+
+The screenshot is on your laptop. The agent reads files by path on the VM. Pick an input, upload one batch, paste the folder path into the thread.
+
+You need [Install](/docs/install) and [First upload](/docs/quickstart) done (`vmup init`, `vmup check` OK).
+
+## Pick an input
+
+| How the screenshot shows up | Command |
+|---|---|
+| You copy it (or a file in Finder) | `vmup --clip` |
+| It lands in a folder (Desktop, Screenshots) | `vmup watch` |
+| It is already a path on disk | `vmup ./shot.png` |
+
+Do not combine `--clip` and `--watch`. Keys, pngpaste, and dedup: [Capture the clipboard](/docs/guides/clipboard). Folder rules: [Watch a folder](/docs/guides/watch). Paths and the picker: [Upload files](/docs/guides/upload).
+
+## Screenshot, then clip
+
+On macOS, a copied **file** in Finder needs no extra tools. A bitmap on the clipboard (Screenshot app, copy from Preview) needs [pngpaste](https://github.com/jcsalterego/pngpaste): `brew install pngpaste`. Linux uses `wl-paste` or `xclip`.
+
+```bash
+vmup --clip
+```
+
+Copy the screenshot, press **Enter**, repeat if you have more, then type `done` (or Ctrl+D). vmup uploads the batch and copies the remote folder path.
+
+## Watch the screenshot folder
+
+```bash
+vmup watch
+```
+
+Default folder is `watch_dir` in config, else Desktop on macOS and `~/Pictures/Screenshots` on Linux. Files already in that folder at start are ignored. Take new screenshots into it, press **Enter** to upload.
+
+```bash
+vmup watch --dir ~/Desktop
+```
+
+## Paste the path
+
+Stdout prints the remote folder and a prompt. The clipboard already holds the path.
+
+```text
+Please inspect all files in ~/vmup/agents-…/
+```
+
+Paste that into Claude Code, Cursor, or any agent that reads directories on the host. Remote batches expire after **5 minutes** unless you raised TTL. See [Why batches expire](/docs/explain/ttl). More on the paste step: [Clipboard to SSH for Claude Code or Cursor](/docs/guides/clipboard-for-agents).

@@ -13,6 +13,7 @@ import { JsonLd } from '@/components/json-ld';
 import { ViewOptionsPopover } from '@/components/view-options-popover';
 import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
+import { docsSourcePath } from '@/lib/last-modified';
 import { docsJsonLd } from '@/lib/schema';
 import {
   appName,
@@ -33,6 +34,7 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
 
   const MDX = page.data.body;
   const markdownUrl = getPageMarkdownUrl(page).url;
+  const image = getPageImageUrl(page).url;
 
   return (
     <DocsPage
@@ -43,7 +45,14 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
       }}
     >
       <DocsA11y />
-      <JsonLd data={docsJsonLd(page)} />
+      <JsonLd
+        data={docsJsonLd({
+          url: page.url,
+          data: page.data,
+          lastModified: docsSourcePath(page),
+          image,
+        })}
+      />
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription className="mb-0">{page.data.description}</DocsDescription>
       <div className="flex flex-row gap-2 items-center border-b pb-6">

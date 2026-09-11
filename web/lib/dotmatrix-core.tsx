@@ -7,6 +7,17 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef } from "react";
 import { useDotMatrixPhases, usePrefersReducedMotion, useCyclePhase } from "@/lib/dotmatrix-hooks";
 
+function dmxRootA11y(decorative: boolean | undefined, ariaLabel: string | undefined) {
+  if (decorative || !ariaLabel) {
+    return { "aria-hidden": true as const };
+  }
+  return {
+    role: "status" as const,
+    "aria-live": "polite" as const,
+    "aria-label": ariaLabel
+  };
+}
+
 export type MatrixPattern = "diamond" | "full" | "outline" | "rose" | "cross" | "rings";
 export type DotShape = "circle" | "square" | "diamond" | "hearts";
 export type DotMatrixPhase = "idle" | "collapse" | "hoverRipple" | "loadingRipple";
@@ -84,6 +95,8 @@ export interface DotMatrixCommonProps {
   colorPreset?: DotMatrixColorPreset;
   speed?: number;
   ariaLabel?: string;
+  /** Hide from the accessibility tree. Use for decorative marks, not loaders. */
+  decorative?: boolean;
   className?: string;
   pattern?: MatrixPattern;
   muted?: boolean;
@@ -696,7 +709,8 @@ export function DotMatrixBase({
   color = "currentColor",
   colorPreset,
   speed = 1,
-  ariaLabel = "Loading",
+  ariaLabel,
+  decorative = false,
   className,
   pattern = "diamond",
   dotShape = "circle",
@@ -854,9 +868,7 @@ export function DotMatrixBase({
   if (useWrapper) {
     return (
       <div
-        role="status"
-        aria-live="polite"
-        aria-label={ariaLabel}
+        {...dmxRootA11y(decorative, ariaLabel)}
         className={className}
         style={{
           display: "inline-flex",
@@ -878,9 +890,7 @@ export function DotMatrixBase({
 
   return (
     <div
-      role="status"
-      aria-live="polite"
-      aria-label={ariaLabel}
+      {...dmxRootA11y(decorative, ariaLabel)}
       className={cx(
         "dmx-root",
         `dmx-dot-shape-${dotShape}`,
@@ -1168,7 +1178,8 @@ export function DotMatrix3Base({
   color = "currentColor",
   colorPreset,
   speed = 1,
-  ariaLabel = "Loading",
+  ariaLabel,
+  decorative = false,
   className,
   pattern = "full",
   dotShape = "circle",
@@ -1333,9 +1344,7 @@ export function DotMatrix3Base({
   if (useWrapper) {
     return (
       <div
-        role="status"
-        aria-live="polite"
-        aria-label={ariaLabel}
+        {...dmxRootA11y(decorative, ariaLabel)}
         className={className}
         style={{
           display: "inline-flex",
@@ -1357,9 +1366,7 @@ export function DotMatrix3Base({
 
   return (
     <div
-      role="status"
-      aria-live="polite"
-      aria-label={ariaLabel}
+      {...dmxRootA11y(decorative, ariaLabel)}
       className={cx(
         "dmx-root",
         "dmx-matrix-3",

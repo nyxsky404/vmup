@@ -12,11 +12,16 @@ const { rewrite: rewriteSuffix } = rewritePath(
 );
 
 export default function proxy(request: NextRequest) {
-  if (
-    request.nextUrl.pathname === '/docs/index' ||
-    request.nextUrl.pathname === '/docs/index/'
-  ) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname === '/docs/index' || pathname === '/docs/index/') {
     return NextResponse.redirect(new URL('/docs', request.url), 308);
+  }
+
+  if (pathname.length > 1 && pathname.endsWith('/')) {
+    const url = new URL(request.url);
+    url.pathname = pathname.replace(/\/+$/, '') || '/';
+    return NextResponse.redirect(url, 308);
   }
 
   const result = rewriteSuffix(request.nextUrl.pathname);

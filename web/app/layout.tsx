@@ -6,7 +6,13 @@ import { Instrument_Serif, Inter } from 'next/font/google';
 import { GeistMono } from 'geist/font/mono';
 import { cn } from '@/lib/cn';
 import { SkipLink } from '@/components/skip-link';
-import { appDescription, appName, appTitle, siteUrl } from '@/lib/shared';
+import {
+  appDescription,
+  appName,
+  appTitle,
+  homeOgImage,
+  siteUrl,
+} from '@/lib/shared';
 import './global.css';
 
 const inter = Inter({
@@ -43,11 +49,13 @@ export const metadata: Metadata = {
     siteName: appName,
     title: appTitle,
     description: appDescription,
+    images: [homeOgImage],
   },
   twitter: {
     card: 'summary_large_image',
     title: appTitle,
     description: appDescription,
+    images: [homeOgImage.url],
   },
   robots: {
     index: true,

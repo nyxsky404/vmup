@@ -5,6 +5,8 @@
     "init",
     "upload",
     "clipboard",
+    "screenshots-to-agent",
+    "clipboard-for-agents",
     "watch",
     "profiles",
     "restrict-types",

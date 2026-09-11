@@ -19,6 +19,7 @@ export function Loader({
       speed={speed}
       bloom={bloom}
       {...props}
+      ariaLabel={props.ariaLabel ?? 'Loading'}
     />
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { HomeLayout } from 'fumadocs-ui/layouts/home';
 import { homeOptions } from '@/lib/layout.shared';
-import { appDescription, appTitle } from '@/lib/shared';
+import { appDescription, appTitle, homeOgImage } from '@/lib/shared';
 
 export const metadata: Metadata = {
   title: {
@@ -11,6 +11,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: appTitle,
     description: appDescription,
+    images: [homeOgImage],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: appTitle,
+    description: appDescription,
+    images: [homeOgImage.url],
   },
 };
 

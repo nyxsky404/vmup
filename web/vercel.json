@@ -1,0 +1,19 @@
+{
+  "redirects": [
+    {
+      "source": "/docs/index/",
+      "destination": "/docs",
+      "permanent": true
+    },
+    {
+      "source": "/docs/index",
+      "destination": "/docs",
+      "permanent": true
+    },
+    {
+      "source": "/security.txt",
+      "destination": "/.well-known/security.txt",
+      "permanent": true
+    }
+  ]
+}
