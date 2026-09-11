@@ -53,6 +53,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  verification: {
+    yandex: '5f5879e2ac92b351',
+  },
 };
 
 export default function Layout({ children }: LayoutProps<'/'>) {

@@ -2,7 +2,7 @@
 
 *Batch files to a remote host over SSH for coding agents*
 
-**Docs:** [vmup.dev](https://vmup.dev)
+**Docs:** [https://vmup.dev/docs](https://vmup.dev/docs)
 
 [![npm version](https://img.shields.io/npm/v/@nyxsky404/vmup?style=flat-square)](https://www.npmjs.com/package/@nyxsky404/vmup)
 [![CI](https://github.com/nyxsky404/vmup/actions/workflows/ci.yml/badge.svg)](https://github.com/nyxsky404/vmup/actions/workflows/ci.yml)
@@ -10,7 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](https://github.com/nyxsky404/vmup/blob/main/LICENSE)
 
-[Docs](https://vmup.dev) • [Overview](#overview) • [Getting started](#getting-started) • [Quickstart](#quickstart) • [Usage](#usage) • [Commands](#commands) • [Config](#config) • [Troubleshooting](#troubleshooting)
+[Docs](https://vmup.dev/docs) • [Overview](#overview) • [Getting started](#getting-started) • [Quickstart](#quickstart) • [Usage](#usage) • [Commands](#commands) • [Config](#config) • [Troubleshooting](#troubleshooting)
 
 The npm package is [`@nyxsky404/vmup`](https://www.npmjs.com/package/@nyxsky404/vmup). The command is `vmup`. Full documentation is on the [docs site](https://vmup.dev/docs).
 
@@ -362,4 +362,4 @@ A working `ssh lab` and a failing `vmup -p lab` usually means the profile is in 
 
 ## Development
 
-Docs: [vmup.dev](https://vmup.dev). Source and issues: [github.com/nyxsky404/vmup](https://github.com/nyxsky404/vmup). How to send a change: [CONTRIBUTING.md](CONTRIBUTING.md). Clone, then `npm install && npm run build && npm test`.
+Docs: [https://vmup.dev/docs](https://vmup.dev/docs). Source and issues: [github.com/nyxsky404/vmup](https://github.com/nyxsky404/vmup). How to send a change: [CONTRIBUTING.md](CONTRIBUTING.md). Clone, then `npm install && npm run build && npm test`.
