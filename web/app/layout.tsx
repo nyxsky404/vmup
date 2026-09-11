@@ -1,3 +1,5 @@
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import type { Metadata, Viewport } from 'next';
 import { Instrument_Serif, Inter } from 'next/font/google';
@@ -76,6 +78,8 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         >
           {children}
         </RootProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

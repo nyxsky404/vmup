@@ -11,6 +11,12 @@ import { ChevronDown, ExternalLinkIcon, TextIcon } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useMemo, type ReactNode } from 'react';
 
+type ViewOption = {
+  title: string;
+  href: string;
+  icon: ReactNode;
+};
+
 type ViewOptionsPopoverProps = {
   markdownUrl?: string;
   githubUrl?: string;
@@ -32,17 +38,24 @@ export function ViewOptionsPopover({
         : new URL(pathname, window.location.origin).toString();
     const q = `Read ${pageUrl}, I want to ask questions about it.`;
 
-    return [
-      githubUrl && {
+    const options: ViewOption[] = [];
+
+    if (githubUrl) {
+      options.push({
         title: 'Open in GitHub',
         href: githubUrl,
         icon: <GitHubIcon />,
-      },
-      markdownUrl && {
+      });
+    }
+    if (markdownUrl) {
+      options.push({
         title: 'View as Markdown',
         href: markdownUrl,
         icon: <TextIcon />,
-      },
+      });
+    }
+
+    options.push(
       {
         title: 'Open in ChatGPT',
         href: `https://chatgpt.com/?${new URLSearchParams({
@@ -61,9 +74,9 @@ export function ViewOptionsPopover({
         href: `https://cursor.com/link/prompt?${new URLSearchParams({ text: q })}`,
         icon: <CursorIcon />,
       },
-    ].filter((item): item is { title: string; href: string; icon: ReactNode } =>
-      Boolean(item),
     );
+
+    return options;
   }, [githubUrl, markdownUrl, pathname]);
 
   return (
