@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.1 — 2026-09-11
+
+- Docs site is [vmup.vercel.app](https://vmup.vercel.app). npm homepage and README point there.
+
 ## 0.3.0 — 2026-09-11
 
 - `vmup init` can add a profile or overwrite an existing one (shows current values; name-exists asks overwrite vs rename). New profiles ask whether to become the default.
