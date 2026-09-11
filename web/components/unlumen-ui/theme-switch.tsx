@@ -14,8 +14,8 @@ function applyWithTransition(
 ) {
   if (
     !document.startViewTransition ||
+    window.innerWidth > 1800 ||
     window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-    window.matchMedia('(pointer: coarse)').matches ||
     window.innerWidth < 1024
   ) {
     apply();
@@ -62,7 +62,7 @@ function ThemeSwitch({ size = "icon", className }: ThemeSwitchProps) {
   const chrome = buttonVariants({
     color: "ghost",
     size,
-    className: "relative min-h-11 min-w-11 cursor-pointer text-fd-muted-foreground",
+    className: "relative cursor-pointer text-fd-muted-foreground max-lg:min-h-11 max-lg:min-w-11",
   });
 
   if (!mounted) {

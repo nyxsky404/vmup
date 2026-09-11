@@ -1,32 +1,36 @@
 import { createGetUrl } from 'fumadocs-core/source';
 
 export const appName = 'vmup';
-export const appTagline = 'Upload files to your VM';
-export const appTitle = `${appName} — ${appTagline}`;
+export const appTitle =
+  'vmup gives coding agents one folder path on the remote host';
 export const appDescription =
   'vmup batches files over SSH and leaves one remote folder path on your clipboard, plus a prompt your coding agent can paste. Default TTL is 5 minutes.';
 export const docsRoute = '/docs';
 export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
+export const softwareVersion = '0.3.0';
 
 /** Document title that ignores the root "%s — vmup" template. */
 export function absoluteTitle(title: string) {
   return { absolute: title };
 }
 
-/**
- * Page-tab title. Uses the root template unless the page name already
- * contains the product, which would read as "Script vmup — vmup".
- */
-export function browserTitle(pageName: string) {
+function withProductSuffix(pageName: string) {
   if (new RegExp(`\\b${appName}\\b`, 'i').test(pageName)) {
-    return absoluteTitle(pageName);
+    return pageName;
   }
-  return pageName;
+  return `${pageName} — ${appName}`;
 }
 
-export function docsBrowserTitle(slug: string[] | undefined, pageName: string) {
-  if (!slug?.length) return 'Docs';
+/**
+ * Full tab title. Absolute so the initial HTML includes the product
+ * suffix instead of waiting on streamed metadata.
+ */
+export function browserTitle(pageName: string) {
+  return absoluteTitle(withProductSuffix(pageName));
+}
+
+export function docsBrowserTitle(_slug: string[] | undefined, pageName: string) {
   return browserTitle(pageName);
 }
 
@@ -36,6 +40,10 @@ export function siteUrl() {
   const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   if (vercel) return new URL(`https://${vercel}`);
   return new URL('http://localhost:3000');
+}
+
+export function absoluteUrl(pathname = '/') {
+  return new URL(pathname, siteUrl()).toString();
 }
 
 export const gitConfig = {

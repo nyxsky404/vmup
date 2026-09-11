@@ -1,0 +1,28 @@
+---
+title: Security and contact
+description: How to report bugs and security issues, and where the source and package live.
+icon: Shield
+---
+
+vmup is a small MIT-licensed CLI. There is no support inbox. Contact is GitHub and npm.
+
+## Bugs and questions
+
+Open an issue: [github.com/nyxsky404/vmup/issues](https://github.com/nyxsky404/vmup/issues).
+
+Include the command, `--json` output if you have it, and the printed error string. [Error strings](/docs/reference/errors) and [Fix SSH](/docs/guides/ssh) map those messages.
+
+## Security
+
+If you believe you found a vulnerability in the CLI or the install script, do **not** file a public issue. Use GitHub’s private advisory form: [Report a vulnerability](https://github.com/nyxsky404/vmup/security/advisories/new).
+
+The tool copies files you select onto a host you already SSH into. It does not open inbound ports. Treat remote batches as sensitive until TTL deletes them. Details: [Why batches expire](/docs/explain/ttl).
+
+## Source and package
+
+| Place | URL |
+|---|---|
+| Source | [github.com/nyxsky404/vmup](https://github.com/nyxsky404/vmup) |
+| npm | [@nyxsky404/vmup](https://www.npmjs.com/package/@nyxsky404/vmup) |
+| License | [MIT](https://github.com/nyxsky404/vmup/blob/main/LICENSE) |
+| Releases | [Changelog](/docs/changelog) |

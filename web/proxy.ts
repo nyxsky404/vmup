@@ -12,19 +12,31 @@ const { rewrite: rewriteSuffix } = rewritePath(
 );
 
 export default function proxy(request: NextRequest) {
+  if (
+    request.nextUrl.pathname === '/docs/index' ||
+    request.nextUrl.pathname === '/docs/index/'
+  ) {
+    return NextResponse.redirect(new URL('/docs', request.url), 308);
+  }
+
   const result = rewriteSuffix(request.nextUrl.pathname);
   if (result) {
-    return NextResponse.rewrite(new URL(result, request.nextUrl));
+    const response = NextResponse.rewrite(new URL(result, request.nextUrl));
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    return response;
   }
 
   if (isMarkdownPreferred(request)) {
     const result = rewriteDocs(request.nextUrl.pathname);
 
     if (result) {
-      return NextResponse.rewrite(new URL(result, request.nextUrl), {
+      const response = NextResponse.rewrite(new URL(result, request.nextUrl), {
         // this URL has two representations, selected by `Accept`
         headers: { Vary: 'Accept' },
       });
+      response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+      response.headers.set('Vary', 'Accept');
+      return response;
     }
   }
 

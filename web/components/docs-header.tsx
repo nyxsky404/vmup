@@ -23,26 +23,26 @@ export function DocsHeader(props: ComponentProps<'header'>) {
       {...props}
       className={cn(
         '[grid-area:header] sticky top-(--fd-docs-row-1) z-30 flex items-center',
-        'max-md:h-(--fd-header-height) max-md:border-b max-md:ps-4 max-md:pe-3 max-md:backdrop-blur-sm max-md:layout:[--fd-header-height:--spacing(14)]',
-        'max-md:data-[transparent=false]:bg-fd-background/80',
-        'md:col-[3/5] md:h-0 md:min-h-0 md:overflow-visible',
+        'max-lg:h-(--fd-header-height) max-lg:border-b max-lg:ps-4 max-lg:pe-3 max-lg:backdrop-blur-sm max-lg:layout:[--fd-header-height:--spacing(14)]',
+        'max-lg:data-[transparent=false]:bg-fd-background/80',
+        'lg:col-[3/5] lg:h-0 lg:min-h-0 lg:overflow-visible',
         props.className,
       )}
     >
       {slots.navTitle && (
-        <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold md:hidden" />
+        <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold lg:hidden" />
       )}
       <div
         className={cn(
-          'flex flex-1 items-center justify-end gap-2',
-          'md:pointer-events-auto md:absolute md:inset-e-0 md:top-0 md:h-14 md:pe-4',
+          'flex flex-1 items-center justify-end gap-1.5 max-lg:gap-2',
+          'lg:pointer-events-auto lg:absolute lg:inset-e-0 lg:top-0 lg:h-14 lg:pe-4',
         )}
       >
-        <NavThemeSwitch className="min-h-11 min-w-11" />
+        <NavThemeSwitch className="max-lg:min-h-11 max-lg:min-w-11" />
         {slots.searchTrigger && (
           <slots.searchTrigger.sm
             hideIfDisabled
-            className="min-h-11 min-w-11 p-2 md:hidden"
+            className="p-2 lg:hidden max-lg:min-h-11 max-lg:min-w-11"
           />
         )}
         {slots.sidebar && (
@@ -51,7 +51,7 @@ export function DocsHeader(props: ComponentProps<'header'>) {
               buttonVariants({
                 color: 'ghost',
                 size: 'icon-sm',
-                className: 'min-h-11 min-w-11 p-2 md:hidden',
+                className: 'p-2 lg:hidden max-lg:min-h-11 max-lg:min-w-11',
               }),
             )}
           >

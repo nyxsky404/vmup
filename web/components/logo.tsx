@@ -1,12 +1,7 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import { DotmSquare3 } from '@/components/ui/dotm-square-3';
 import { cn } from '@/lib/cn';
-import {
-  createDotm3x3Component,
-  spiralInward3NormFromIndex,
-  spiralInward3OrderValue,
-} from '@/lib/dotmatrix-core';
 
 const DOTS = [
   [14, 14],
@@ -20,56 +15,31 @@ const DOTS = [
   [50, 50],
 ] as const;
 
-const MarkLive = createDotm3x3Component(
-  'VmupMarkLive',
-  ({ isActive, index, reducedMotion, phase }) => {
-    if (!isActive) {
-      return { className: 'dmx-inactive' };
-    }
-
-    const order = spiralInward3OrderValue(index);
-    const pathNorm = spiralInward3NormFromIndex(index);
-    const style = { '--dmx-spiral-order': order } as CSSProperties;
-
-    if (reducedMotion || phase === 'idle') {
-      return {
-        style: {
-          ...style,
-          opacity: 0.16 + pathNorm * 0.78,
-        },
-      };
-    }
-
-    return { className: 'dmx-spiral-snake', style };
-  },
-  1.2,
-);
-
 export function BrandMark({
   className,
   animate = false,
   title,
   size = 32,
-  dotSize = 6,
-  cellPadding = 7,
+  dotSize = 4,
 }: {
   className?: string;
   animate?: boolean;
   title?: string;
   size?: number;
   dotSize?: number;
-  cellPadding?: number;
 }) {
   if (animate) {
     return (
-      <MarkLive
+      <DotmSquare3
         size={size}
         dotSize={dotSize}
-        cellPadding={cellPadding}
         speed={1.2}
         bloom
+        opacityBase={0.22}
+        opacityMid={0.4}
+        opacityPeak={1}
         ariaLabel={title || 'vmup'}
-        className={cn('shrink-0', className)}
+        className={cn('vmup-mark shrink-0', className)}
       />
     );
   }
@@ -101,12 +71,15 @@ export function Logo({
     <span className={cn('inline-flex items-center gap-2 font-normal', className)}>
       {animate ? (
         <span aria-hidden="true" className="inline-flex">
-          <BrandMark animate size={18} dotSize={4} cellPadding={3} />
+          <BrandMark animate size={20} dotSize={3} />
         </span>
       ) : (
         <BrandMark className="size-[1.125rem]" />
       )}
-      <span className="font-serif text-[1.375rem] leading-none tracking-tight">
+      <span
+        data-wordmark
+        className="font-serif text-[1.375rem] leading-none tracking-tight"
+      >
         vmup
       </span>
     </span>

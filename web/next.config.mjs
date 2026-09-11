@@ -10,6 +10,15 @@ const config = {
   turbopack: {
     root: dirname(fileURLToPath(import.meta.url)),
   },
+  async redirects() {
+    return [
+      {
+        source: '/docs/index',
+        destination: '/docs',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withMDX(config);

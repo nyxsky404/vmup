@@ -1,0 +1,57 @@
+---
+title: vmup vs scp and rsync
+description: When to use vmup instead of copying one file with scp or syncing a tree with rsync.
+icon: GitCompare
+---
+
+`scp` and `rsync` already move files over SSH. vmup sits next to them: it batches local files, uploads them once, and hands a coding agent **one folder path**.
+
+Use this page when you are choosing a tool. Recipes: [Upload files](/docs/guides/upload). Pipeline: [How a batch is built](/docs/explain/how-it-works).
+
+## What each tool is for
+
+| Job | Tool |
+|---|---|
+| Copy one named file to a known remote path | `scp` |
+| Mirror a directory, resume, or keep two trees in sync | `rsync` |
+| Collect screenshots, PDFs, and recordings, upload them, paste one path into an agent | `vmup` |
+
+## scp
+
+```bash
+scp shot.png ubuntu@host:~/work/shot.png
+```
+
+You choose the remote path. The agent needs that exact path. There is no batch id, no rename, no TTL. Three screenshots and a PDF means several `scp` runs (or a loop), then you still list every path for the agent.
+
+Run `scp` when the remote name matters, when you are not talking to an agent, or when the file should stay on the host.
+
+## rsync
+
+```bash
+rsync -a ./notes/ ubuntu@host:~/work/notes/
+```
+
+It copies directories, skips unchanged files, and can resume. vmup does none of that. A directory passed to vmup sends **immediate children** only. Nested projects, git checkouts, and a folder you want kept up to date are rsync jobs.
+
+Run `rsync` when the remote tree should look like the local tree.
+
+## vmup
+
+vmup is the agent-on-a-VM loop: files sit on the laptop, the model reads paths on the host.
+
+It collects a batch (args, picker, clipboard, or a watched folder), stages stable names (`image-01`, `file-01`), uploads over OpenSSH, prints `Please inspect all files in …`, and copies that folder path. Remote batches expire (default 5 minutes). See [Why batches expire](/docs/explain/ttl).
+
+Original basenames are gone on the VM. There is no delta copy. The native picker is macOS and Linux; on Windows pass paths or use WSL.
+
+Run vmup when the agent only needs a directory to inspect, and the files do not need to live on the host.
+
+## Pick by job
+
+Need the original filename on the VM: `scp` or `rsync`.
+
+Need a nested directory to stay in sync: `rsync`.
+
+Need one pasteable folder for a coding agent, then cleanup: vmup.
+
+You can use all three on the same machine. vmup still calls `ssh` and `scp` under the hood.

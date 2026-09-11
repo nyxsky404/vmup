@@ -23,24 +23,24 @@ export function InstallTabs({
   return (
     <div className="w-full rounded-xl border border-border bg-card p-3 sm:p-4">
       <Tabs value={value} onValueChange={setValue}>
-        <TabsList className="h-auto max-w-full min-h-11 flex-wrap">
-          {managers.map((manager) => (
-            <TabsTrigger key={manager} value={manager}>
-              {manager}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <TabsList className="max-w-full flex-wrap max-lg:h-auto max-lg:min-h-11 max-lg:p-0.5">
+            {managers.map((manager) => (
+              <TabsTrigger key={manager} value={manager} className="max-lg:min-h-11">
+                {manager}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <ButtonCopy
+            loadingDuration={0}
+            duration={1600}
+            onCopy={() => navigator.clipboard.writeText(command)}
+          />
+        </div>
       </Tabs>
-      <div className="mt-3 flex items-start justify-between gap-2">
-        <pre className="vmup-code-scroll min-w-0 flex-1 overflow-x-auto font-mono text-[13px] leading-relaxed text-foreground sm:text-sm">
-          <code>{command}</code>
-        </pre>
-        <ButtonCopy
-          loadingDuration={0}
-          duration={1600}
-          onCopy={() => navigator.clipboard.writeText(command)}
-        />
-      </div>
+      <pre className="vmup-code-scroll mt-3 overflow-x-auto font-mono text-[13px] leading-relaxed text-foreground sm:text-sm">
+        <code>{command}</code>
+      </pre>
       {children}
     </div>
   );
@@ -52,19 +52,19 @@ vmup shot.png notes.pdf`;
 export function FirstRunCommands() {
   return (
     <div className="mt-4 border-t border-border pt-3">
-      <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-        Then
-      </p>
-      <div className="mt-2 flex items-start justify-between gap-2">
-        <pre className="vmup-code-scroll min-w-0 flex-1 overflow-x-auto font-mono text-[13px] leading-relaxed text-foreground sm:text-sm">
-          <code>{FIRST_RUN}</code>
-        </pre>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+          Then
+        </p>
         <ButtonCopy
           loadingDuration={0}
           duration={1600}
           onCopy={() => navigator.clipboard.writeText(FIRST_RUN)}
         />
       </div>
+      <pre className="vmup-code-scroll mt-2 overflow-x-auto font-mono text-[13px] leading-relaxed text-foreground sm:text-sm">
+        <code>{FIRST_RUN}</code>
+      </pre>
     </div>
   );
 }

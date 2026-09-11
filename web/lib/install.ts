@@ -1,5 +1,7 @@
 export const PACKAGE_NAME = '@nyxsky404/vmup';
 export const GITHUB_URL = 'https://github.com/nyxsky404/vmup';
+export const GITHUB_ISSUES_URL = `${GITHUB_URL}/issues`;
+export const GITHUB_SECURITY_URL = `${GITHUB_URL}/security/advisories/new`;
 export const NPM_URL = 'https://www.npmjs.com/package/@nyxsky404/vmup';
 export const CURL_INSTALL =
   'curl -fsSL https://raw.githubusercontent.com/nyxsky404/vmup/main/scripts/install.sh | sh';

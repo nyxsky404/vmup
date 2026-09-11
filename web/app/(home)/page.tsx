@@ -1,8 +1,34 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import { HeroHeading } from '@/components/hero-heading';
 import { FirstRunCommands, InstallTabs } from '@/components/install-tabs';
+import { JsonLd } from '@/components/json-ld';
 import { BrandMark } from '@/components/logo';
 import { WorkflowDiagram } from '@/components/workflow-diagram';
+import { GITHUB_ISSUES_URL, GITHUB_URL, NPM_URL } from '@/lib/install';
+import { homeJsonLd } from '@/lib/schema';
+import { appDescription, appName, appTitle } from '@/lib/shared';
+
+export const metadata: Metadata = {
+  title: { absolute: appTitle },
+  description: appDescription,
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    url: '/',
+    title: appTitle,
+    description: appDescription,
+    siteName: appName,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: appTitle,
+    description: appDescription,
+  },
+};
 
 const beats = [
   {
@@ -25,7 +51,12 @@ const beats = [
 const reasons = [
   {
     title: 'No extra daemon',
-    body: 'Files go over ssh and scp you already have. No browser upload, no agent plugin.',
+    body: (
+      <>
+        Files go over <code>ssh</code> and <code>scp</code> you already have. No
+        browser upload, no agent plugin.
+      </>
+    ),
   },
   {
     title: 'The agent only needs a directory',
@@ -55,7 +86,11 @@ const modes = [
   {
     title: 'Clipboard',
     cmd: 'vmup --clip',
-    best: 'Screenshots and copied files. macOS images need pngpaste.',
+    best: (
+      <>
+        Screenshots and copied files. macOS images need <code>pngpaste</code>.
+      </>
+    ),
   },
   {
     title: 'Watch',
@@ -64,14 +99,58 @@ const modes = [
   },
 ];
 
-const facts = [
-  'npm package @nyxsky404/vmup; the command is vmup',
-  'Node 18+ and OpenSSH (ssh / scp) on your PATH',
-  'Default remote root ~/vmup; batch id agents-<date>-<time>-<uuid>',
-  'Staged names image-01, video-01, file-01 so the listing is stable',
-  'Default TTL 5 minutes; sweeper cron every minute',
-  'Default max 200 MB per file; all types accepted unless you tighten config',
-  '--json on stdout for scripts; spinner still on stderr',
+const facts: { id: string; body: ReactNode }[] = [
+  {
+    id: 'package',
+    body: (
+      <>
+        npm package <code>@nyxsky404/vmup</code>; the command is <code>vmup</code>
+      </>
+    ),
+  },
+  {
+    id: 'deps',
+    body: (
+      <>
+        Node 18+ and OpenSSH (<code>ssh</code> / <code>scp</code>) on your{' '}
+        <code>PATH</code>
+      </>
+    ),
+  },
+  {
+    id: 'remote',
+    body: (
+      <>
+        Default remote root <code>~/vmup</code>; batch id{' '}
+        <code>{'agents-<date>-<time>-<uuid>'}</code>
+      </>
+    ),
+  },
+  {
+    id: 'names',
+    body: (
+      <>
+        Staged names <code>image-01</code>, <code>video-01</code>,{' '}
+        <code>file-01</code> so the listing is stable
+      </>
+    ),
+  },
+  {
+    id: 'ttl',
+    body: 'Default TTL 5 minutes; sweeper cron every minute',
+  },
+  {
+    id: 'limits',
+    body: 'Default max 200 MB per file; all types accepted unless you tighten config',
+  },
+  {
+    id: 'json',
+    body: (
+      <>
+        <code>--json</code> on stdout for scripts; spinner still on stderr
+      </>
+    ),
+  },
 ];
 
 const docs = [
@@ -79,6 +158,7 @@ const docs = [
   { href: '/docs/guides/watch', label: 'Watch a folder' },
   { href: '/docs/guides/profiles', label: 'Profiles' },
   { href: '/docs/explain/ttl', label: 'TTL and cleanup' },
+  { href: '/docs/explain/vs-scp', label: 'vs scp / rsync' },
   { href: '/docs/reference/commands', label: 'Commands' },
 ];
 
@@ -89,11 +169,13 @@ export default function HomePage() {
       id="main-content"
       tabIndex={-1}
     >
+      <JsonLd data={homeJsonLd()} />
       <div className="mb-6" aria-hidden="true">
         <BrandMark animate />
       </div>
-      <p className="mb-4 text-pretty text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase sm:tracking-[0.18em]">
-        For developers who run coding agents over SSH
+      <p className="mb-4 text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase max-sm:tracking-[0.06em]">
+        For developers who run{' '}
+        <span className="max-sm:whitespace-nowrap">coding agents over SSH</span>
       </p>
       <HeroHeading>
         vmup gives coding agents one folder path on the remote host
@@ -109,7 +191,10 @@ export default function HomePage() {
         </InstallTabs>
         <p className="mt-4 text-sm text-muted-foreground">
           Node 18+ and OpenSSH{' · '}
-          <Link href="/docs/quickstart" className="underline underline-offset-4">
+          <Link
+            href="/docs/quickstart"
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+          >
             First upload
           </Link>
         </p>
@@ -144,9 +229,10 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
             the agent has nothing to open.
           </p>
           <p>
-            scp moves one file. A morning of screenshots, a notes PDF, and a
-            screen recording is a different job: stage a batch, upload it, hand
-            back one path, delete it when you are done. vmup does that job.
+            <code>scp</code> moves one file. A morning of screenshots, a notes
+            PDF, and a screen recording is a different job: stage a batch,
+            upload it, hand back one path, delete it when you are done. vmup
+            does that job.
           </p>
         </div>
       </section>
@@ -171,7 +257,7 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
         <h2 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
           How it works
         </h2>
-        <ol className="mt-8 grid gap-8 sm:grid-cols-3">
+        <ol className="mt-8 grid gap-8 lg:grid-cols-3">
           {beats.map((beat) => (
             <li key={beat.n}>
               <p className="font-mono text-xs text-muted-foreground">{beat.n}</p>
@@ -193,7 +279,7 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
           already loaded.
         </p>
         <div className="mt-10 divide-y divide-border border-y border-border">
-          <div className="hidden py-3 text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase sm:grid sm:grid-cols-[7rem_1fr_1fr] sm:gap-4">
+          <div className="hidden py-3 text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase lg:grid lg:grid-cols-[7rem_1fr_1fr] lg:gap-4">
             <span>Method</span>
             <span>Command</span>
             <span>Best for</span>
@@ -201,10 +287,12 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
           {modes.map((mode) => (
             <div
               key={mode.cmd}
-              className="grid gap-1 py-4 sm:grid-cols-[7rem_1fr_1fr] sm:items-baseline sm:gap-4"
+              className="grid gap-1 py-4 lg:grid-cols-[7rem_1fr_1fr] lg:items-baseline lg:gap-4"
             >
               <h3 className="font-medium">{mode.title}</h3>
-              <p className="font-mono text-sm text-foreground">{mode.cmd}</p>
+              <p>
+                <code>{mode.cmd}</code>
+              </p>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {mode.best}
               </p>
@@ -217,29 +305,23 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
         <h2 className="font-serif text-3xl tracking-tight text-foreground sm:text-4xl">
           Temporary by design
         </h2>
-        <div className="mt-6 max-w-xl space-y-4 text-base leading-relaxed text-foreground/85">
+        <div className="mt-6 max-w-xl space-y-4 text-base leading-7 text-foreground/85">
           <p>
             Remote batches expire after 5 minutes. Temporary files should not
             live forever on the VM. Change the TTL if a run needs longer.
           </p>
           <p>
-            A sweeper at{' '}
-            <code className="font-mono text-sm">~/vmup/.cleanup.sh</code> runs
-            every minute and removes expired{' '}
-            <code className="font-mono text-sm">agents-*</code> directories. It
-            does not wipe the whole remote root. After you change TTL, run{' '}
-            <code className="font-mono text-sm">vmup check --sweeper</code> so
-            the remote script matches.
+            A sweeper at <code>~/vmup/.cleanup.sh</code> runs every minute and
+            removes expired <code>agents-*</code> directories. It does not wipe
+            the whole remote root. After you change TTL, run{' '}
+            <code>vmup check --sweeper</code> so the remote script matches.
           </p>
           <p>
-            <code className="font-mono text-sm">vmup prune</code> deletes
-            expired batches from here.{' '}
-            <code className="font-mono text-sm">--id</code> deletes one.{' '}
-            <code className="font-mono text-sm">--local</code> also clears
-            leftover staging under{' '}
-            <code className="font-mono text-sm">~/.cache/vmup/</code>. Successful
+            <code>vmup prune</code> deletes expired batches from here.{' '}
+            <code>--id</code> deletes one. <code>--local</code> also clears
+            leftover staging under <code>~/.cache/vmup/</code>. Successful
             uploads already delete that cache unless you pass{' '}
-            <code className="font-mono text-sm">--keep-local</code>.
+            <code>--keep-local</code>.
           </p>
         </div>
       </section>
@@ -248,11 +330,11 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
         <h2 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
           Facts
         </h2>
-        <ul className="mt-6 max-w-xl space-y-3 text-sm leading-relaxed text-foreground/85">
+        <ul className="mt-6 max-w-xl space-y-4 text-sm leading-7 text-foreground/85">
           {facts.map((fact) => (
-            <li key={fact} className="flex gap-3">
-              <span className="mt-[0.55em] size-1 shrink-0 rounded-full bg-muted-foreground" />
-              <span>{fact}</span>
+            <li key={fact.id} className="flex gap-3">
+              <span className="mt-[0.7em] size-1 shrink-0 rounded-full bg-muted-foreground" />
+              <span>{fact.body}</span>
             </li>
           ))}
         </ul>
@@ -262,56 +344,89 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
         <h2 className="font-serif text-3xl tracking-tight text-foreground sm:text-4xl">
           Install, init, send a file
         </h2>
-        <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
-          The package is{' '}
-          <code className="font-mono text-foreground">@nyxsky404/vmup</code>.
-          The binary is <code className="font-mono text-foreground">vmup</code>.
+        <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+          The package is <code>@nyxsky404/vmup</code>. The binary is{' '}
+          <code>vmup</code>.
         </p>
         <div className="mt-8">
           <InstallTabs />
         </div>
-        <p className="mt-4 text-sm">
-          <Link href="/docs/install" className="underline underline-offset-4">
+        <p className="mt-4 flex flex-wrap items-center gap-x-2 text-sm max-lg:gap-y-1">
+          <Link
+            href="/docs/install"
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+          >
             Install
           </Link>
           {' · '}
-          <Link href="/docs/quickstart" className="underline underline-offset-4">
+          <Link
+            href="/docs/quickstart"
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+          >
             First upload
           </Link>
           {' · '}
-          <Link href="/docs" className="underline underline-offset-4">
+          <Link
+            href="/docs"
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+          >
             Docs
           </Link>
         </p>
       </section>
 
-      <nav className="mt-20 flex flex-wrap gap-x-6 gap-y-3 text-sm">
-        {docs.map((item) => (
-          <Link
-            key={item.href}
-            className="inline-flex min-h-11 items-center text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            href={item.href}
+      <footer className="mt-24 border-t border-border pt-8 text-sm text-muted-foreground max-lg:pb-[max(2rem,env(safe-area-inset-bottom))]">
+        <nav
+          aria-label="Documentation"
+          className="flex flex-wrap gap-x-6 gap-y-2 max-lg:gap-y-3"
+        >
+          {docs.map((item) => (
+            <Link
+              key={item.href}
+              className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+              href={item.href}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <p className="mt-8">
+          MIT ·{' '}
+          <a
+            href={GITHUB_URL}
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
           >
-            {item.label}
+            GitHub
+          </a>
+          {' · '}
+          <a
+            href={NPM_URL}
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+          >
+            npm
+          </a>
+          {' · '}
+          <a
+            href={GITHUB_ISSUES_URL}
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+          >
+            Issues
+          </a>
+          {' · '}
+          <Link
+            href="/docs/contact"
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+          >
+            Security
           </Link>
-        ))}
-      </nav>
-
-      <footer className="mt-24 border-t border-border pt-8 text-sm text-muted-foreground">
-        MIT ·{' '}
-        <a
-          href="https://github.com/nyxsky404/vmup"
-          className="inline-flex min-h-11 items-center underline underline-offset-4"
-        >
-          GitHub
-        </a>
-        {' · '}
-        <a
-          href="https://www.npmjs.com/package/@nyxsky404/vmup"
-          className="inline-flex min-h-11 items-center underline underline-offset-4"
-        >
-          npm
-        </a>
+          {' · '}
+          <Link
+            href="/docs/changelog"
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+          >
+            Changelog
+          </Link>
+        </p>
       </footer>
     </main>
   );

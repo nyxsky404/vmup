@@ -27,10 +27,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
   applicationName: appName,
-    title: {
-      default: appName,
-      template: `%s — ${appName}`,
-    },
+  title: {
+    default: appTitle,
+    template: `%s — ${appName}`,
+  },
   description: appDescription,
   appleWebApp: {
     title: appName,
@@ -43,9 +43,13 @@ export const metadata: Metadata = {
     description: appDescription,
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: appTitle,
     description: appDescription,
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
@@ -61,7 +65,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         'font-sans',
       )}
     >
-      <body className="flex min-h-dvh flex-col">
+      <body className="flex min-h-screen flex-col max-lg:min-h-dvh">
         <SkipLink />
         <RootProvider
           theme={{

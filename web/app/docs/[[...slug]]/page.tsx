@@ -6,15 +6,28 @@ import {
   DocsTitle,
   MarkdownCopyButton,
 } from 'fumadocs-ui/layouts/docs/page';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getMDXComponents } from '@/components/mdx';
+import { DocsA11y } from '@/components/docs-a11y';
+import { JsonLd } from '@/components/json-ld';
 import { ViewOptionsPopover } from '@/components/view-options-popover';
 import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
-import { getPageImageUrl, getPageMarkdownUrl, gitConfig } from '@/lib/shared';
+import { docsJsonLd } from '@/lib/schema';
+import {
+  appName,
+  docsBrowserTitle,
+  getPageImageUrl,
+  getPageMarkdownUrl,
+  gitConfig,
+} from '@/lib/shared';
 
 export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   const params = await props.params;
+  if (params.slug?.length === 1 && params.slug[0] === 'index') {
+    redirect('/docs');
+  }
+
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
@@ -22,13 +35,21 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   const markdownUrl = getPageMarkdownUrl(page).url;
 
   return (
-    <DocsPage toc={page.data.toc} full={page.data.full}>
+    <DocsPage
+      toc={page.data.toc}
+      full={page.data.full}
+      tableOfContentPopover={{
+        trigger: { 'aria-label': 'On this page' },
+      }}
+    >
+      <DocsA11y />
+      <JsonLd data={docsJsonLd(page)} />
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription className="mb-0">{page.data.description}</DocsDescription>
       <div className="flex flex-row gap-2 items-center border-b pb-6">
         <MarkdownCopyButton
           markdownUrl={markdownUrl}
-          className="min-h-11 px-3"
+          className="max-lg:min-h-11 max-lg:px-3"
         />
         <ViewOptionsPopover
           markdownUrl={markdownUrl}
@@ -48,19 +69,53 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
 }
 
 export async function generateStaticParams() {
-  return source.generateParams();
+  return source.generateParams().filter((params) => {
+    const slug = params.slug;
+    return !(Array.isArray(slug) && slug.length === 1 && slug[0] === 'index');
+  });
 }
 
-export async function generateMetadata(props: PageProps<'/docs/[[...slug]]'>): Promise<Metadata> {
+export async function generateMetadata(
+  props: PageProps<'/docs/[[...slug]]'>,
+): Promise<Metadata> {
   const params = await props.params;
+  if (params.slug?.length === 1 && params.slug[0] === 'index') {
+    redirect('/docs');
+  }
+
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
+  const title = docsBrowserTitle(params.slug, page.data.title);
+  const description = page.data.description;
+  const image = getPageImageUrl(page).url;
+
   return {
-    title: page.data.title,
-    description: page.data.description,
+    title,
+    description,
+    alternates: {
+      canonical: page.url,
+    },
     openGraph: {
-      images: getPageImageUrl(page).url,
+      type: 'article',
+      url: page.url,
+      siteName: appName,
+      title: title.absolute,
+      description,
+      images: [
+        {
+          url: image,
+          width: 1200,
+          height: 630,
+          alt: title.absolute,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: title.absolute,
+      description,
+      images: [image],
     },
   };
 }

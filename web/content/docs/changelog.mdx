@@ -1,0 +1,46 @@
+---
+title: Changelog
+description: Notable changes in each vmup release, from 0.1.0 through the current npm version.
+icon: ScrollText
+---
+
+Source of this list: [`CHANGELOG.md`](https://github.com/nyxsky404/vmup/blob/main/CHANGELOG.md) in the repo. The npm package is [`@nyxsky404/vmup`](https://www.npmjs.com/package/@nyxsky404/vmup).
+
+For current `--video` / `--force` behavior (path arguments vs picker vs watch), see [Restrict to images](/docs/guides/restrict-types). The 0.3.0 bullet below is the release note, not the full type-filter rules.
+
+## 0.3.0 — 2026-09-11
+
+- `vmup init` can add a profile or overwrite an existing one (shows current values; name-exists asks overwrite vs rename). New profiles ask whether to become the default.
+- TTL is in **minutes** (default **5**). `--ttl`, `ttl_minutes`, `VMUP_TTL_MINUTES`. Old `ttl_hours` is still read (hours × 60).
+- Remote sweeper cron runs every minute (`~/vmup/.cleanup.sh`). Reinstall with `vmup check --sweeper` after changing TTL.
+- Upload spinner shows `uploaded / total` size; same animation on TTY even with `--json` (JSON still on stdout).
+- Watch mode captures Finder copies in the folder (copies keep old timestamps). Existing files at start are still ignored.
+- Prompt default: `Please inspect all files in …` (old “images” prompt is migrated).
+- `--video` / `--force` only apply when `accept_all_files = false`.
+- Install via npm, pnpm, yarn, bun, npx/dlx/bunx, or `curl` of `scripts/install.sh` from GitHub. Update notice uses the matching command.
+
+## 0.2.1 — 2026-09-10
+
+- After a command, mention a newer npm release (at most once per day) with `npm i -g @nyxsky404/vmup`.
+- Skip with `VMUP_NO_UPDATE_CHECK=1` or in CI; never printed with `--json`.
+
+## 0.2.0 — 2026-09-10
+
+- Upload/SSH progress spinner (stderr) so the CLI does not look stuck.
+- Light colors on success output (`NO_COLOR` respected).
+- Default: all file types (images, video, pdf, …); init asks, default Y.
+- `max_file_mb` in config (default 200; not asked at init).
+- Staged names: `image-NN`, `video-NN`, `file-NN`.
+- `vmup check` / `vmup check --sweeper` to retry SSH without the wizard.
+- Warn after upload if the remote sweeper is missing.
+- `--clip` captures Finder files as well as images; skips duplicate clipboard content (`clip_dedup`, default true).
+- `done` / Ctrl+D finish `--clip` and pause stdin so the terminal tab does not exit.
+- `vmup --watch` as well as `vmup watch`.
+
+## 0.1.1 — 2026-09-10
+
+- Add `main` / `exports` so package scanners can resolve an entry point.
+
+## 0.1.0 — 2026-09-10
+
+First public release. npm package: **`@nyxsky404/vmup`** (CLI command remains `vmup`).

@@ -110,6 +110,12 @@ html > body[data-scroll-locked] {
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    overscroll-behavior: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  body {
     min-height: 100dvh;
   }
 
@@ -142,29 +148,42 @@ html > body[data-scroll-locked] {
   transform: translateY(0);
 }
 
-/* Safe areas on sticky chrome */
-#nd-nav,
-#nd-subnav {
-  padding-top: env(safe-area-inset-top, 0px);
-  margin-inline-start: env(safe-area-inset-left, 0px);
-  margin-inline-end: env(safe-area-inset-right, 0px);
+#main-content :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 400;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--muted);
+  color: var(--foreground);
+  white-space: nowrap;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
-#nd-nav {
-  min-height: calc(3.5rem + env(safe-area-inset-top, 0px));
+/* Safe areas: phones/tablets only. Never override desktop Fumadocs padding. */
+@media (max-width: 1023px) {
+  #nd-nav,
+  #nd-subnav {
+    padding-top: env(safe-area-inset-top, 0px);
+    margin-inline-start: env(safe-area-inset-left, 0px);
+    margin-inline-end: env(safe-area-inset-right, 0px);
+  }
+
+  #nd-nav {
+    min-height: calc(3.5rem + env(safe-area-inset-top, 0px));
+  }
+
+  #nd-subnav {
+    min-height: calc(var(--fd-header-height, 3.5rem) + env(safe-area-inset-top, 0px));
+  }
 }
 
-#nd-subnav {
-  min-height: calc(var(--fd-header-height, 3.5rem) + env(safe-area-inset-top, 0px));
-}
-
-#nd-nav:has([aria-expanded='true']) {
-  height: auto;
-}
-
-body:has(#nd-nav [aria-expanded='true']),
-body:has(#nd-sidebar-mobile[data-state='open']) {
-  overflow: hidden;
+@media (max-width: 1023px) {
+  body:has(#nd-sidebar-mobile[data-state='open']) {
+    overflow: hidden;
+  }
 }
 
 #nd-sidebar-mobile {
@@ -179,13 +198,28 @@ body:has(#nd-sidebar-mobile[data-state='open']) {
 }
 
 @media (max-width: 1023px) {
-  #nd-nav [class*='flex-col'] button[aria-label*='Switch to'] {
-    display: none;
+  footer {
+    padding-bottom: max(2rem, env(safe-area-inset-bottom, 0px));
   }
 
-  /* Fumadocs shows inline links from `sm` and the hamburger until `lg`. */
-  #nd-nav ul.max-sm\:hidden {
-    display: none;
+  [data-layout-content] :not(pre) > code {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  #nd-docs-layout {
+    --fd-toc-popover-height: 2.75rem;
+  }
+
+  [data-toc-popover] {
+    height: 2.75rem;
+  }
+
+  [data-toc-popover-trigger] {
+    height: 2.75rem;
+    min-height: 2.75rem;
+    overflow: hidden;
   }
 
   [data-search-full] kbd {
@@ -207,8 +241,10 @@ body:has(#nd-sidebar-mobile[data-state='open']) {
   }
 }
 
-[data-fd-search-dialog-input] {
-  min-height: 2.75rem;
+@media (max-width: 1023px) {
+  [data-fd-search-dialog-input] {
+    min-height: 2.75rem;
+  }
 }
 
 body:has(#nd-sidebar-mobile[data-state='open'])
@@ -217,47 +253,47 @@ body:has(#nd-sidebar-mobile[data-state='open'])
   pointer-events: none;
 }
 
-/* Hide on-page TOC once the docs sidebar is in the layout */
-@media (min-width: 768px) {
-  [data-toc-popover] {
+@media (orientation: landscape) and (max-height: 540px) and (max-width: 1023px) {
+  #main-content {
+    padding-top: 1.25rem;
+  }
+
+  #main-content > [aria-hidden='true'] {
     display: none;
   }
 
-  #nd-docs-layout {
-    --fd-toc-popover-height: 0px;
+  #main-content h1 {
+    font-size: clamp(1.5rem, 3vw + 1rem, 2rem);
+    line-height: 1.2;
+  }
+
+  #main-content > p.mt-6 {
+    margin-top: 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  #install {
+    margin-top: 1rem;
   }
 }
 
-/* Phone landscape: keep reading width, stop the TOC covering tables */
-@media (orientation: landscape) and (max-height: 540px) {
-  [data-toc-popover] {
-    display: none;
-  }
-
-  #nd-docs-layout {
-    --fd-toc-popover-height: 0px;
-    --fd-sidebar-width: 13.5rem;
-  }
-
-  [data-layout-content] {
-    padding-top: 1rem;
+@media (max-width: 1023px) {
+  h1,
+  h2,
+  h3,
+  h4,
+  .vmup-table-scroll,
+  [data-layout-content] > * {
+    scroll-margin-top: calc(
+      var(--fd-docs-row-3, var(--fd-header-height, 3.5rem)) + 0.75rem
+    );
   }
 }
 
-h1,
-h2,
-h3,
-h4,
-.vmup-table-scroll,
-[data-layout-content] > * {
-  scroll-margin-top: calc(
-    var(--fd-docs-row-3, var(--fd-header-height, 3.5rem)) + 0.75rem
-  );
-}
-
-@media (pointer: coarse), (max-width: 1023px) {
-  #nd-nav [aria-label='Toggle Menu'],
-  #nd-nav [aria-label='Open Search'],
+@media (max-width: 1023px) {
+  #nd-nav a,
+  #nd-nav button,
   #nd-subnav button,
   #nd-subnav a,
   [data-toc-popover-trigger],
@@ -272,11 +308,6 @@ h4,
     min-height: 2.75rem;
   }
 
-  #nd-nav [class*='flex-col'] a,
-  #nd-nav [class*='flex-col'] button {
-    min-height: 2.75rem;
-  }
-
   [data-search-full] kbd {
     display: none;
   }
@@ -296,82 +327,51 @@ h4,
   }
 }
 
-.vmup-code-scroll,
-.fd-scroll-container {
-  background:
-    linear-gradient(to right, var(--card) 30%, transparent) 0 0 / 1.25rem 100%
-      local,
-    linear-gradient(to left, var(--card) 30%, transparent) 100% 0 / 1.25rem 100%
-      local,
-    linear-gradient(to right, oklch(0 0 0 / 0.12), transparent 40%) 0 0 / 0.75rem
-      100% no-repeat,
-    linear-gradient(to left, oklch(0 0 0 / 0.12), transparent 40%) 100% 0 /
-      0.75rem 100% no-repeat;
-  background-attachment: local, local, scroll, scroll;
+@media (max-width: 1023px) {
+  .vmup-code-scroll {
+    background:
+      linear-gradient(to right, var(--card) 30%, transparent) 0 0 / 1.25rem 100%
+        local,
+      linear-gradient(to left, var(--card) 30%, transparent) 100% 0 / 1.25rem 100%
+        local,
+      linear-gradient(to right, oklch(0 0 0 / 0.12), transparent 40%) 0 0 / 0.75rem
+        100% no-repeat,
+      linear-gradient(to left, oklch(0 0 0 / 0.12), transparent 40%) 100% 0 /
+        0.75rem 100% no-repeat;
+    background-attachment: local, local, scroll, scroll;
+  }
 }
 
 .vmup-table-scroll {
-  margin-block: 1.5rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  background:
-    linear-gradient(to right, var(--background) 30%, transparent) 0 0 / 1.25rem
-      100% local,
-    linear-gradient(to left, var(--background) 30%, transparent) 100% 0 / 1.25rem
-      100% local,
-    linear-gradient(to right, oklch(0 0 0 / 0.12), transparent 40%) 0 0 / 0.75rem
-      100% no-repeat,
-    linear-gradient(to left, oklch(0 0 0 / 0.12), transparent 40%) 100% 0 /
-      0.75rem 100% no-repeat;
-  background-attachment: local, local, scroll, scroll;
 }
 
-@media (max-width: 639px) {
+@media (min-width: 1024px) {
   .vmup-table-scroll {
-    overflow-x: visible;
-    background: none;
+    display: contents;
+  }
+}
+
+@media (max-width: 1023px) {
+  .vmup-table-scroll {
+    margin-block: 1.5rem;
   }
 
-  .vmup-table-scroll table,
-  .vmup-table-scroll tbody {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .vmup-table-scroll thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-  }
-
-  .vmup-table-scroll tr {
-    display: grid;
-    gap: 0.35rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--card);
-    padding: 0.85rem 1rem;
+  .vmup-table-scroll table {
+    width: 100%;
   }
 
   .vmup-table-scroll th,
   .vmup-table-scroll td {
-    display: grid;
-    grid-template-columns: minmax(6.5rem, 34%) minmax(0, 1fr);
-    gap: 0.75rem;
-    align-items: start;
-    border: 0;
-    padding: 0.2rem 0;
-    overflow-wrap: anywhere;
     white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
-  .vmup-table-scroll td::before {
-    content: attr(data-label);
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--muted-foreground);
+  .vmup-table-scroll :not(pre) > code {
+    white-space: normal;
+    overflow-wrap: break-word;
   }
 }
 
@@ -408,23 +408,42 @@ h4,
   }
 }
 
-.vmup-peak {
-  transform-box: fill-box;
-  transform-origin: center;
+/* Core Spiral, but the grid stays on after the head passes. */
+.vmup-mark .dmx-spiral-snake {
+  animation-name: vmup-spiral-snake;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .vmup-peak-animate {
-    animation: vmup-lift 2.8s ease-in-out infinite;
-  }
-}
-
-@keyframes vmup-lift {
+@keyframes vmup-spiral-snake {
   0%,
+  40%,
   100% {
-    transform: translateY(0);
+    opacity: var(--dmx-opacity-base);
+    --dmx-bloom-level: 0;
   }
-  50% {
-    transform: translateY(-2.5px);
+
+  8% {
+    opacity: var(--dmx-opacity-peak);
+    --dmx-bloom-level: 1;
+  }
+
+  16% {
+    opacity: calc(
+      0.5 * var(--dmx-opacity-peak) + 0.4 * var(--dmx-opacity-mid) + 0.1 *
+        var(--dmx-opacity-base)
+    );
+    --dmx-bloom-level: 0;
+  }
+
+  24% {
+    opacity: calc(
+      0.25 * var(--dmx-opacity-peak) + 0.45 * var(--dmx-opacity-mid) + 0.3 *
+        var(--dmx-opacity-base)
+    );
+    --dmx-bloom-level: 0;
+  }
+
+  32% {
+    opacity: calc(0.5 * var(--dmx-opacity-mid) + 0.5 * var(--dmx-opacity-base));
+    --dmx-bloom-level: 0;
   }
 }

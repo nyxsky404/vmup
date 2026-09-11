@@ -15,7 +15,7 @@ function Panel({
   filesMuted?: boolean;
 }) {
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-card px-4 py-4">
+    <div className="flex h-full flex-col rounded-xl border border-border bg-card px-4 py-4 text-center sm:text-left">
       <p className="text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
         {label}
       </p>

@@ -4,6 +4,7 @@
   "pages": [
     "how-it-works",
     "ttl",
-    "ssh-modes"
+    "ssh-modes",
+    "vs-scp"
   ]
 }
