@@ -1,0 +1,55 @@
+---
+title: Direct SSH vs ssh_host
+description: vmup either passes host, user, key, and port, or it invokes an OpenSSH alias from your config.
+icon: Cable
+---
+
+`resolveTarget` picks one of two modes. Mixing them in one command is rejected (`--profile` with `--ssh-host`).
+
+How to set profiles: [Point vmup at another VM](/docs/guides/profiles).
+
+## Direct
+
+Used when the profile has no `ssh_host`, and you did not pass `--ssh-host` / `VMUP_SSH_HOST`.
+
+vmup builds:
+
+```text
+ssh -p <port> -i <key> -o BatchMode=yes -o StrictHostKeyChecking=accept-new user@host <command>
+scp -P <port> -i <key> -o BatchMode=yes -o StrictHostKeyChecking=accept-new <file> user@host:<path>
+```
+
+`BatchMode=yes` refuses a password prompt. If the key is missing from `authorized_keys`, the command fails instead of hanging. `accept-new` adds unknown host keys; it does not blindly accept a changed key (OpenSSH still fails on mismatch).
+
+The private key is checked on disk first: exists, readable, and not group/world-readable (Unix). That check is skipped in alias mode because vmup may not know which file OpenSSH will use.
+
+Default user is `ubuntu`. Default port `22`. Default key hint `~/.ssh/id_ed25519`. Host has no default; without it, vmup tells you to run init.
+
+`SSH_AUTH_SOCK` lets you omit `key` in config. vmup then passes no `-i` and relies on the agent. Port and `user@host` still come from the profile / env.
+
+## Alias (`ssh_host`)
+
+Used when the profile sets `ssh_host`, or when you pass `--ssh-host` / `VMUP_SSH_HOST`.
+
+```text
+ssh lab <command>
+scp -o BatchMode=yes -o StrictHostKeyChecking=accept-new <file> lab:<path>
+```
+
+No `-p`, no `-i` from vmup. User, port, `IdentityFile`, `ProxyJump`, and `HostName` come from `~/.ssh/config`. If `ssh lab` works in your terminal, this mode is the one that matches that behavior.
+
+`--ssh-host` without a profile names the target `ssh:<alias>` in output. A saved profile keeps its real name (`lab`) even when that profile’s field is `ssh_host`.
+
+scp in alias mode still adds `BatchMode` and `accept-new`. A `Host` block that already sets those options is fine.
+
+## Remote paths and `~`
+
+OpenSSH scp does not expand `~` on the remote side the way you expect. vmup strips a leading `~/` for the scp destination and expands `~` via `$HOME` in remote shell snippets (`mkdir`, `mv`, `rm`, the sweeper). Displayed agent paths keep the `~/vmup/…` form.
+
+## Which to pick
+
+Direct mode is the init wizard: you type IP, user, key. Good when this laptop’s only SSH client for that VM is vmup.
+
+Alias mode is better when you already have `Host` stanzas (jumps, non-22 ports, hardware keys). Put `ssh_host = "thatHost"` on the profile and leave `host` unset.
+
+A common failure: the profile still has `host = "…"` from init, you added a `Host` block, and you expected vmup to use it. Direct mode ignores `~/.ssh/config` for identity and port. `vmup profiles` shows `user@ip` for direct and `ssh_host=name` for alias.

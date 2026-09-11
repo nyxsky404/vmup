@@ -1,0 +1,44 @@
+---
+title: Why batches expire
+description: TTL is in minutes, the host cron is the reliable delete, and the laptop sleep job is a backup.
+icon: Timer
+---
+
+A batch is throwaway context for an agent turn. vmup defaults to **5 minutes** so `~/vmup` does not accumulate screenshots from last week. You can raise TTL; you cannot turn expiry off with a flag (use a large `--ttl` or stop the sweeper if you must keep files).
+
+Recipes: [Clean up batches](/docs/guides/cleanup).
+
+## Two clocks
+
+**Remote sweeper.** `~/vmup/.cleanup.sh` is a bash script installed over SSH. Crontab runs it every minute:
+
+```bash
+find "$DIR" -maxdepth 1 -type d -name 'agents-*' -mmin +N -exec rm -rf {} +
+find "$DIR" -maxdepth 1 -type d -name 'agents-*.partial' -mmin +N -exec rm -rf {} +
+```
+
+`N` is the TTL baked in at **install** time. Changing `ttl_minutes` in config does not edit a script that is already on the VM. `vmup check --sweeper` rewrites it.
+
+The script only touches `agents-*` directories one level under the remote root. It will not `rm` `~/vmup` itself or your home directory.
+
+**Client sleep.** After a successful upload, vmup spawns `bash -c 'sleep T && ssh … rm -rf <batch>'` detached. `T` is `max(60, ttlMinutes * 60)` seconds. If the laptop sleeps, the process dies, and this path does nothing. That is why the sweeper warning exists: the host cron still runs when your laptop lid is shut.
+
+`vmup prune` is a third path: you decide, now, from this machine.
+
+## TTL resolution
+
+Minutes, not hours, as of 0.3.0. Old configs with `ttl_hours` still work: hours × 60, and only if `ttl_minutes` is absent. Same for `VMUP_TTL_HOURS`.
+
+Order: `--ttl` → `VMUP_TTL_MINUTES` → `VMUP_TTL_HOURS` → profile → top-level config → 5.
+
+`clampTtlMinutes`: non-finite or `<= 0` → 5; otherwise `round` and at least 1.
+
+`--ttl` on an upload sets the client sleep and (via `scheduleClientDelete`) that batch’s delay. It does **not** rewrite `.cleanup.sh`. A one-off `--ttl 60` can outlive the sweeper’s baked `N` if `N` is 5: the cron may delete the batch first. After a lasting TTL change, reinstall the sweeper.
+
+## Partial dirs
+
+Failed uploads try to `rm` `agents-….partial`. The sweeper and `prune` also delete leftover `*.partial` directories (prune deletes them immediately; the sweeper uses the same age as live batches).
+
+## Local cache
+
+`~/.cache/vmup/` is not TTL’d by the remote script. Successful uploads delete the session dir. Failures and `--keep-local` leave it. `vmup prune --local` removes batch dirs there older than 24 hours. `update-check.json` in the same cache root is not a batch dir and is left alone.

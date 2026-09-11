@@ -1,0 +1,75 @@
+---
+title: Run init again
+description: Add a profile, overwrite one, or write config without the wizard.
+icon: ListPlus
+---
+
+`vmup init` writes `~/.config/vmup/config.toml`. The first run creates the file and one profile. Later runs add a profile or overwrite an existing one. They do not wipe the whole file.
+
+## First run vs later runs
+
+No config file yet: you get the full wizard (profile, SSH fields, watch folder, file types, sweeper). See [First upload](/docs/quickstart).
+
+A config with at least one profile: vmup prints the path and the profile list, then asks:
+
+```text
+Create a new profile, or overwrite an existing one? [new]:
+```
+
+Type `new` (or press Enter) to add. Type `overwrite`, `over`, or `o` to replace an existing profile.
+
+## Add a profile
+
+1. Run `vmup init`.
+2. Keep `new`.
+3. Enter a name. Empty names are rejected.
+4. If the name already exists, vmup asks whether to overwrite or pick a different name. `overwrite` / `o` replaces it. Anything else loops back to the name prompt.
+5. Fill host, user, key, port, remote dir, TTL. New profiles use template defaults (`ubuntu`, `~/vmup`, 5 minutes), not the values from another profile.
+6. Decide whether this profile becomes the default. The default answer is **No**.
+7. Decide whether to install the remote sweeper on this host.
+
+Watch folder and `accept_all_files` are asked only on the first init, when no profiles existed yet. Edit those in the file later. See [config.toml](/docs/reference/config).
+
+## Overwrite a profile
+
+1. Run `vmup init`.
+2. Type `overwrite` (or `o`).
+3. One profile: vmup overwrites that one and prints the name.
+4. Several profiles: pick which name. Unknown names exit with an error.
+5. Each field shows the **current** saved value in brackets. Enter keeps it.
+
+Overwrite does not ask to change the default profile.
+
+## Host left blank
+
+Host is labeled required, but Enter skips it. vmup still writes the profile. Upload and `vmup check` fail until you set `host` in the file or `VMUP_HOST`. Profiles that use `ssh_host` instead of `host` are a different path: [Point vmup at another VM](/docs/guides/profiles).
+
+## Non-interactive
+
+```bash
+VMUP_HOST=192.168.1.10 \
+VMUP_USER=ubuntu \
+VMUP_KEY=~/.ssh/id_ed25519 \
+vmup init -y
+```
+
+`-y` **requires** `VMUP_HOST`. Without it, init exits 1.
+
+Optional env for `-y`: `VMUP_USER`, `VMUP_KEY`, `VMUP_PORT`, `VMUP_REMOTE_DIR`, `VMUP_TTL_MINUTES` (or `VMUP_TTL_HOURS`), `VMUP_PROFILE`, `VMUP_WATCH_DIR`.
+
+`--no-sweeper` skips installing `~/vmup/.cleanup.sh` in `-y` mode. The default is to install it.
+
+If the config file already exists, `-y` overwrites the named profile (`VMUP_PROFILE` or the current default). It does not reset `watch_dir` and friends unless this is a brand-new file.
+
+## After init
+
+```text
+Next:
+  vmup check         # retry SSH without re-asking questions
+  vmup file1.png file2.pdf
+  vmup               # file picker
+  vmup --clip        # clipboard loop
+  vmup watch         # watch folder (also: vmup --watch)
+```
+
+SSH can fail after a successful write. Config is already on disk. Run `vmup check`, then `vmup check --sweeper` if the cleanup script never landed.

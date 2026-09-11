@@ -1,0 +1,74 @@
+---
+title: How a batch is built
+description: Collect, stage under a batch id, scp into a partial dir, then rename into place.
+icon: Boxes
+---
+
+vmup’s job is a single remote directory the agent can open. The original filenames on your laptop are not that directory. This page is the pipeline, not a recipe. Commands: [Upload files](/docs/guides/upload).
+
+## Collect
+
+Four inputs, one staging session:
+
+1. **Paths** you passed, including one level of directory children.
+2. **Picker** (no args).
+3. **Clipboard loop** (`--clip`).
+4. **Folder watch** (`watch` / `--watch`).
+
+`--clip` and `--watch` cannot run together because both hold stdin.
+
+SSH **preflight starts as soon as the session exists**, in parallel with collect. A long picker does not block the first `ssh` call. The result is awaited after collect, before scp.
+
+## Stage
+
+A batch id is minted:
+
+```text
+agents-YYYYMMDD-HHMMSS-<uuid>
+```
+
+Files are copied to `~/.cache/vmup/<batchId>/` and renamed `image-NN`, `video-NN`, `file-NN`. Counters are per kind, so two PDFs become `file-01.pdf` and `file-02.pdf` even if an image was staged between them.
+
+The rename is deliberate. Agents get a stable listing: images together, then other files, instead of `Screenshot 2026-09-11 at 2.01.28 PM.png` mixed with `notes (1).pdf`. You lose the original basename on the VM. If you need the name, keep local staging (`--keep-local`) or send a manifest yourself.
+
+Hidden junk is dropped at collect for directories and watch. Validate then applies size, count, and type rules.
+
+## Preflight
+
+`ssh` runs `mkdir -p <remote_dir> && test -d <remote_dir> && echo OK` with a 20s timeout. Direct mode also checks the private key exists and is not group/world-readable.
+
+Failure here keeps local staging and skips scp. Exit 3.
+
+## Upload
+
+Remote layout:
+
+1. `rm -rf` the final dir and a sibling `*.partial`
+2. `mkdir` the partial dir
+3. `scp` each staged file into `user@host:<remote>/<batchId>.partial/`
+4. `mv` partial → final
+
+Agents never see a half-written folder. A failed scp removes the partial dir. Local staging stays so you can look at what would have been sent.
+
+Progress on a TTY:
+
+```text
+⠋ Uploading 3 files  1.2 MB / 4.5 MB  4s
+```
+
+Bytes are summed from local `stat` as each scp returns. JSON mode still animates stderr when it is a TTY.
+
+## After success
+
+Local staging is deleted unless `--keep-local`.
+
+vmup then:
+
+1. **Client delete:** a detached `sleep <ttlMinutes * 60>` (minimum 60s) then `ssh rm -rf` the batch. This only runs while this process’s machine stays up.
+2. **Sweeper probe:** `test -x ~/vmup/.cleanup.sh`. If missing, human mode warns.
+3. **Prompt:** `prompt_template` with `{{remote_path}}` set to the final dir plus `/`.
+4. **Clipboard:** the remote path (not the prompt) is copied via `pbcopy` / `wl-copy` / `xclip`.
+
+The agent does not run vmup. You paste. The default sentence is `Please inspect all files in <path>`.
+
+Ctrl+C during collect deletes staging and exits 130. After upload has started, interrupt handling is the default Node behavior plus whatever OpenSSH does; the partial-dir cleanup is on scp failure, not on SIGINT mid-scp.

@@ -1,0 +1,79 @@
+---
+title: Fix SSH
+description: Read the error, match it to a cause, retry with vmup check.
+icon: Unplug
+---
+
+vmup shells out to your `ssh` and `scp`. It does not implement SSH itself. `vmup check` is the retry path that skips the init wizard.
+
+```bash
+vmup check
+vmup check --sweeper
+vmup check -p work
+vmup check --ssh-host lab
+```
+
+`--force` on an upload never skips this check.
+
+## Errors vmup rewrites
+
+`assertKeyUsable` and `formatSshError` add a short fix under the OpenSSH text. The original stderr is kept.
+
+| You see | Cause | Fix |
+|---|---|---|
+| `SSH key not found: …` | `key` path missing on disk | Set `key` in config or `VMUP_KEY`. |
+| `SSH key permissions are too open (0644): …` / `Fix: chmod 600 …` | Group or other bits set on the private key (Unix) | `chmod 600 /path/to/key`. Skipped on Windows. |
+| `Permission denied (publickey)` | User, key, or `authorized_keys` mismatch | Confirm `user`, `IdentityFile`, and the public key on the host. |
+| `Connection refused` | Host up, port closed | Check `port` (default 22), NSG / firewall, sshd. |
+| `Connection timed out` / `Network is unreachable` | Routing, VPN, VM off | Host/IP, VPN, security group. |
+| `Could not resolve hostname` | Bad host or SSH alias | DNS, or the `Host` name in `~/.ssh/config`. |
+| `IdentityFile` / `no such file` | Path in `-i` or SSH config | The key file does not exist. |
+| `Profile "default" has no host` | Empty `host` and no `ssh_host` | `vmup init`, or `VMUP_HOST`. |
+| `has no key` / `use ssh-agent` | Direct mode, no `key`, no `SSH_AUTH_SOCK` | Set `key` or start the agent. |
+| `Use either --profile or --ssh-host, not both` | Both flags | Pick one. |
+
+Preflight timeout is **20 seconds**. scp timeout is **10 minutes** per file.
+
+## Init saved config, SSH failed
+
+The VM was off, the key was wrong, or the security group blocked you. Config is already written.
+
+```bash
+vmup check
+```
+
+When SSH works, install cleanup if it never ran:
+
+```bash
+vmup check --sweeper
+```
+
+## Direct mode vs alias mode
+
+Direct profiles pass `-i` and `-p` and `BatchMode=yes`. Alias profiles (`ssh_host` or `--ssh-host`) use `~/.ssh/config` as-is. A working `ssh lab` and a failing `vmup -p lab` usually means the profile is in **direct** mode (a `host` field) while you expected the alias.
+
+```bash
+vmup profiles
+```
+
+`ssh_host=lab` means alias mode. `ubuntu@192.168.1.10` means direct. [Direct SSH vs ssh_host](/docs/explain/ssh-modes).
+
+## Clipboard images on macOS
+
+`--clip` with a screenshot and no pngpaste is not an SSH failure:
+
+```text
+  (clipboard has no file or image — copy a file in Finder, or brew install pngpaste for screenshots)
+```
+
+```bash
+brew install pngpaste
+```
+
+## Sweeper: missing
+
+SSH works; `~/vmup/.cleanup.sh` is not executable on the host. Batches still upload. They may outlive TTL if this machine sleeps.
+
+```bash
+vmup check --sweeper
+```

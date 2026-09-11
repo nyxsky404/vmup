@@ -1,0 +1,99 @@
+---
+title: Upload files
+description: Pass paths, drop a directory, or use the native picker.
+icon: Upload
+---
+
+Every upload mode ends the same way: one remote folder, a printed prompt, the path on your clipboard. Pick the input that matches how the files showed up.
+
+SSH is tested in parallel with collect. A slow picker does not wait on the network first.
+
+## Pass paths
+
+```bash
+vmup shot.png notes.pdf
+```
+
+Relative paths are fine. Mix files from different directories.
+
+A path that does not exist is skipped with no message at collect time. After staging, an empty batch prints `No files to upload` and exits 2.
+
+## Pass a directory
+
+```bash
+vmup ~/Downloads
+```
+
+vmup lists **immediate children** of that folder. It does not walk subfolders. Hidden names (leading `.`), `.DS_Store`, `Thumbs.db`, and `desktop.ini` are skipped.
+
+To send a nested tree, pass the files (or the inner folder whose children you want).
+
+## Native picker
+
+```bash
+vmup
+```
+
+No arguments and no `--clip` / `--watch` opens a GUI picker.
+
+| Platform | Picker |
+|---|---|
+| macOS | AppleScript `choose file` with multiple selections |
+| Linux | `zenity --file-selection --multiple`, or `kdialog --getopenfilename` (single file) if zenity is missing |
+| Windows / others | Not supported. Pass paths, or use WSL. |
+
+Cancel the dialog: empty batch, exit 2 (`No files to upload`).
+
+Missing zenity and kdialog on Linux:
+
+```text
+No GUI file picker found. Install zenity/kdialog, or pass file paths: vmup file1.png file2.png
+```
+
+## What happens to names
+
+Local names are not kept. Inside the batch folder you get `image-01.png`, `video-01.mov`, `file-01.pdf` (counters per kind). The original basename is gone on the remote side. [How a batch is built](/docs/explain/how-it-works) covers the rename.
+
+## Limits
+
+| Limit | Default | Override |
+|---|---|---|
+| Per-file size | 200 MB | `max_file_mb` or `VMUP_MAX_FILE_MB` |
+| Files per batch | 200 | Not in config. Hard cap. |
+| Types | All | `accept_all_files = false` for images only |
+
+Skipped files print on stderr:
+
+```text
+skip: huge.bin (too large (>200 MB))
+skip: notes.pdf (not an allowed type (images-only mode))
+```
+
+`--force` accepts a disallowed type in images-only mode (picker and path args). It does not skip SSH checks and does not raise the size cap. See [Restrict to images](/docs/guides/restrict-types).
+
+## Keep a local copy of the batch
+
+```bash
+vmup shot.png --keep-local
+```
+
+Successful uploads delete `~/.cache/vmup/<batchId>/` unless you pass `--keep-local`. The remote upload still happens. stderr prints `Local staging kept: …`.
+
+Failed SSH or scp also leave staging in place so you can inspect it.
+
+## Target a profile or a one-shot alias
+
+```bash
+vmup -p work shot.png
+vmup --ssh-host lab shot.png
+```
+
+Do not pass both. See [Point vmup at another VM](/docs/guides/profiles).
+
+## JSON for scripts
+
+```bash
+vmup shot.png --json
+```
+
+JSON goes to stdout. The spinner still animates on stderr when stderr is a TTY. Schema: [JSON output](/docs/reference/json).

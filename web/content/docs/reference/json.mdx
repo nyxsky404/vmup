@@ -1,0 +1,70 @@
+---
+title: JSON output
+description: stdout schema for --json on upload and check.
+icon: Braces
+---
+
+Pass `--json` on upload (`vmup …`, `vmup watch`, `vmup --clip`) or `vmup check`. JSON is printed on **stdout**. Human lines, spinner, skip warnings, and the update notice stay off stdout (`--json` suppresses the update notice).
+
+`vmup prune --json` does not emit this schema.
+
+## Success (upload)
+
+```json
+{
+  "ok": true,
+  "batchId": "agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "profile": "default",
+  "remotePath": "~/vmup/agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/",
+  "prompt": "Please inspect all files in ~/vmup/agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/",
+  "count": 2,
+  "files": ["image-01.png", "file-01.pdf"],
+  "sweeper": true
+}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `ok` | boolean | `true` |
+| `batchId` | string | Staging / remote directory name |
+| `profile` | string | Profile name, or `ssh:<alias>` for `--ssh-host` |
+| `remotePath` | string | Always ends with `/` |
+| `prompt` | string | `prompt_template` with `{{remote_path}}` replaced |
+| `count` | number | Staged file count |
+| `files` | string[] | **Basenames after rename** (`image-01.png`), not original paths |
+| `sweeper` | boolean or omitted | `true`/`false` if the check ran; omitted if the presence check threw |
+
+Pretty-printed with `JSON.stringify(..., null, 2)`.
+
+JSON mode returns after printing the object. It does not copy the path to the clipboard (that path is only taken in human output).
+
+## Success (check)
+
+```json
+{
+  "ok": true,
+  "profile": "default",
+  "remoteDir": "~/vmup",
+  "sweeper": true
+}
+```
+
+## Error
+
+```json
+{
+  "ok": false,
+  "error": "SSH preflight failed: …",
+  "localStaging": "/Users/you/.cache/vmup/agents-…"
+}
+```
+
+| Field | When |
+|---|---|
+| `ok` | Always `false` |
+| `error` | Message |
+| `localStaging` | SSH/upload failures after a session was created |
+
+Unusable target (no host) errors with `--json` before staging: `{ ok, error }` only, exit 1.
+
+Exit codes are still set. See [Exit codes](/docs/reference/exit-codes).

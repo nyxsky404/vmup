@@ -1,0 +1,76 @@
+---
+title: Restrict to images
+description: Turn off accept_all_files, then opt into video or force extra types.
+icon: Image
+---
+
+By default `accept_all_files` is **true**. PDFs, recordings, and everything else go through (size and count limits still apply).
+
+Set it to false when you want screenshots (and maybe recordings) only.
+
+## Turn it on
+
+First-time `vmup init` asks:
+
+```text
+Accept all file types (pdf, video, …), not just images? [Y]:
+```
+
+Answer `n` / `no`. Later, edit the file:
+
+```toml
+accept_all_files = false
+```
+
+Or for one process:
+
+```bash
+VMUP_ACCEPT_ALL=0 vmup shot.png
+```
+
+`VMUP_ACCEPT_ALL=1` forces all types even if the file says false.
+
+## What counts as an image
+
+`.png` `.jpg` `.jpeg` `.webp` `.gif` `.bmp` `.tif` `.tiff` `.heic`
+
+Case of the extension is ignored.
+
+## Allow videos too
+
+Video extensions: `.mov` `.mp4` `.m4v` `.webm` `.mkv` `.avi`
+
+**Paths you pass on the command line** always treat video as allowed, even in images-only mode. `vmup recording.mov` uploads. `--video` is not required for that path.
+
+**Picker and watch** use `--video`, or `watch_include_video`, or `VMUP_WATCH_VIDEO=1`. Without those, a `.mov` is skipped (watch never stages it; picker prints a skip line).
+
+```bash
+vmup watch --video
+vmup --video
+```
+
+The bare `vmup --video` is the picker with videos included.
+
+On a first init, if you accepted all file types, vmup sets `watch_include_video = true`. That flag only matters once `accept_all_files` is false.
+
+## Force one extra file
+
+```bash
+vmup notes.pdf --force
+```
+
+`--force` accepts a path that failed the type check (a PDF in images-only mode). Size and “not a file” still skip. `--force` never skips SSH preflight.
+
+Watch filters by type before staging. `--force` does not pull a rejected watch file back in. It applies to the picker and to path arguments.
+
+## When these flags do nothing
+
+`--video` and `--force` do **not** change type filtering while `accept_all_files` is true. Everything is already allowed.
+
+## Skips you will see
+
+```text
+skip: notes.pdf (not an allowed type (images-only mode))
+```
+
+Directory collect and watch drop disallowed types before validate, so you may get silence instead of a skip line. Picker and leftover path arguments go through validate and print skips.

@@ -1,0 +1,89 @@
+---
+title: Commands
+description: vmup, init, check, profiles, watch, prune, and the default upload.
+icon: SquareTerminal
+---
+
+```bash
+vmup --help
+vmup --version
+```
+
+Version is `0.3.0` in this tree. `--help` is Commander’s generated usage.
+
+Positional options are enabled: flags after file names still bind to the root command.
+
+## `vmup [files…]`
+
+Default command. Uploads a batch.
+
+| Inputs | Behavior |
+|---|---|
+| One or more paths | Collect those files / directory children, validate, upload |
+| No paths, no `--clip` / `--watch` | Native file picker |
+| `--clip` | Clipboard loop, then upload |
+| `--watch` | Same as `vmup watch` |
+
+Flags: `--profile`, `--ssh-host`, `--clip`, `--watch`, `--dir`, `--video`, `--force`, `--keep-local`, `--ttl`, `--json`. See [Flags](/docs/reference/flags).
+
+## `vmup init`
+
+Create or update `~/.config/vmup/config.toml` and optionally install the remote sweeper.
+
+| Flag | Meaning |
+|---|---|
+| `-y`, `--yes` | Non-interactive. Requires `VMUP_HOST`. |
+| `--no-sweeper` | With `-y`, skip sweeper install. Default is to install. |
+
+Interactive flow: [Run init again](/docs/guides/init).
+
+Exit: `0` on a finished wizard (SSH failure after write still returns 0). `-y` without `VMUP_HOST` returns `1`. Unknown overwrite target returns `1`.
+
+## `vmup check`
+
+Test SSH with saved config. No wizard.
+
+| Flag | Meaning |
+|---|---|
+| `-p`, `--profile <name>` | Profile |
+| `--ssh-host <alias>` | `~/.ssh/config` alias |
+| `--sweeper` | Install or refresh `~/vmup/.cleanup.sh` and cron |
+| `--json` | JSON on stdout |
+
+Human success: `SSH OK`, remote dir, sweeper `installed` or `missing`.
+
+Exit: `0` ok, `1` unusable target, `3` SSH or sweeper install failure.
+
+## `vmup profiles`
+
+Prints the config file path, the default profile name, and each profile as `user@host` or `ssh_host=…` plus `remote=…`.
+
+No flags. Exit `0`.
+
+## `vmup watch`
+
+Watch a folder, then upload. Equivalent to `vmup --watch`.
+
+Flags: `--profile`, `--ssh-host`, `--dir`, `--video`, `--force`, `--keep-local`, `--ttl`, `--json`.
+
+`--force` is accepted but the watcher filters types before staging; `--force` does not pull a rejected watch file back in. It still applies if you used the root picker path.
+
+## `vmup prune`
+
+Delete expired remote batches. Requires a connectable target (same resolve rules as upload).
+
+| Flag | Meaning |
+|---|---|
+| `-p`, `--profile <name>` | Profile |
+| `--ssh-host <alias>` | Alias |
+| `--local` | Also delete local staging older than 24 hours |
+| `--id <batchId>` | Delete that remote batch instead of age-based prune |
+| `--install-sweeper` | Install/refresh remote cron, then prune |
+| `--ttl <minutes>` | Age cutoff (and sweeper TTL if installing) |
+| `--json` | Suppresses update notice only. No JSON body. |
+
+Order: `--local` first (no SSH), then resolve + preflight, then optional sweeper, then `--id` **or** age prune.
+
+Invalid `--id` throws `Invalid batch id: …` (must match `agents-YYYYMMDD-HHMMSS-<uuid>`).
+
+Failure after resolve: exit `3`.

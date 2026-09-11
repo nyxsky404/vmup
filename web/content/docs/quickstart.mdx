@@ -1,0 +1,120 @@
+---
+title: First upload
+description: Install, run init, test SSH, send one file, paste the agent folder path.
+icon: Rocket
+---
+
+This lesson ends with a file on the remote host and a path on your clipboard. Work through it on a machine that can SSH to your VM.
+
+## 1. Install vmup
+
+Follow [Install](/docs/install) until `vmup --version` prints a version.
+
+## 2. Create config
+
+```bash
+vmup init
+```
+
+Press Enter to keep a value in `[brackets]`.
+
+On a first run, vmup asks:
+
+| Prompt | Typical answer |
+|---|---|
+| Profile name | `default` |
+| Host | IP or DNS of the VM. Enter skips; you cannot upload until a host exists. |
+| SSH user | `ubuntu` unless your image uses something else |
+| SSH key path | `~/.ssh/id_ed25519` if that file exists, otherwise `~/.ssh/id_rsa` |
+| SSH port | `22` |
+| Remote dir | `~/vmup` |
+| TTL minutes | `5` |
+| Screenshots / watch folder | macOS: `~/Desktop`. Linux: `~/Pictures/Screenshots` |
+| Accept all file types | `Y` (PDFs, video, anything). `n` is images only. |
+| Install remote cleanup sweeper | `Y` |
+
+vmup writes `~/.config/vmup/config.toml`, then tests SSH and installs `~/vmup/.cleanup.sh` on the host (cron every minute) if you said yes.
+
+If the VM is off, config is still saved. You will see `SSH setup incomplete` and a pointer to `vmup check`.
+
+<Callout>
+Non-interactive setup: `VMUP_HOST=… vmup init -y`. See [Script vmup](/docs/guides/scripting).
+</Callout>
+
+## 3. Confirm SSH
+
+```bash
+vmup check
+```
+
+Success looks like:
+
+```text
+SSH OK  default  ubuntu@192.168.1.10
+Remote dir: ~/vmup
+Sweeper: installed
+```
+
+If the sweeper is missing:
+
+```text
+Sweeper: missing
+  Reinstall:  vmup check --sweeper
+```
+
+Fix connection failures in [Fix SSH](/docs/guides/ssh).
+
+## 4. Upload one file
+
+```bash
+vmup ./shot.png
+```
+
+Replace `./shot.png` with a file you have. PDF, video, and other types work while `accept_all_files` is true (the default).
+
+A TTY shows a spinner on stderr:
+
+```text
+⠋ Checking SSH…
+⠋ Uploading 1 file  240.0 KB / 240.0 KB  2s
+```
+
+Then stdout:
+
+```text
+Uploaded 1 file → default
+Agent folder: ~/vmup/agents-20260911-140128-a1b2c3d4-e5f6-7890-abcd-ef1234567890/
+
+Prompt:
+Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4-e5f6-7890-abcd-ef1234567890/
+```
+
+stderr adds `(copied agent folder path to clipboard)` when `pbcopy` (macOS), `wl-copy`, or `xclip` works.
+
+The remote file is renamed to `image-01.png` (or `file-01.pdf`, `video-01.mov`) inside that folder. [How a batch is built](/docs/explain/how-it-works) explains why.
+
+## 5. Give the path to the agent
+
+Paste into the agent. The clipboard already holds the folder path. The printed prompt is the sentence most agents need:
+
+```text
+Please inspect all files in ~/vmup/agents-…/
+```
+
+You stay in the same thread. The agent opens that directory on the VM.
+
+## If something failed
+
+| What you saw | What to do |
+|---|---|
+| `Profile "default" has no host` | Run `vmup init` and fill in Host, or set `VMUP_HOST`. |
+| `SSH key not found` | The `key` path in config is wrong. |
+| `permissions are too open` | `chmod 600` on the private key. |
+| `No files to upload` (exit 2) | The path did not exist, or the file was skipped. |
+| `SSH preflight failed` + `Local staging kept: …` | SSH died after staging. Fix the host, then retry. Staging stays under `~/.cache/vmup/`. |
+
+## Next
+
+- [Upload files](/docs/guides/upload) for the picker and directories
+- [Clipboard loop](/docs/guides/clipboard) and [Watch a folder](/docs/guides/watch)
+- [Commands](/docs/reference/commands) for the full catalog

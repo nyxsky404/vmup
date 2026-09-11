@@ -1,0 +1,15 @@
+{
+  "title": "How-to",
+  "defaultOpen": true,
+  "pages": [
+    "init",
+    "upload",
+    "clipboard",
+    "watch",
+    "profiles",
+    "restrict-types",
+    "scripting",
+    "cleanup",
+    "ssh"
+  ]
+}

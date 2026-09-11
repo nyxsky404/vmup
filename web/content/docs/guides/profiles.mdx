@@ -1,0 +1,87 @@
+---
+title: Point vmup at another VM
+description: Saved profiles, a default profile, and one-shot SSH config aliases.
+icon: Server
+---
+
+One config file can hold several hosts. Each profile is a named block under `[profiles.<name>]`. The default profile is used when you pass neither `-p` nor `--ssh-host`.
+
+```bash
+vmup profiles
+```
+
+```text
+Config: /Users/you/.config/vmup/config.toml
+Default: default
+  default: ubuntu@192.168.1.10 remote=~/vmup
+  lab: ssh_host=lab remote=~/vmup
+```
+
+## Use a saved profile
+
+```bash
+vmup -p work shot.png
+vmup check -p work
+VMUP_PROFILE=work vmup shot.png
+```
+
+Precedence for which profile: **`--profile` flag → `VMUP_PROFILE` → `default_profile` in the file → `default`**.
+
+Add profiles with [Run init again](/docs/guides/init), or edit the TOML. Full keys: [config.toml](/docs/reference/config).
+
+## Two connection styles
+
+**Direct** (host + user + key + port):
+
+```toml
+[profiles.work]
+host = "192.168.1.10"
+user = "ubuntu"
+key = "~/.ssh/id_ed25519"
+port = 22
+remote_dir = "~/vmup"
+ttl_minutes = 5
+```
+
+vmup passes `-p`, `-i`, `BatchMode=yes`, and `StrictHostKeyChecking=accept-new` to `ssh` / `scp`.
+
+**SSH config alias** (`ssh_host`):
+
+```toml
+[profiles.lab]
+ssh_host = "lab"
+remote_dir = "~/vmup"
+ttl_minutes = 5
+```
+
+vmup runs `ssh lab …` and `scp … lab:…`. User, key, and port come from `~/.ssh/config`. vmup does not add `-i` or `-p` in this mode.
+
+A profile with `ssh_host` set uses alias mode even if `host` is also present. [Direct SSH vs ssh_host](/docs/explain/ssh-modes) explains the tradeoff.
+
+## One-shot alias (no profile)
+
+```bash
+vmup --ssh-host lab shot.png
+```
+
+Same as alias mode. The printed profile name is `ssh:lab`. `VMUP_SSH_HOST` does the same thing.
+
+`--profile` and `--ssh-host` together throw:
+
+```text
+Use either --profile or --ssh-host, not both
+```
+
+## Change the default
+
+In `config.toml`:
+
+```toml
+default_profile = "work"
+```
+
+Or, when `vmup init` creates a **new** profile, answer yes to “Make this the default profile?” Overwrite flows do not ask.
+
+## Environment overrides
+
+`VMUP_HOST`, `VMUP_USER`, `VMUP_KEY`, `VMUP_PORT`, `VMUP_REMOTE_DIR` overlay the resolved profile. Useful in CI. They do not create a profile on disk. See [Environment variables](/docs/reference/env).

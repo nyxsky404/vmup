@@ -1,0 +1,76 @@
+---
+title: Clean up batches
+description: TTL, the remote sweeper, prune, and leftover local staging.
+icon: Trash
+---
+
+Each batch is a directory named `agents-<date>-<time>-<uuid>` under the remote root (`~/vmup` by default). vmup deletes those directories after **TTL minutes** (default 5). You can also delete them yourself.
+
+[Why batches expire](/docs/explain/ttl) is the design page. This page is the recipes.
+
+## Let the sweeper do it
+
+`vmup init` (and `vmup init -y`) installs `~/vmup/.cleanup.sh` on the host and a crontab line `* * * * *` that runs it every minute. The script `find`s `agents-*` and `agents-*.partial` directories older than TTL minutes and `rm -rf`s them. It does not delete the remote root.
+
+Reinstall after you change TTL, or if someone deleted the script:
+
+```bash
+vmup check --sweeper
+```
+
+`vmup check` without `--sweeper` only reports:
+
+```text
+Sweeper: missing
+  Reinstall:  vmup check --sweeper
+```
+
+A successful upload that finds no executable `~/vmup/.cleanup.sh` prints a yellow warning: batches may linger after TTL if this laptop sleeps. The client-side delete is a `sleep` then `ssh rm` in a detached process; it dies if the machine sleeps or exits.
+
+## Prune from this laptop
+
+```bash
+vmup prune
+```
+
+Deletes remote `agents-*` directories whose mtime is older than the resolved TTL, and any `*.partial` dirs. Prints `Pruned N remote batch(es)` on stderr.
+
+```bash
+vmup prune --id agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+```
+
+Deletes that batch (and its `.partial` sibling) regardless of age. The id must match `agents-YYYYMMDD-HHMMSS-<uuid>`.
+
+```bash
+vmup prune --local
+```
+
+Also removes local staging dirs under `~/.cache/vmup/` older than **24 hours**. Prints `Removed N local orphan batch(es)` first, then does the remote prune.
+
+```bash
+vmup prune --install-sweeper
+```
+
+Installs/refreshes the remote cron script, then prunes.
+
+```bash
+vmup prune --ttl 1
+```
+
+Uses 1 minute as the age cutoff for this prune (and for sweeper install if you combined `--install-sweeper`). Does not rewrite `config.toml`.
+
+## Keep local staging after a good upload
+
+```bash
+vmup shot.png --keep-local
+```
+
+The remote copy is still uploaded. The leftover directory is:
+
+```text
+~/.cache/vmup/agents-<date>-<time>-<uuid>/
+```
+
+Failed uploads keep staging even without `--keep-local`, so you can retry or inspect files.
+
+Override the cache root with `VMUP_CACHE_DIR` or `XDG_CACHE_HOME`. See [Environment variables](/docs/reference/env).

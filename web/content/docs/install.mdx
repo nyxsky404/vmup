@@ -1,0 +1,64 @@
+---
+title: Install
+description: Put vmup on your PATH with npm, pnpm, yarn, bun, or the curl installer.
+icon: Download
+---
+
+You need **Node 18+** and **OpenSSH**. Confirm both before installing:
+
+```bash
+node -v
+ssh -V
+which scp
+```
+
+`node` must print `v18` or newer. `ssh` and `scp` must exist on your `PATH`.
+
+## Global install
+
+<InstallTabs kind="global" />
+
+Then:
+
+```bash
+vmup --version
+```
+
+You should see `0.3.0` (or whatever you installed). Next: [First upload](/docs/quickstart).
+
+## One-shot (no global install)
+
+Runs `init` through the package runner. Useful if you do not want a global binary yet.
+
+<InstallTabs kind="oneshot" />
+
+Later commands use the same runner (`npx @nyxsky404/vmup …`, `pnpm dlx`, `yarn dlx`, `bunx`).
+
+## curl installer
+
+The script needs Node, then picks **npm**, then pnpm, yarn, or bun. Override the manager with `VMUP_PM`.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nyxsky404/vmup/main/scripts/install.sh | sh
+```
+
+```bash
+VMUP_PM=pnpm curl -fsSL https://raw.githubusercontent.com/nyxsky404/vmup/main/scripts/install.sh | sh
+```
+
+The script dies if Node is missing, if the major version is below 18, or if no supported package manager is on `PATH`.
+
+## macOS clipboard images
+
+`vmup --clip` can capture a copied **file** from Finder with no extra tools. A copied **image** (screenshot on the clipboard) needs [pngpaste](https://github.com/jcsalterego/pngpaste):
+
+```bash
+brew install pngpaste
+```
+
+Linux clipboard images use `wl-paste` (Wayland) or `xclip` (X11).
+
+## After install
+
+1. [First upload](/docs/quickstart) walks through `vmup init` and a file.
+2. Newer releases print a one-line notice at most once per day. Disable it with `VMUP_NO_UPDATE_CHECK=1`. CI (`CI=true` or `CI=1`) skips the check. `--json` never prints it.

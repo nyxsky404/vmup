@@ -1,0 +1,69 @@
+---
+title: File types and limits
+description: Extensions, size, count, junk names, and staged filenames.
+icon: Files
+---
+
+## Type filter
+
+`accept_all_files` true (default): every regular file is allowed, subject to size and count.
+
+`accept_all_files` false:
+
+| Kind | Extensions |
+|---|---|
+| Image (always) | `.png` `.jpg` `.jpeg` `.webp` `.gif` `.bmp` `.tif` `.tiff` `.heic` |
+| Video (if `--video` / `watch_include_video` / `VMUP_WATCH_VIDEO=1`) | `.mov` `.mp4` `.m4v` `.webm` `.mkv` `.avi` |
+
+Comparison is `extname(path).toLowerCase()`.
+
+`--force`: if the type check fails, the file is accepted anyway. `stat` failures, non-files, oversize, and max-count still skip.
+
+## Size and count
+
+| Limit | Default | Configurable? |
+|---|---|---|
+| Per file | 200 MB (`max_file_mb`) | `max_file_mb`, `VMUP_MAX_FILE_MB` |
+| Files per batch | **200** | No. `DEFAULT_MAX_FILES` in code. |
+
+Oversize skip: `too large (>N MB)` with N rounded from the byte cap.
+
+Over count: `exceeds max files (200)` for each extra path.
+
+Missing path: `not found`. Non-file (directory at validate): `not a file`. Directory **inputs** on the CLI are expanded first; only files reach validate.
+
+## Directory collect
+
+Immediate children only. Skipped names: start with `.`, or `.DS_Store`, `Thumbs.db`, `desktop.ini`.
+
+No extension filter here when `accept_all_files` is true. When false, `isAllowedPath` applies during the directory walk.
+
+## Watch junk
+
+In addition to the names above, watch skips `*.tmp`, names ending `~`, and names with **no extension**.
+
+## Staging names
+
+Local copies under `~/.cache/vmup/<batchId>/` (and the remote folder) are renamed:
+
+```text
+{kind}-{NN}{ext}
+```
+
+| `kind` | When |
+|---|---|
+| `image` | Image extension |
+| `video` | Video extension |
+| `file` | Everything else |
+
+`NN` is a per-kind counter starting at `01`. Extension is the source’s lowercased ext, or `.png` if kind is image and the source had no ext.
+
+Examples: `image-01.png`, `image-02.jpg`, `file-01.pdf`, `video-01.mov`.
+
+Batch id:
+
+```text
+agents-YYYYMMDD-HHMMSS-<uuid>
+```
+
+Regex for prune `--id`: `^agents-\d{8}-\d{6}-[0-9a-f-]{36}$` (case-insensitive).

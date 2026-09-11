@@ -1,0 +1,67 @@
+---
+title: Watch a folder
+description: Stage files added after you start, then press Enter to upload.
+icon: FolderOpen
+---
+
+```bash
+vmup watch
+vmup --watch
+```
+
+Those are the same command. vmup stays in the **foreground**. It is not a daemon.
+
+Default folder: `watch_dir` in config, else `VMUP_WATCH_DIR`, else `~/Desktop` on macOS and `~/Pictures/Screenshots` on Linux.
+
+```bash
+vmup watch --dir ~/Downloads
+```
+
+`--dir` wins over config for this run.
+
+## What is captured
+
+Files **already in the folder when the command starts** are ignored. Upload those with `vmup ~/Downloads` instead.
+
+Files **added or copied after start** are staged. Finder duplicates in the same folder get a new name, so they are captured even when the copy keeps the original timestamp.
+
+**Paste-overwrite** of an existing name is captured (`change` events). A new file with a name that existed at start is still ignored on `add`; overwrite is the exception.
+
+Only the folder itself is watched (`depth` 0). Files in subfolders are ignored.
+
+Junk names are skipped: leading `.`, `.DS_Store`, `Thumbs.db`, `desktop.ini`, `*.tmp`, names ending in `~`, names with no extension.
+
+vmup waits until the file size is stable (writes finishing) before staging.
+
+## Stop, upload, cancel
+
+```text
+Watching: /Users/you/Desktop
+  Capturing files added or copied after start (existing files ignored).
+  Press Enter or type "stop" to upload. Ctrl+C cancels.
+```
+
+| Input | Result |
+|---|---|
+| Enter, `stop`, `done`, or `q` | Stop watching and upload |
+| Ctrl+D | Same (stdin closes) |
+| Ctrl+C | Cancel. Staging deleted. Exit 130. |
+
+Zero files after stop: `No files to upload`, exit 2.
+
+## Images-only watch
+
+With `accept_all_files = false`, the banner changes:
+
+- Images only, unless you pass `--video` (or `watch_include_video = true` / `VMUP_WATCH_VIDEO=1`).
+- `--force` still applies at the picker path, not inside the watcher. The watcher filters by type before staging.
+
+`--video` and `--force` do nothing for type filtering while `accept_all_files` is true.
+
+## Watch and other flags
+
+```bash
+vmup watch -p work --ttl 15 --keep-local --json
+```
+
+`--clip` and `--watch` together are rejected.

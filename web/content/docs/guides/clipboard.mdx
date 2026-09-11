@@ -1,0 +1,72 @@
+---
+title: Capture the clipboard
+description: Loop on Enter until you type done, then upload the captures as one batch.
+icon: Clipboard
+---
+
+```bash
+vmup --clip
+```
+
+vmup holds the terminal. Copy a file or an image, press **Enter** to capture, repeat, then finish.
+
+```text
+Clipboard mode
+  Copy a file or image, then press Enter to capture.
+  Type "done" or Ctrl+D when finished. Ctrl+C cancels.
+  Duplicate captures are skipped (clip_dedup = true).
+```
+
+## Keys
+
+| Input | Result |
+|---|---|
+| Enter (empty line) | Capture the current clipboard |
+| `done`, `stop`, or `q` | Stop collecting and upload |
+| Ctrl+D | Same as done (stdin closes) |
+| Ctrl+C | Cancel. Local staging is deleted. Exit 130. |
+
+Do not combine `--clip` with `--watch`. vmup exits 1 with `Use either --clip or --watch, not both`.
+
+## What gets captured
+
+vmup tries a **file** on the clipboard first, then an **image**.
+
+**macOS**
+
+- A file copied in Finder becomes a capture (no pngpaste).
+- A bitmap on the clipboard (screenshot, copy from Preview) needs [pngpaste](https://github.com/jcsalterego/pngpaste): `brew install pngpaste`.
+- Without pngpaste, an image-only clipboard prints:
+
+```text
+  (clipboard has no file or image — copy a file in Finder, or brew install pngpaste for screenshots)
+```
+
+**Linux**
+
+- Files: `wl-paste -t text/uri-list`, then `xclip` with the same MIME type. `file://` URIs are decoded.
+- Images: `wl-paste -t image/png`, then `xclip -selection clipboard -t image/png`. Writes under 32 bytes are treated as empty.
+
+**Windows** is not supported for `--clip`.
+
+## Dedup
+
+Identical clipboard bytes are skipped while `clip_dedup` is true (the default):
+
+```text
+  (same clipboard content already captured — copy a different file)
+```
+
+Turn it off in config (`clip_dedup = false`) or with `VMUP_CLIP_DEDUP=0`. See [config.toml](/docs/reference/config).
+
+## After you finish
+
+Captures are staged, then uploaded like any other batch. Zero captures: `No files to upload`, exit 2.
+
+Each capture prints:
+
+```text
+  + image-01.png
+```
+
+Then `Captured N file(s).` and the usual upload spinner.

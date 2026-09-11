@@ -1,0 +1,16 @@
+{
+  "title": "Docs",
+  "pages": [
+    "---Get started---",
+    "index",
+    "install",
+    "quickstart",
+    "---How-to---",
+    "...guides",
+    "---Reference---",
+    "...reference",
+    "---Explanation---",
+    "...explain"
+  ]
+}
+

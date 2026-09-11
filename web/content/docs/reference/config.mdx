@@ -1,0 +1,91 @@
+---
+title: config.toml
+description: Keys, defaults, profiles, and where the file lives.
+icon: FileCog
+---
+
+Path: `~/.config/vmup/config.toml`
+
+Overrides:
+
+1. `VMUP_CONFIG_DIR` (directory; file is still `config.toml` inside it). `~` is expanded.
+2. Else `$XDG_CONFIG_HOME/vmup/config.toml`
+3. Else `~/.config/vmup/config.toml`
+
+Missing file: `loadConfig()` returns `{}`. Commands that need a host then fail with `Profile "default" has no host` unless env supplies `VMUP_HOST` or `VMUP_SSH_HOST`.
+
+vmup writes TOML via `smol-toml`. You can edit the file by hand.
+
+## Example
+
+```toml
+default_profile = "default"
+prompt_template = "Please inspect all files in {{remote_path}}"
+remote_dir = "~/vmup"
+ttl_minutes = 5
+watch_dir = "/Users/you/Desktop"
+watch_include_video = false
+accept_all_files = true
+max_file_mb = 200
+clip_dedup = true
+
+[profiles.default]
+host = "192.168.1.10"
+user = "ubuntu"
+key = "~/.ssh/id_ed25519"
+port = 22
+remote_dir = "~/vmup"
+ttl_minutes = 5
+
+[profiles.lab]
+ssh_host = "lab"
+remote_dir = "~/vmup"
+ttl_minutes = 5
+```
+
+## Top-level keys
+
+| Key | Type | Default | Asked at first init? |
+|---|---|---|---|
+| `default_profile` | string | `"default"` | Yes (profile name). New later profiles ask before changing it. |
+| `prompt_template` | string | `Please inspect all files in {{remote_path}}` | No |
+| `remote_dir` | string | `~/vmup` | Copied from the first profile’s remote dir |
+| `ttl_minutes` | number | `5` | Copied from the first profile |
+| `ttl_hours` | number | — | **Deprecated.** Read only when `ttl_minutes` is absent. Converted as hours × 60. |
+| `watch_dir` | string | macOS: `~/Desktop`. Else `~/Pictures/Screenshots` | Yes (first init only) |
+| `watch_include_video` | boolean | `false`; first init sets it to the accept-all answer | No |
+| `accept_all_files` | boolean | `true` | Yes (first init only) |
+| `max_file_mb` | number | `200` | No. Edit the file. Non-finite or `<= 0` falls back to 200 at resolve time. |
+| `clip_dedup` | boolean | `true` | No |
+| `profiles` | table | `{ default: { … } }` | Yes |
+
+`{{remote_path}}` in `prompt_template` is replaced with the remote folder (trailing `/` added if missing). If the stored template equals the old images prompt (`Please inspect all images in {{remote_path}}`), vmup substitutes the current default.
+
+## Profile keys
+
+Under `[profiles.<name>]`:
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `host` | string | — | Required for direct mode unless `VMUP_HOST` is set. |
+| `user` | string | `ubuntu` | Direct mode |
+| `key` | string | `~/.ssh/id_ed25519` | Expanded with `~`. Direct mode. Optional if `SSH_AUTH_SOCK` is set. |
+| `port` | number | `22` | Direct mode |
+| `remote_dir` | string | top-level `remote_dir` or `~/vmup` | |
+| `ttl_minutes` | number | inherit | |
+| `ttl_hours` | number | — | Deprecated fallback |
+| `ssh_host` | string | — | If set, alias mode. `host` / `user` / `key` are not used for the SSH command. |
+
+A profile may omit `host` if you plan to set `VMUP_HOST` per run. Init allows skipping host.
+
+## Empty template (new file)
+
+`emptyTemplateConfig()` seeds a `default` profile with user `ubuntu`, key hint `~/.ssh/id_ed25519`, port 22, remote `~/vmup`, TTL 5, `accept_all_files true`, `max_file_mb 200`, `clip_dedup true`. Init then overwrites fields from the wizard.
+
+## Precedence (resolve)
+
+For a given field: **command flag → env → profile → top-level config → constant default.**
+
+TTL specifically: `--ttl` → `VMUP_TTL_MINUTES` → `VMUP_TTL_HOURS` × 60 → profile `ttl_minutes` else profile `ttl_hours` × 60 → top-level minutes else hours → `5`. Values `<= 0` or NaN become 5, then clamped to `>= 1`.
+
+After you change `ttl_minutes`, run `vmup check --sweeper` so the remote script’s `-mmin` matches. Editing the file alone does not rewrite `.cleanup.sh`.

@@ -1,0 +1,88 @@
+---
+title: Script vmup
+description: Non-interactive init, env overlays, and JSON on stdout.
+icon: Terminal
+---
+
+vmup is built so a shell script can drive it: flags beat env, env beats `config.toml`. Spinner and human text go to **stderr**. Machine output with `--json` goes to **stdout**.
+
+## Non-interactive init
+
+```bash
+VMUP_HOST=192.168.1.10 \
+VMUP_USER=ubuntu \
+VMUP_KEY=~/.ssh/id_ed25519 \
+VMUP_PORT=22 \
+VMUP_REMOTE_DIR=~/vmup \
+VMUP_TTL_MINUTES=5 \
+VMUP_PROFILE=default \
+vmup init -y --no-sweeper
+```
+
+`-y` without `VMUP_HOST` exits 1:
+
+```text
+Non-interactive init requires VMUP_HOST (and usually VMUP_USER / VMUP_KEY)
+```
+
+`--no-sweeper` skips remote cron. Omit it to install the sweeper after a successful SSH test.
+
+## Upload in a script
+
+```bash
+vmup shot.png notes.pdf --json
+echo $?
+```
+
+Exit `0` and a JSON object with `"ok": true` means the remote folder exists. Parse `remotePath` and `prompt`. Full schema: [JSON output](/docs/reference/json).
+
+```bash
+vmup --json shot.png | jq -r '.prompt'
+```
+
+The spinner still runs on stderr if stderr is a TTY. Redirect stderr if you need a quiet log:
+
+```bash
+vmup shot.png --json 2>/dev/null
+```
+
+## Check from CI
+
+```bash
+vmup check --json
+```
+
+```json
+{
+  "ok": true,
+  "profile": "default",
+  "remoteDir": "~/vmup",
+  "sweeper": true
+}
+```
+
+Non-zero exit: `"ok": false` and `"error"` on stdout when you passed `--json`.
+
+## Overlay a host without editing the file
+
+```bash
+VMUP_HOST=10.0.0.8 VMUP_USER=ubuntu vmup check
+```
+
+Useful on a laptop that already has a profile, when a job should hit a different IP. [Environment variables](/docs/reference/env) lists every key.
+
+## Disable the update notice
+
+```bash
+export VMUP_NO_UPDATE_CHECK=1
+```
+
+`CI=true` or `CI=1` also skips it. `--json` never prints the notice (it would break parsers).
+
+## Colors
+
+`NO_COLOR` (any value), `FORCE_COLOR=0`, or `TERM=dumb` turn off ANSI. Color is off when stdout is not a TTY.
+
+## `prune --json`
+
+`vmup prune` accepts `--json`, but it does **not** print a JSON result body. The flag only suppresses the update notice. Human lines (`Pruned N remote batch(es)`) still go to stderr. Prefer `vmup check --json` and `vmup … --json` for parsers.

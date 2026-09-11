@@ -1,0 +1,71 @@
+---
+title: Flags
+description: Every command-line option and which commands accept it.
+icon: Flag
+---
+
+Flags on the **root** command (`vmup [files…]`) and on `watch` share the upload set. `init`, `check`, `profiles`, and `prune` have their own.
+
+Do not pass `--profile` and `--ssh-host` together. That error is thrown in `resolveTarget` before SSH.
+
+## Upload / watch
+
+| Flag | Type | Commands | Meaning |
+|---|---|---|---|
+| `-p`, `--profile <name>` | string | upload, watch, check, prune | Saved profile. Overrides `VMUP_PROFILE` and `default_profile`. |
+| `--ssh-host <alias>` | string | upload, watch, check, prune | One-shot `~/.ssh/config` `Host`. Overrides `VMUP_SSH_HOST`. Not with `-p`. |
+| `--clip` | boolean | upload | Clipboard loop. Not with `--watch`. |
+| `--watch` | boolean | upload | Same as `vmup watch`. |
+| `--dir <path>` | string | upload (with watch), `watch` | Folder to watch. Overrides `VMUP_WATCH_DIR` and `watch_dir`. `~` is expanded. |
+| `--video` | boolean | upload, watch | Include video extensions when `accept_all_files` is false, for the **picker** and **watch**. Path arguments already allow video. |
+| `--force` | boolean | upload, watch | Accept disallowed types in images-only mode (picker and path args). Does not skip SSH. Does not bypass size/count. Does not override the watch type filter. No effect on type filtering when `accept_all_files` is true. |
+| `--keep-local` | boolean | upload, watch | Keep `~/.cache/vmup/<batchId>/` after a successful upload. |
+| `--ttl <minutes>` | number | upload, watch, prune | TTL override. Non-finite or `<= 0` falls back to 5. Rounded to an integer `>= 1`. |
+| `--json` | boolean | upload, watch, check, prune | JSON on stdout for upload/check. On prune, only hides the update notice. Spinner still on stderr when stderr is a TTY. |
+
+`--ttl` is parsed with `Number`. `--video` / `--force` descriptions in `--help` match Commander; behavior is in [Restrict to images](/docs/guides/restrict-types).
+
+## init
+
+| Flag | Meaning |
+|---|---|
+| `-y`, `--yes` | Non-interactive. Requires `VMUP_HOST`. |
+| `--no-sweeper` | Skip remote sweeper in `-y` mode. |
+
+There is no `--sweeper` on init. Interactive init asks a yes/no. `-y` installs the sweeper unless `--no-sweeper`.
+
+## check
+
+| Flag | Meaning |
+|---|---|
+| `-p`, `--profile <name>` | Profile |
+| `--ssh-host <alias>` | Alias |
+| `--sweeper` | Write `~/vmup/.cleanup.sh` and crontab |
+| `--json` | `{ ok, profile, remoteDir, sweeper }` |
+
+## prune
+
+| Flag | Meaning |
+|---|---|
+| `-p`, `--profile <name>` | Profile |
+| `--ssh-host <alias>` | Alias |
+| `--local` | Local orphans older than 24h |
+| `--id <batchId>` | One remote batch |
+| `--install-sweeper` | Refresh remote cron |
+| `--ttl <minutes>` | Age cutoff |
+| `--json` | No JSON payload |
+
+## Global
+
+| Flag | Meaning |
+|---|---|
+| `-V`, `--version` | Print `PACKAGE_VERSION` |
+| `-h`, `--help` | Usage |
+
+## Flag vs env vs file
+
+For host, user, key, port, profile, ssh alias, remote dir, TTL, watch dir, video, accept-all, max size, clip dedup:
+
+**CLI flag → environment → profile / file → built-in default.**
+
+`--ttl` is the only TTL flag. There is no `--host` flag; use env or config.

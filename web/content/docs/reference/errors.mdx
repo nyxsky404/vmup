@@ -1,0 +1,72 @@
+---
+title: Error strings
+description: Messages the CLI prints, with the code path that emits them.
+icon: Ban
+---
+
+Exact strings (or the stable prefix) so you can grep logs and match [Fix SSH](/docs/guides/ssh).
+
+## Resolve and usage
+
+| Message | Source |
+|---|---|
+| `Use either --profile or --ssh-host, not both` | `resolveTarget` |
+| `Use either --clip or --watch, not both` | `runUpload` |
+| `ssh_host alias is missing` | `assertTargetConnectable` |
+| `Profile "<name>" has no host. Run: vmup init` | `assertTargetConnectable` |
+| `Profile "<name>" has no key. Set key in config or use ssh-agent.` | `assertTargetConnectable` (direct, no key, no `SSH_AUTH_SOCK`) |
+| `Non-interactive init requires VMUP_HOST (and usually VMUP_USER / VMUP_KEY)` | `init -y` |
+| `Unknown profile "<name>".` | Interactive overwrite of a missing name |
+| `Profile name is required.` | New profile with empty name |
+| `No files to upload` | Empty stage list |
+
+## SSH key
+
+| Message | Source |
+|---|---|
+| `SSH key not found: <path>` + `Set key in ~/.config/vmup/config.toml or VMUP_KEY.` | `assertKeyUsable` |
+| `SSH key permissions are too open (<mode>): <path>` + `OpenSSH will refuse this key. Fix: chmod 600 <path>` | `assertKeyUsable` (Unix, mode `& 0o077`) |
+
+`formatSshError` appends a fix line when OpenSSH stderr matches: unprotected key, `permission denied (publickey)`, connection refused, timed out / unreachable, could not resolve hostname, IdentityFile missing.
+
+## Upload / check
+
+| Message | Source |
+|---|---|
+| `SSH preflight failed: <err>` + `Local staging kept: <dir>` | Preflight after collect |
+| `SSH failed: <err>` | `vmup check` |
+| `Sweeper install failed: <err>` | `vmup check --sweeper` |
+| `Upload failed: <err>` + `Local staging kept: <dir>` | scp or remote finalize |
+| `Checking SSH…` / `Uploading N file(s)  <done> / <total>` | Spinner labels (stderr, TTY) |
+| `Remote sweeper is not installed.` + linger warning + `Reinstall:  vmup check --sweeper` | Human upload when sweeper check returned `false` |
+
+## Collect
+
+| Message | Source |
+|---|---|
+| `File picker is not supported on this platform. Pass file paths or use WSL.` | Picker, not macOS/Linux |
+| `macOS file picker failed` | osascript non-cancel failure |
+| `No GUI file picker found. Install zenity/kdialog, or pass file paths: vmup file1.png file2.png` | Linux, no zenity/kdialog |
+| `Watch dir not accessible: <dir> (…)` | Watch `readdir` failed |
+| skip reasons | `not found`, `not a file`, `too large (>N MB)`, `not an allowed type (images-only mode)`, `exceeds max files (200)` |
+
+## Prune
+
+| Message | Source |
+|---|---|
+| `Invalid batch id: <id>` | `--id` failed `isBatchDirName` |
+| `Removed N local orphan batch(es)` | `--local` |
+| `Remote sweeper installed` | `--install-sweeper` |
+| `Removed <id>` | `--id` success |
+| `Pruned N remote batch(es)` | Age prune |
+
+## Init (informational)
+
+| Message | When |
+|---|---|
+| `Host skipped — set it in config or env (VMUP_HOST) before uploading.` | Empty host, no `ssh_host` |
+| `Wrote <configPath>` | After `saveConfig` |
+| `SSH OK` / `Testing SSH…` / `Remote sweeper installed (every minute)` | Successful remote setup |
+| `SSH setup incomplete: …` + retry lines | Preflight failed; config already saved |
+| `Config is saved. Retry SSH with: vmup check` | Same |
+| `Install sweeper later with: vmup check --sweeper` | Same |

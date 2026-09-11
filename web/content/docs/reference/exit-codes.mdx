@@ -1,0 +1,34 @@
+---
+title: Exit codes
+description: 0, 1, 2, 3, 4, and 130.
+icon: Hash
+---
+
+From `EXIT` in the CLI:
+
+| Code | Name | Meaning |
+|---|---|---|
+| `0` | `OK` | Success. `init` also returns 0 when config was written even if the SSH test failed (it prints `SSH setup incomplete` and continues). |
+| `1` | `USAGE` | Bad flags or unusable target: missing host, `--profile` + `--ssh-host`, `--clip` + `--watch`, `init -y` without `VMUP_HOST`, unknown profile on overwrite. Commander parse failures also end here (`done(EXIT.USAGE)` on thrown parse errors). |
+| `2` | `EMPTY` | Nothing to upload after collect/validate. Includes picker cancel and watch/clip with zero captures. |
+| `3` | `SSH` | Preflight failed, `check` SSH failed, sweeper install failed, `prune` SSH error. |
+| `4` | `UPLOAD` | scp or finalize failed, or an unexpected collect/stage error after a session exists. Staging is kept. |
+| `130` | `CANCEL` | Ctrl+C during collect. Staging is destroyed. |
+
+## Upload path (typical)
+
+1. Resolve target fails → `1`
+2. `--clip` and `--watch` → `1`
+3. SIGINT during collect → `130`
+4. Zero staged files → `2`
+5. Preflight fails → `3` (staging kept)
+6. scp / remote `mv` fails → `4` (remote partial removed, staging kept)
+7. Success → `0`
+
+## check
+
+Resolve fails → `1`. SSH or `--sweeper` fails → `3`. Else `0`.
+
+## prune
+
+Resolve / preflight / remote command fails → `3`. Else `0`. `--local` alone still continues to remote prune; a local-only prune without a host still needs a connectable target.

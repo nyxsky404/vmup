@@ -1,0 +1,14 @@
+{
+  "title": "Reference",
+  "defaultOpen": true,
+  "pages": [
+    "commands",
+    "flags",
+    "config",
+    "env",
+    "file-types",
+    "json",
+    "exit-codes",
+    "errors"
+  ]
+}
