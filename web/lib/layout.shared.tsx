@@ -7,6 +7,9 @@ export function homeOptions(): BaseLayoutProps {
   return {
     nav: {
       title: <Logo />,
+      children: (
+        <NavThemeSwitch className="max-lg:ms-auto lg:hidden min-h-11 min-w-11" />
+      ),
     },
     githubUrl: GITHUB_URL,
     links: [

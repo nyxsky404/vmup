@@ -23,6 +23,9 @@ const EASE = [0.16, 1, 0.3, 1] as const;
  * PerWordCrossfade — per-word fade-in with a subtle upward drift,
  * calm keynote rhythm. From the animate-text catalog
  * (`per-word-crossfade`).
+ *
+ * Words stay in the accessibility tree and stay opaque in the HTML so
+ * crawlers can read the heading. Motion only shifts `y`.
  */
 export default function PerWordCrossfade({
   children,
@@ -38,14 +41,13 @@ export default function PerWordCrossfade({
   const words = children.split(" ");
 
   return (
-    <span aria-label={children} className={className} ref={ref}>
+    <span className={className} ref={ref}>
       {words.map((word, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: words have no stable id
         <span key={index} style={{ display: "inline-block" }}>
           <motion.span
-            animate={play ? { opacity: 1, y: 0 } : undefined}
-            aria-hidden="true"
-            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            animate={play ? { y: 0 } : undefined}
+            initial={shouldReduceMotion ? false : { y: 8 }}
             style={{ display: "inline-block", whiteSpace: "pre" }}
             transition={
               shouldReduceMotion
@@ -58,15 +60,8 @@ export default function PerWordCrossfade({
             }
           >
             {word}
+            {index < words.length - 1 ? " " : null}
           </motion.span>
-          {index < words.length - 1 && (
-            <span
-              aria-hidden="true"
-              style={{ display: "inline-block", whiteSpace: "pre" }}
-            >
-              {" "}
-            </span>
-          )}
         </span>
       ))}
     </span>

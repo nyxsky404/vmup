@@ -1,14 +1,10 @@
 import { RootProvider } from 'fumadocs-ui/provider/next';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Instrument_Serif, Inter } from 'next/font/google';
 import { GeistMono } from 'geist/font/mono';
 import { cn } from '@/lib/cn';
-import {
-  appDescription,
-  appName,
-  appTitle,
-  siteUrl,
-} from '@/lib/shared';
+import { SkipLink } from '@/components/skip-link';
+import { appDescription, appName, appTitle, siteUrl } from '@/lib/shared';
 import './global.css';
 
 const inter = Inter({
@@ -22,13 +18,19 @@ const instrumentSerif = Instrument_Serif({
   variable: '--font-instrument-serif',
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
   applicationName: appName,
-  title: {
-    default: appName,
-    template: `%s — ${appName}`,
-  },
+    title: {
+      default: appName,
+      template: `%s — ${appName}`,
+    },
   description: appDescription,
   appleWebApp: {
     title: appName,
@@ -59,7 +61,8 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         'font-sans',
       )}
     >
-      <body className="flex min-h-screen flex-col">
+      <body className="flex min-h-dvh flex-col">
+        <SkipLink />
         <RootProvider
           theme={{
             defaultTheme: 'dark',

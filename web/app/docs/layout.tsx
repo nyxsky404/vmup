@@ -1,3 +1,4 @@
+import { DocsA11y } from '@/components/docs-a11y';
 import { DocsHeader } from '@/components/docs-header';
 import { source } from '@/lib/source';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
@@ -10,6 +11,7 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
       {...docsOptions()}
       slots={{ header: DocsHeader }}
     >
+      <DocsA11y />
       {children}
     </DocsLayout>
   );

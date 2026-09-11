@@ -74,7 +74,7 @@ export function ViewOptionsPopover({
             color: 'secondary',
             size: 'sm',
           }),
-          'gap-2 data-[popup-open]:bg-fd-accent data-[popup-open]:text-fd-accent-foreground',
+          'gap-2 min-h-11 px-3 data-[popup-open]:bg-fd-accent data-[popup-open]:text-fd-accent-foreground',
           className,
         )}
       >
@@ -88,7 +88,7 @@ export function ViewOptionsPopover({
             href={item.href}
             rel="noreferrer noopener"
             target="_blank"
-            className="inline-flex items-center gap-2 rounded-lg p-2 text-sm hover:bg-fd-accent hover:text-fd-accent-foreground [&_svg]:size-4"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg p-2.5 text-sm hover:bg-fd-accent hover:text-fd-accent-foreground [&_svg]:size-4"
           >
             {item.icon}
             {item.title}

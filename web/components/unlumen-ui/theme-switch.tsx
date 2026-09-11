@@ -12,7 +12,12 @@ function applyWithTransition(
   origin: { x: number; y: number },
   apply: () => void,
 ) {
-  if (!document.startViewTransition || window.innerWidth > 1800) {
+  if (
+    !document.startViewTransition ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+    window.matchMedia('(pointer: coarse)').matches ||
+    window.innerWidth < 1024
+  ) {
     apply();
     return;
   }
@@ -57,7 +62,7 @@ function ThemeSwitch({ size = "icon", className }: ThemeSwitchProps) {
   const chrome = buttonVariants({
     color: "ghost",
     size,
-    className: "relative cursor-pointer text-fd-muted-foreground",
+    className: "relative min-h-11 min-w-11 cursor-pointer text-fd-muted-foreground",
   });
 
   if (!mounted) {

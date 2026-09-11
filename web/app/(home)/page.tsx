@@ -84,11 +84,15 @@ const docs = [
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-24 pt-16 sm:pt-24">
+    <main
+      className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-24 pt-16 sm:pt-24"
+      id="main-content"
+      tabIndex={-1}
+    >
       <div className="mb-6" aria-hidden="true">
         <BrandMark animate />
       </div>
-      <p className="mb-4 text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+      <p className="mb-4 text-pretty text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase sm:tracking-[0.18em]">
         For developers who run coding agents over SSH
       </p>
       <HeroHeading>
@@ -116,7 +120,7 @@ export default function HomePage() {
           Paste the printed path into the agent. It is already on your
           clipboard.
         </figcaption>
-        <pre className="overflow-x-auto px-4 py-4 font-mono text-[13px] leading-relaxed text-foreground sm:text-sm">
+        <pre className="vmup-code-scroll overflow-x-auto px-4 py-4 font-mono text-[13px] leading-relaxed text-foreground sm:text-sm">
           <code>{`Uploaded 3 files → default
 Agent folder: ~/vmup/agents-20260911-140128-a1b2c3d4/
 
@@ -281,11 +285,11 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
         </p>
       </section>
 
-      <nav className="mt-20 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+      <nav className="mt-20 flex flex-wrap gap-x-6 gap-y-3 text-sm">
         {docs.map((item) => (
           <Link
             key={item.href}
-            className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            className="inline-flex min-h-11 items-center text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             href={item.href}
           >
             {item.label}
@@ -297,14 +301,14 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
         MIT ·{' '}
         <a
           href="https://github.com/nyxsky404/vmup"
-          className="underline underline-offset-4"
+          className="inline-flex min-h-11 items-center underline underline-offset-4"
         >
           GitHub
         </a>
         {' · '}
         <a
           href="https://www.npmjs.com/package/@nyxsky404/vmup"
-          className="underline underline-offset-4"
+          className="inline-flex min-h-11 items-center underline underline-offset-4"
         >
           npm
         </a>

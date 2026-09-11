@@ -110,7 +110,268 @@ html > body[data-scroll-locked] {
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
-    overscroll-behavior: none;
+    min-height: 100dvh;
+  }
+
+  a,
+  button,
+  [role='button'],
+  [role='tab'],
+  summary,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: 1rem;
+  top: 0.75rem;
+  z-index: 100;
+  border-radius: 0.5rem;
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  color: var(--foreground);
+  box-shadow: 0 0 0 2px var(--ring);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Safe areas on sticky chrome */
+#nd-nav,
+#nd-subnav {
+  padding-top: env(safe-area-inset-top, 0px);
+  margin-inline-start: env(safe-area-inset-left, 0px);
+  margin-inline-end: env(safe-area-inset-right, 0px);
+}
+
+#nd-nav {
+  min-height: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+
+#nd-subnav {
+  min-height: calc(var(--fd-header-height, 3.5rem) + env(safe-area-inset-top, 0px));
+}
+
+#nd-nav:has([aria-expanded='true']) {
+  height: auto;
+}
+
+body:has(#nd-nav [aria-expanded='true']),
+body:has(#nd-sidebar-mobile[data-state='open']) {
+  overflow: hidden;
+}
+
+#nd-sidebar-mobile {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  overscroll-behavior: contain;
+}
+
+#nd-sidebar-mobile > svg,
+#nd-sidebar-mobile [aria-hidden='true'] {
+  pointer-events: none;
+}
+
+@media (max-width: 1023px) {
+  #nd-nav [class*='flex-col'] button[aria-label*='Switch to'] {
+    display: none;
+  }
+
+  /* Fumadocs shows inline links from `sm` and the hamburger until `lg`. */
+  #nd-nav ul.max-sm\:hidden {
+    display: none;
+  }
+
+  [data-search-full] kbd {
+    display: none;
+  }
+
+  [aria-label='Close Search'] {
+    font-size: 0;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    letter-spacing: 0;
+  }
+
+  [aria-label='Close Search']::after {
+    content: 'Close';
+    font-size: 0.875rem;
+    font-family: var(--font-sans);
+    letter-spacing: 0;
+  }
+}
+
+[data-fd-search-dialog-input] {
+  min-height: 2.75rem;
+}
+
+body:has(#nd-sidebar-mobile[data-state='open'])
+  #nd-subnav
+  [aria-label='Close Sidebar'] {
+  pointer-events: none;
+}
+
+/* Hide on-page TOC once the docs sidebar is in the layout */
+@media (min-width: 768px) {
+  [data-toc-popover] {
+    display: none;
+  }
+
+  #nd-docs-layout {
+    --fd-toc-popover-height: 0px;
+  }
+}
+
+/* Phone landscape: keep reading width, stop the TOC covering tables */
+@media (orientation: landscape) and (max-height: 540px) {
+  [data-toc-popover] {
+    display: none;
+  }
+
+  #nd-docs-layout {
+    --fd-toc-popover-height: 0px;
+    --fd-sidebar-width: 13.5rem;
+  }
+
+  [data-layout-content] {
+    padding-top: 1rem;
+  }
+}
+
+h1,
+h2,
+h3,
+h4,
+.vmup-table-scroll,
+[data-layout-content] > * {
+  scroll-margin-top: calc(
+    var(--fd-docs-row-3, var(--fd-header-height, 3.5rem)) + 0.75rem
+  );
+}
+
+@media (pointer: coarse), (max-width: 1023px) {
+  #nd-nav [aria-label='Toggle Menu'],
+  #nd-nav [aria-label='Open Search'],
+  #nd-subnav button,
+  #nd-subnav a,
+  [data-toc-popover-trigger],
+  [data-search],
+  [data-search-full],
+  button[aria-label='Collapse Sidebar'],
+  button[aria-label='Open Sidebar'],
+  button[aria-label='Close Sidebar'],
+  button[aria-label='Switch to light mode'],
+  button[aria-label='Switch to dark mode'] {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  #nd-nav [class*='flex-col'] a,
+  #nd-nav [class*='flex-col'] button {
+    min-height: 2.75rem;
+  }
+
+  [data-search-full] kbd {
+    display: none;
+  }
+
+  [aria-label='Close Search'] {
+    font-size: 0;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    letter-spacing: 0;
+  }
+
+  [aria-label='Close Search']::after {
+    content: 'Close';
+    font-size: 0.875rem;
+    font-family: var(--font-sans);
+    letter-spacing: 0;
+  }
+}
+
+.vmup-code-scroll,
+.fd-scroll-container {
+  background:
+    linear-gradient(to right, var(--card) 30%, transparent) 0 0 / 1.25rem 100%
+      local,
+    linear-gradient(to left, var(--card) 30%, transparent) 100% 0 / 1.25rem 100%
+      local,
+    linear-gradient(to right, oklch(0 0 0 / 0.12), transparent 40%) 0 0 / 0.75rem
+      100% no-repeat,
+    linear-gradient(to left, oklch(0 0 0 / 0.12), transparent 40%) 100% 0 /
+      0.75rem 100% no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
+.vmup-table-scroll {
+  margin-block: 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background:
+    linear-gradient(to right, var(--background) 30%, transparent) 0 0 / 1.25rem
+      100% local,
+    linear-gradient(to left, var(--background) 30%, transparent) 100% 0 / 1.25rem
+      100% local,
+    linear-gradient(to right, oklch(0 0 0 / 0.12), transparent 40%) 0 0 / 0.75rem
+      100% no-repeat,
+    linear-gradient(to left, oklch(0 0 0 / 0.12), transparent 40%) 100% 0 /
+      0.75rem 100% no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
+@media (max-width: 639px) {
+  .vmup-table-scroll {
+    overflow-x: visible;
+    background: none;
+  }
+
+  .vmup-table-scroll table,
+  .vmup-table-scroll tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .vmup-table-scroll thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .vmup-table-scroll tr {
+    display: grid;
+    gap: 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 0.85rem 1rem;
+  }
+
+  .vmup-table-scroll th,
+  .vmup-table-scroll td {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 34%) minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+    border: 0;
+    padding: 0.2rem 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .vmup-table-scroll td::before {
+    content: attr(data-label);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
   }
 }
 
@@ -144,5 +405,26 @@ html > body[data-scroll-locked] {
 @keyframes vt-reveal {
   to {
     clip-path: circle(var(--vt-r, 100vmax) at var(--vt-x, 50%) var(--vt-y, 50%));
+  }
+}
+
+.vmup-peak {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .vmup-peak-animate {
+    animation: vmup-lift 2.8s ease-in-out infinite;
+  }
+}
+
+@keyframes vmup-lift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.5px);
   }
 }
