@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+- Update notice reads the local cache only (no npm wait on the command). A detached process refreshes `~/.cache/vmup/update-check.json` at most once per 24h. Remind daily while the install is behind. Skip when stdout/stderr is not a TTY. `-V` / `--version` still never prints the notice.
+
 ## 0.3.2 — 2026-09-12
 
 - Republish so the npm package homepage and README point at [vmup.dev](https://vmup.dev) (0.3.1 still listed `vmup.vercel.app`).
