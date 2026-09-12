@@ -4,7 +4,7 @@ export const appName = 'vmup';
 export const appTitle =
   'vmup gives coding agents one folder path on the remote host';
 export const appDescription =
-  'vmup batches files over SSH and leaves one remote folder path on your clipboard, plus a prompt your coding agent can paste. Default TTL is 5 minutes.';
+  'vmup batches files over SSH and copies a prompt with the remote folder path to your clipboard. Default TTL is 5 minutes.';
 export const docsRoute = '/docs';
 export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
@@ -48,7 +48,7 @@ const docsSeoTitles: Record<string, string> = {
   '/docs/guides/profiles': 'Point vmup at another VM with profiles',
   '/docs/guides/ssh': 'Fix SSH failures before a vmup upload',
   '/docs/guides/scripting': 'Script vmup with env overlays and --json',
-  '/docs/guides/cleanup': 'Clean up remote vmup batches and TTL',
+  '/docs/guides/cleanup': 'Wipe remote vmup batches with prune --all, or wait on TTL',
   '/docs/guides/restrict-types': 'Restrict vmup uploads to images or video',
   '/docs/guides/screenshots-to-agent':
     'Upload screenshots to a remote coding agent',

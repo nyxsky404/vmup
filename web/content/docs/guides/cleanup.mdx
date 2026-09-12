@@ -1,10 +1,10 @@
 ---
 title: Clean up batches
-description: TTL, the remote sweeper cron, vmup prune, and leftover local staging under ~/.cache/vmup after a failed or kept upload.
+description: TTL, the remote sweeper cron, vmup prune --all to wipe live batches, and leftover local staging under ~/.cache/vmup after a failed or kept upload.
 icon: Trash
 ---
 
-Each batch is a directory named `agents-<date>-<time>-<uuid>` under the remote root (`~/vmup` by default). vmup deletes those directories after **TTL minutes** (default 5). You can also delete them yourself.
+Each batch is a directory named `agents-<date>-<time>-<uuid>` under the remote root (`~/vmup` by default). vmup deletes those directories after **TTL minutes** (default 5). You can also delete them yourself: one batch with `--id`, or every remote batch right now with `--all`.
 
 [Why batches expire](/docs/explain/ttl) is the design page. This page is the recipes.
 
@@ -36,6 +36,12 @@ vmup prune
 Deletes remote `agents-*` directories whose mtime is older than the resolved TTL, and any `*.partial` dirs. Prints `Pruned N remote batch(es)` on stderr.
 
 ```bash
+vmup prune --all
+```
+
+Deletes every remote `agents-*` and `agents-*.partial` directory under the remote root, including batches still inside TTL. Does not remove `~/vmup` itself or `.cleanup.sh`. Not with `--id`.
+
+```bash
 vmup prune --id agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
 ```
 
@@ -45,7 +51,7 @@ Deletes that batch (and its `.partial` sibling) regardless of age. The id must m
 vmup prune --local
 ```
 
-Also removes local staging dirs under `~/.cache/vmup/` older than **24 hours**. Prints `Removed N local orphan batch(es)` first, then does the remote prune.
+Also removes local staging dirs under `~/.cache/vmup/` older than **24 hours**. Prints `Removed N local orphan batch(es)` first, then does the remote prune (age-based, or `--all` / `--id` if you passed those). `--local` does not wipe every local cache dir, only ones older than 24 hours.
 
 ```bash
 vmup prune --install-sweeper
@@ -57,7 +63,7 @@ Installs/refreshes the remote cron script, then prunes.
 vmup prune --ttl 1
 ```
 
-Uses 1 minute as the age cutoff for this prune (and for sweeper install if you combined `--install-sweeper`). Does not rewrite `config.toml`.
+Uses 1 minute as the age cutoff for this prune (and for sweeper install if you combined `--install-sweeper`). Ignored by `--all`. Does not rewrite `config.toml`.
 
 ## Keep local staging after a good upload
 

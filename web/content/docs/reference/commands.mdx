@@ -9,7 +9,7 @@ vmup --help
 vmup --version
 ```
 
-Version is `0.3.2` in this tree. `--help` is Commander’s generated usage.
+Version is `0.3.2` in this tree. `--help` is Commander’s generated usage. `-V` / `--version` never print the update notice.
 
 Positional options are enabled: flags after file names still bind to the root command.
 
@@ -23,6 +23,8 @@ Default command. Uploads a batch.
 | No paths, no `--clip` / `--watch` | Native file picker |
 | `--clip` | Clipboard loop, then upload |
 | `--watch` | Same as `vmup watch` |
+
+After a successful human-mode upload, the prompt is copied to the clipboard (`clipboard_copy = "prompt"`). `--json` skips that copy. See [config.toml](/docs/reference/config).
 
 Flags: `--profile`, `--ssh-host`, `--clip`, `--watch`, `--dir`, `--video`, `--force`, `--keep-local`, `--ttl`, `--json`. See [Flags](/docs/reference/flags).
 
@@ -41,7 +43,7 @@ Exit: `0` on a finished wizard (SSH failure after write still returns 0). `-y` w
 
 ## `vmup check`
 
-Test SSH with saved config. No wizard.
+Test SSH using saved config. Skips the init wizard.
 
 | Flag | Meaning |
 |---|---|
@@ -70,7 +72,13 @@ Flags: `--profile`, `--ssh-host`, `--dir`, `--video`, `--force`, `--keep-local`,
 
 ## `vmup prune`
 
-Delete expired remote batches. Requires a connectable target (same resolve rules as upload).
+Delete remote batches. Default is age-based (older than the resolved TTL). `--all` ignores TTL. Requires a connectable target (same resolve rules as upload).
+
+```bash
+vmup prune
+vmup prune --all
+vmup prune --id agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+```
 
 | Flag | Meaning |
 |---|---|
@@ -78,12 +86,13 @@ Delete expired remote batches. Requires a connectable target (same resolve rules
 | `--ssh-host <alias>` | Alias |
 | `--local` | Also delete local staging older than 24 hours |
 | `--id <batchId>` | Delete that remote batch instead of age-based prune |
+| `--all` | Delete every remote `agents-*` batch, ignoring TTL |
 | `--install-sweeper` | Install/refresh remote cron, then prune |
-| `--ttl <minutes>` | Age cutoff (and sweeper TTL if installing) |
+| `--ttl <minutes>` | Age cutoff (and sweeper TTL if installing). Ignored by `--all` |
 | `--json` | Suppresses update notice only. No JSON body. |
 
-Order: `--local` first (no SSH), then resolve + preflight, then optional sweeper, then `--id` **or** age prune.
+Order: `--local` first (no SSH), then resolve + preflight, then optional sweeper, then `--id` **or** `--all` **or** age prune.
 
-Invalid `--id` throws `Invalid batch id: …` (must match `agents-YYYYMMDD-HHMMSS-<uuid>`).
+`--all` and `--id` together: `Use either --all or --id, not both` (exit `1`). Invalid `--id` throws `Invalid batch id: …` (must match `agents-YYYYMMDD-HHMMSS-<uuid>`).
 
 Failure after resolve: exit `3`.

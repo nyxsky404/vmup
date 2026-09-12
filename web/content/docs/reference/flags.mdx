@@ -12,18 +12,18 @@ Do not pass `--profile` and `--ssh-host` together. That error is thrown in `reso
 
 | Flag | Type | Commands | Meaning |
 |---|---|---|---|
-| `-p`, `--profile <name>` | string | upload, watch, check, prune | Saved profile. Overrides `VMUP_PROFILE` and `default_profile`. |
-| `--ssh-host <alias>` | string | upload, watch, check, prune | One-shot `~/.ssh/config` `Host`. Overrides `VMUP_SSH_HOST`. Not with `-p`. |
-| `--clip` | boolean | upload | Clipboard loop. Not with `--watch`. |
-| `--watch` | boolean | upload | Same as `vmup watch`. |
+| `-p`, `--profile <name>` | string | upload, watch, check, prune | Use a saved remote. Default profile if omitted. Overrides `VMUP_PROFILE` and `default_profile`. |
+| `--ssh-host <alias>` | string | upload, watch, check, prune | Use a `Host` from `~/.ssh/config`. Overrides `VMUP_SSH_HOST`. Not with `-p`. |
+| `--clip` | boolean | upload | Capture clipboard files until you type `done`. Not with `--watch`. |
+| `--watch` | boolean | upload | Watch a folder, then upload (same as `vmup watch`). |
 | `--dir <path>` | string | upload (with watch), `watch` | Folder to watch. Overrides `VMUP_WATCH_DIR` and `watch_dir`. `~` is expanded. |
-| `--video` | boolean | upload, watch | Include video extensions when `accept_all_files` is false, for the **picker** and **watch**. Path arguments already allow video. |
-| `--force` | boolean | upload, watch | Accept disallowed types in images-only mode (picker and path args). Does not skip SSH. Does not bypass size/count. Does not override the watch type filter. No effect on type filtering when `accept_all_files` is true. |
+| `--video` | boolean | upload, watch | Also collect videos in images-only mode (picker and watch). Path arguments already allow video. |
+| `--force` | boolean | upload, watch | Allow extra file types in images-only mode (picker and path args). Does not skip SSH. Does not bypass size/count. Does not override the watch type filter. No effect when `accept_all_files` is true. |
 | `--keep-local` | boolean | upload, watch | Keep `~/.cache/vmup/<batchId>/` after a successful upload. |
-| `--ttl <minutes>` | number | upload, watch, prune | TTL override. Non-finite or `<= 0` falls back to 5. Rounded to an integer `>= 1`. |
-| `--json` | boolean | upload, watch, check, prune | JSON on stdout for upload/check. On prune, only hides the update notice. Spinner still on stderr when stderr is a TTY. |
+| `--ttl <minutes>` | number | upload, watch, prune | Remote batch lifetime in minutes (default 5). Non-finite or `<= 0` falls back to 5. Rounded to an integer `>= 1`. On prune, this is the age cutoff (ignored by `--all`). |
+| `--json` | boolean | upload, watch, check, prune | Print machine-readable JSON on stdout for upload/check. On prune, only hides the update notice. Spinner still on stderr when stderr is a TTY. |
 
-`--ttl` is parsed with `Number`. `--video` / `--force` descriptions in `--help` match Commander; behavior is in [Restrict to images](/docs/guides/restrict-types).
+`--ttl` is parsed with `Number`. `--help` one-liners match Commander. `--video` / `--force` behavior is in [Restrict to images](/docs/guides/restrict-types). After upload, what lands on the clipboard is `clipboard_copy` in [config.toml](/docs/reference/config), not a flag.
 
 ## init
 
@@ -38,8 +38,8 @@ There is no `--sweeper` on init. Interactive init asks a yes/no. `-y` installs t
 
 | Flag | Meaning |
 |---|---|
-| `-p`, `--profile <name>` | Profile |
-| `--ssh-host <alias>` | Alias |
+| `-p`, `--profile <name>` | Use saved remote (default if omitted) |
+| `--ssh-host <alias>` | Use a Host from `~/.ssh/config` |
 | `--sweeper` | Write `~/vmup/.cleanup.sh` and crontab |
 | `--json` | `{ ok, profile, remoteDir, sweeper }` |
 
@@ -47,13 +47,16 @@ There is no `--sweeper` on init. Interactive init asks a yes/no. `-y` installs t
 
 | Flag | Meaning |
 |---|---|
-| `-p`, `--profile <name>` | Profile |
-| `--ssh-host <alias>` | Alias |
+| `-p`, `--profile <name>` | Use saved remote (default if omitted) |
+| `--ssh-host <alias>` | Use a Host from `~/.ssh/config` |
 | `--local` | Local orphans older than 24h |
 | `--id <batchId>` | One remote batch |
+| `--all` | Every remote `agents-*` batch, ignoring TTL |
 | `--install-sweeper` | Refresh remote cron |
-| `--ttl <minutes>` | Age cutoff |
+| `--ttl <minutes>` | Age cutoff (ignored by `--all`) |
 | `--json` | No JSON payload |
+
+`--all` and `--id` cannot be combined (`Use either --all or --id, not both`, exit `1`).
 
 ## Global
 
@@ -64,7 +67,7 @@ There is no `--sweeper` on init. Interactive init asks a yes/no. `-y` installs t
 
 ## Flag vs env vs file
 
-For host, user, key, port, profile, ssh alias, remote dir, TTL, watch dir, video, accept-all, max size, clip dedup:
+For host, user, key, port, profile, ssh alias, remote dir, TTL, watch dir, video, accept-all, max size, clip dedup, clipboard copy:
 
 **CLI flag → environment → profile / file → built-in default.**
 

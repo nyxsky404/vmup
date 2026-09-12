@@ -38,7 +38,6 @@ export type RunOptions = ResolveOptions & {
   files?: string[];
   clip?: boolean;
   watch?: boolean;
-  copy?: boolean;
 };
 
 async function withCancelCleanup<T>(
@@ -196,7 +195,6 @@ export async function runUpload(opts: RunOptions): Promise<number> {
     try {
       remotePath = await uploadBatch({
         target,
-        localDir: session.localDir,
         batchId: session.batchId,
         files: staged,
         onProgress: (uploaded) => spin.update(uploadLabel(uploaded)),
@@ -244,7 +242,6 @@ export async function runUpload(opts: RunOptions): Promise<number> {
       target,
       remotePath,
       files: staged,
-      copy: opts.copy,
       sweeper,
     });
     return EXIT.OK;

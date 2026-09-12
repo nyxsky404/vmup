@@ -256,6 +256,7 @@ Non-interactive: `-y` + env for CI.
 - `remote_dir = ~/vmup`  
 - `ttl_minutes = 5` (legacy `ttl_hours` still read as hours × 60)  
 - `prompt_template = "Please inspect all files in {{remote_path}}"`  
+- `clipboard_copy = "prompt"` (`path` or `none`)  
 - `accept_all_files = true`  
 
 ---
@@ -270,6 +271,7 @@ Non-interactive: `-y` + env for CI.
 | `vmup watch` | Foreground folder watch → upload |
 | `vmup <files…>` | Upload files/dirs |
 | `vmup prune` | Prune expired remote batches |
+| `vmup prune --all` | Delete all remote batches, ignoring TTL |
 | `vmup prune --local` | GC orphaned local staging |
 | `vmup profiles` | List profiles |
 
@@ -284,6 +286,7 @@ Non-interactive: `-y` + env for CI.
 - `--keep-local`  
 - `--json`  
 - `--ttl <minutes>`  
+- `--all` (prune)  
 - `-y, --yes`  
 
 ### Success UX (human)
@@ -297,7 +300,7 @@ Please inspect all files in ~/vmup/agents-…/
 ```
 
 - Print path + prompt snippet  
-- Copy path to local clipboard  
+- Copy the prompt to the local clipboard (`clipboard_copy = "prompt"`; `"path"` or `"none"`). `--json` skips the copy.  
 - Spinner on stderr (`uploaded / total` bytes); `--json` keeps JSON on stdout  
 
 ### Exit codes (sketch)
@@ -321,7 +324,7 @@ Please inspect all files in ~/vmup/agents-…/
 4. On failure: no success output; keep local staging; remove incomplete remote if possible  
 5. Auto-create `~/vmup` if missing  
 
-Transport v1: OpenSSH (`scp` / `sftp` / `ssh` + tar). Interface kept swappable for later backends.
+Transport v1: OpenSSH (`ssh`; file bytes on stdin to remote `cat`). Interface kept swappable for later backends.
 
 ---
 
@@ -336,7 +339,7 @@ Transport v1: OpenSSH (`scp` / `sftp` / `ssh` + tar). Interface kept swappable f
 | Ctrl+C during capture | Delete staging |
 | Ctrl+C during upload | Delete local; try remove incomplete remote |
 | Crash / reboot orphans | `vmup prune --local` + age-based GC |
-| Clipboard path-copy fails | Still success; warn |
+| Clipboard copy fails | Still success; warn |
 
 ### Remote
 
@@ -347,7 +350,7 @@ Transport v1: OpenSSH (`scp` / `sftp` / `ssh` + tar). Interface kept swappable f
 | No sweeper | Client schedules delayed `ssh rm -rf` as backup |
 | Both fire | Idempotent |
 | Naming | Only `agents-<date>-<time>-<uuid>` dirs; never wipe all of `~/vmup` |
-| Early delete | `vmup prune --id <batch>` |
+| Early delete | `vmup prune --id <batch>` or `vmup prune --all` |
 | Missing sweeper after VM rebuild | Detect; `vmup init` reinstalls |
 
 **Policy:** remote sweeper is source of truth when present; client delayed delete is fallback; client may miss if laptop sleeps — document this.

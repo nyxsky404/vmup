@@ -1,10 +1,10 @@
 ---
 title: First upload
-description: Walk through install, vmup init, an SSH check, one file upload, and pasting the remote folder path into the agent.
+description: Walk through install, vmup init, an SSH check, one file upload, and pasting the prompt into the agent.
 icon: Rocket
 ---
 
-This lesson ends with a file on the remote host and a path on your clipboard. Work through it on a machine that can SSH to your VM.
+This lesson ends with a file on the remote host and the prompt on your clipboard. Work through it on a machine that can SSH to your VM.
 
 ## 1. Install vmup
 
@@ -72,11 +72,11 @@ vmup ./shot.png
 
 Replace `./shot.png` with a file you have. PDF, video, and other types work while `accept_all_files` is true (the default).
 
-A TTY shows a spinner on stderr:
+A TTY shows a spinner on stderr. The left-hand size climbs while the file is in flight:
 
 ```text
 ⠋ Checking SSH…
-⠋ Uploading 1 file  240.0 KB / 240.0 KB  2s
+⠋ Uploading 1 file  120.0 KB / 240.0 KB  1s
 ```
 
 Then stdout:
@@ -89,13 +89,13 @@ Prompt:
 Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4-e5f6-7890-abcd-ef1234567890/
 ```
 
-stderr adds `(copied agent folder path to clipboard)` when `pbcopy` (macOS), `wl-copy`, or `xclip` works.
+stderr adds `(copied prompt to clipboard)` when `pbcopy` (macOS), `wl-copy`, or `xclip` works. Set `clipboard_copy = "path"` if you want the folder path instead, or `"none"` to skip the copy.
 
 The remote file is renamed to `image-01.png` (or `file-01.pdf`, `video-01.mov`) inside that folder. [How a batch is built](/docs/explain/how-it-works) explains why.
 
-## 5. Give the path to the agent
+## 5. Give the prompt to the agent
 
-Paste into the agent. The clipboard already holds the folder path. The printed prompt is the sentence most agents need:
+Paste into the agent. The clipboard already holds the prompt:
 
 ```text
 Please inspect all files in ~/vmup/agents-…/
@@ -118,3 +118,4 @@ You stay in the same thread. The agent opens that directory on the VM.
 - [Upload files](/docs/guides/upload) for the picker and directories
 - [Clipboard loop](/docs/guides/clipboard) and [Watch a folder](/docs/guides/watch)
 - [Commands](/docs/reference/commands) for the full catalog
+- [Clean up batches](/docs/guides/cleanup) — `vmup prune --all` deletes every remote batch now

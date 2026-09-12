@@ -28,6 +28,7 @@ watch_include_video = false
 accept_all_files = true
 max_file_mb = 200
 clip_dedup = true
+clipboard_copy = "prompt"
 
 [profiles.default]
 host = "192.168.1.10"
@@ -57,9 +58,12 @@ ttl_minutes = 5
 | `accept_all_files` | boolean | `true` | Yes (first init only) |
 | `max_file_mb` | number | `200` | No. Edit the file. Non-finite or `<= 0` falls back to 200 at resolve time. |
 | `clip_dedup` | boolean | `true` | No |
+| `clipboard_copy` | string | `"prompt"` | No. `prompt`, `path`, or `none`. Invalid values fall back to `prompt`. Not asked at init. |
 | `profiles` | table | `{ default: { … } }` | Yes |
 
 `{{remote_path}}` in `prompt_template` is replaced with the remote folder (trailing `/` added if missing). If the stored template equals the old images prompt (`Please inspect all images in {{remote_path}}`), vmup substitutes the current default.
+
+After a successful human-mode upload, vmup copies `clipboard_copy` to the local clipboard: the rendered **prompt** (default), the folder **path**, or **none**. `--json` never copies.
 
 ## Profile keys
 
@@ -80,7 +84,7 @@ A profile may omit `host` if you plan to set `VMUP_HOST` per run. Init allows sk
 
 ## Empty template (new file)
 
-`emptyTemplateConfig()` seeds a `default` profile with user `ubuntu`, key hint `~/.ssh/id_ed25519`, port 22, remote `~/vmup`, TTL 5, `accept_all_files true`, `max_file_mb 200`, `clip_dedup true`. Init then overwrites fields from the wizard.
+`emptyTemplateConfig()` seeds a `default` profile with user `ubuntu`, key hint `~/.ssh/id_ed25519`, port 22, remote `~/vmup`, TTL 5, `accept_all_files true`, `max_file_mb 200`, `clip_dedup true`, `clipboard_copy "prompt"`. Init then overwrites fields from the wizard. `clipboard_copy` is written for new files and is not asked.
 
 ## Precedence (resolve)
 
@@ -88,4 +92,4 @@ For a given field: **command flag → env → profile → top-level config → c
 
 TTL specifically: `--ttl` → `VMUP_TTL_MINUTES` → `VMUP_TTL_HOURS` × 60 → profile `ttl_minutes` else profile `ttl_hours` × 60 → top-level minutes else hours → `5`. Values `<= 0` or NaN become 5, then clamped to `>= 1`.
 
-After you change `ttl_minutes`, run `vmup check --sweeper` so the remote script’s `-mmin` matches. Editing the file alone does not rewrite `.cleanup.sh`.
+After you change `ttl_minutes`, run `vmup check --sweeper` so the remote script’s `-mmin` matches. Editing the file alone does not rewrite `.cleanup.sh`. `vmup prune --all` deletes every remote batch now and does not read this cutoff.

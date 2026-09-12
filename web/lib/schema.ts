@@ -36,7 +36,7 @@ function installHowTo(pageUrl: string, description?: string) {
     step: howToSteps(pageUrl, [
       {
         name: 'Confirm Node 18+ and OpenSSH',
-        text: 'Run node -v, ssh -V, and which scp. Node must print v18 or newer. ssh and scp must exist on your PATH.',
+        text: 'Run node -v and ssh -V. Node must print v18 or newer. ssh must exist on your PATH.',
       },
       {
         name: 'Global install',
@@ -80,9 +80,9 @@ function quickstartHowTo(pageUrl: string, description?: string) {
         hash: '4-upload-one-file',
       },
       {
-        name: 'Give the path to the agent',
-        text: 'Paste the clipboard path into the agent thread. The printed prompt is Please inspect all files in …',
-        hash: '5-give-the-path-to-the-agent',
+        name: 'Give the prompt to the agent',
+        text: 'Paste the clipboard prompt into the agent thread. The default is Please inspect all files in …',
+        hash: '5-give-the-prompt-to-the-agent',
       },
     ]),
   };

@@ -1,6 +1,6 @@
 ---
 title: Capture the clipboard
-description: How vmup --clip captures copied files and screenshots, batches them over SSH, and leaves one remote folder path to paste into the agent.
+description: How vmup --clip captures copied files and screenshots, batches them over SSH, and copies a prompt to paste into the agent.
 icon: Clipboard
 ---
 
@@ -71,4 +71,6 @@ Each capture prints:
 
 Then `Captured N file(s).` and the usual upload spinner.
 
-Job-shaped pages: [Upload screenshots to a remote coding agent](/docs/guides/screenshots-to-agent), [Clipboard to SSH for Claude Code or Cursor](/docs/guides/clipboard-for-agents).
+After a successful upload, human mode copies the prompt to the clipboard (`clipboard_copy = "prompt"`). Set `"path"` or `"none"` in [config.toml](/docs/reference/config) if you want something else.
+
+Job-shaped pages: [Upload screenshots to a remote coding agent](/docs/guides/screenshots-to-agent), [Clipboard to SSH for Claude Code or Cursor](/docs/guides/clipboard-for-agents). Wipe remote batches: [Clean up batches](/docs/guides/cleanup).
