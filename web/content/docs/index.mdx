@@ -1,20 +1,21 @@
 ---
 title: Introduction
-description: "Docs for vmup: install the CLI, upload a batch over SSH, and paste one remote folder path into your coding agent."
+description: "Docs for vmup: install the CLI, upload a batch over SSH, and paste the prompt into your coding agent."
 icon: BookOpen
 ---
 
 The npm package is [`@nyxsky404/vmup`](https://www.npmjs.com/package/@nyxsky404/vmup). The command is `vmup`.
 
-A coding agent on a VM reads files by path. The screenshots, PDFs, and recordings sit on your laptop. vmup copies them over SSH into one remote folder, prints a prompt (`Please inspect all files in …`), and puts that folder path on your clipboard. Paste it into the agent thread.
+A coding agent on a VM reads files by path. The screenshots, PDFs, and recordings sit on your laptop. vmup copies them over SSH into one remote folder, prints a prompt (`Please inspect all files in …`), and copies that prompt to your clipboard. Paste it into the agent thread.
 
-Remote batches live under `~/vmup` by default and expire after **5 minutes**.
+Remote batches live under `~/vmup` by default and expire after **5 minutes**. Wipe them now with `vmup prune --all`.
 
 <Cards>
   <Card title="Install" href="/docs/install" description="Node 18+, OpenSSH, then a global or one-shot install." />
-  <Card title="First upload" href="/docs/quickstart" description="init, check SSH, send a file, paste the path." />
-  <Card title="Screenshots to the agent" href="/docs/guides/screenshots-to-agent" description="Clip or watch a folder, upload over SSH, paste one path." />
-  <Card title="Clipboard for Claude / Cursor" href="/docs/guides/clipboard-for-agents" description="--clip, then paste the remote folder into the thread." />
+  <Card title="First upload" href="/docs/quickstart" description="init, check SSH, send a file, paste the prompt." />
+  <Card title="Screenshots to the agent" href="/docs/guides/screenshots-to-agent" description="Clip or watch a folder, upload over SSH, paste the prompt." />
+  <Card title="Clipboard for Claude / Cursor" href="/docs/guides/clipboard-for-agents" description="--clip, then paste the prompt into the thread." />
+  <Card title="Clean up batches" href="/docs/guides/cleanup" description="TTL, prune, and vmup prune --all to delete every remote batch now." />
 </Cards>
 
 ## These docs
@@ -22,7 +23,7 @@ Remote batches live under `~/vmup` by default and expire after **5 minutes**.
 | Section | Use it when |
 |---|---|
 | [Get started](/docs/install) | You have not run `vmup` yet. |
-| [How-to](/docs/guides/init) | You have a specific job: clipboard, screenshots to an agent, watch folder, extra VM, scripts. |
+| [How-to](/docs/guides/init) | You have a specific job: clipboard, screenshots to an agent, watch folder, extra VM, scripts, cleanup. |
 | [Reference](/docs/reference/commands) | You need flags, `config.toml`, env vars, JSON, or exit codes. |
 | [Explanation](/docs/explain/how-it-works) | You want the batch model, TTL, SSH modes, or [vmup vs scp](/docs/explain/vs-scp). |
 | [Project](/docs/changelog) | You want [release notes](/docs/changelog) or [security / contact](/docs/contact). |
@@ -30,7 +31,7 @@ Remote batches live under `~/vmup` by default and expire after **5 minutes**.
 ## What you need
 
 - **Node 18+**
-- **OpenSSH** (`ssh` and `scp` on your `PATH`)
+- **OpenSSH** (`ssh` on your `PATH`)
 - A remote host you can log into with a key (or an alias in `~/.ssh/config`)
 
 On macOS, clipboard **images** also need [pngpaste](https://github.com/jcsalterego/pngpaste). Copied Finder files do not.
@@ -48,3 +49,4 @@ On macOS, clipboard **images** also need [pngpaste](https://github.com/jcsaltere
 | Per-file size | 200 MB |
 | Files per batch | 200 |
 | File types | All (set `accept_all_files = false` for images only) |
+| Clipboard after upload | Prompt (`clipboard_copy = "prompt"`; `"path"` or `"none"`) |

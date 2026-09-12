@@ -10,6 +10,10 @@ For current `--video` / `--force` behavior (path arguments vs picker vs watch), 
 
 ## Unreleased
 
+- `vmup prune --all` deletes every remote `agents-*` batch, including ones still inside TTL.
+- `--help` copy: saved remotes, clipboard loop, images-only `--video` / `--force`, TTL in minutes, omit files to open a picker.
+- After upload, copy the prompt to the clipboard by default (`clipboard_copy = "prompt"`). Set `"path"` or `"none"` in config, or `VMUP_CLIPBOARD_COPY`. Not asked at init. `--json` still skips the copy.
+- Upload spinner counts bytes as they are written, not only after each file finishes. Files are streamed over `ssh` (`cat` on the remote) instead of `scp`.
 - Update notice reads the local cache only (no npm wait on the command). A detached process refreshes `~/.cache/vmup/update-check.json` at most once per 24h. Remind daily while the install is behind. Skip when stdout/stderr is not a TTY. `-V` / `--version` still never prints the notice.
 
 ## 0.3.2 — 2026-09-12

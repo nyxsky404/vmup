@@ -4,9 +4,9 @@ description: JSON stdout schema for vmup --json on upload and check, including f
 icon: Braces
 ---
 
-Pass `--json` on upload (`vmup …`, `vmup watch`, `vmup --clip`) or `vmup check`. JSON is printed on **stdout**. Human lines, spinner, skip warnings, and the update notice stay off stdout (`--json` suppresses the update notice).
+Pass `--json` on upload (`vmup …`, `vmup watch`, `vmup --clip`) or `vmup check`. JSON is printed on **stdout**. Human lines, spinner, skip warnings, and the update notice stay off stdout (`--json` suppresses the update notice). Non-TTY stdout/stderr also skip the notice.
 
-`vmup prune --json` does not emit this schema.
+`vmup prune --json` (including with `--all`) does not emit this schema.
 
 ## Success (upload)
 
@@ -36,7 +36,7 @@ Pass `--json` on upload (`vmup …`, `vmup watch`, `vmup --clip`) or `vmup check
 
 Pretty-printed with `JSON.stringify(..., null, 2)`.
 
-JSON mode returns after printing the object. It does not copy the path to the clipboard (that path is only taken in human output).
+JSON mode returns after printing the object. It does not copy to the clipboard.
 
 ## Success (check)
 

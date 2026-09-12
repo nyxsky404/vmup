@@ -16,7 +16,7 @@ Include the command, `--json` output if you have it, and the printed error strin
 
 If you believe you found a vulnerability in the CLI or the install script, do **not** file a public issue. Use GitHub’s private advisory form: [Report a vulnerability](https://github.com/nyxsky404/vmup/security/advisories/new). Policy: [SECURITY.md](https://github.com/nyxsky404/vmup/blob/main/SECURITY.md).
 
-The tool copies files you select onto a host you already SSH into. It does not open inbound ports. Treat remote batches as sensitive until TTL deletes them. Details: [Why batches expire](/docs/explain/ttl).
+The tool copies files you select onto a host you already SSH into. It does not open inbound ports. Treat remote batches as sensitive until TTL deletes them, or run `vmup prune --all`. Details: [Why batches expire](/docs/explain/ttl).
 
 ## Source and package
 

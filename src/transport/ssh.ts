@@ -1,13 +1,16 @@
 import { spawn } from "node:child_process";
+import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { basename } from "node:path";
+import type { Readable } from "node:stream";
 import { expandHome } from "../constants.js";
 import type { ResolvedTarget } from "../config.js";
 import { isBatchDirName } from "../stage.js";
 import { assertKeyUsable, formatSshError } from "../ssh-key.js";
+import { countBytes } from "../progress.js";
 
 export type SshSpec = {
-  /** Arguments inserted after `ssh`/`scp` before destination */
+  /** Arguments inserted after `ssh` before destination */
   baseArgs: string[];
   /** Destination host part: user@host or alias */
   destHost: string;
@@ -34,33 +37,67 @@ export function buildSshSpec(target: ResolvedTarget): SshSpec {
 function run(
   command: string,
   args: string[],
-  opts: { timeoutMs?: number } = {},
+  opts: {
+    timeoutMs?: number;
+    stdin?: Readable;
+    onStdinBytes?: (n: number) => void;
+  } = {},
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(command, args, {
+      stdio: [opts.stdin ? "pipe" : "ignore", "pipe", "pipe"],
+    });
     let stdout = "";
     let stderr = "";
+    let settled = false;
+    const settle = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      fn();
+    };
+    const stopStdin = () => {
+      if (!opts.stdin) return;
+      opts.stdin.unpipe();
+      opts.stdin.destroy();
+    };
     const timer =
       opts.timeoutMs != null
         ? setTimeout(() => {
+            stopStdin();
             child.kill("SIGKILL");
-            reject(new Error(`${command} timed out`));
+            settle(() => reject(new Error(`${command} timed out`)));
           }, opts.timeoutMs)
         : null;
 
-    child.stdout.on("data", (d) => {
+    if (opts.stdin && child.stdin) {
+      child.stdin.on("error", () => {
+        // ssh closed stdin (EPIPE); the close handler reports the exit code
+      });
+      opts.stdin.on("error", (err) => {
+        child.kill("SIGKILL");
+        settle(() => reject(err));
+      });
+      const src = opts.onStdinBytes
+        ? opts.stdin.pipe(countBytes(opts.onStdinBytes))
+        : opts.stdin;
+      src.on("error", () => undefined);
+      src.pipe(child.stdin);
+    }
+
+    child.stdout!.on("data", (d) => {
       stdout += String(d);
     });
-    child.stderr.on("data", (d) => {
+    child.stderr!.on("data", (d) => {
       stderr += String(d);
     });
     child.on("error", (err) => {
-      if (timer) clearTimeout(timer);
-      reject(err);
+      stopStdin();
+      settle(() => reject(err));
     });
     child.on("close", (code) => {
-      if (timer) clearTimeout(timer);
-      resolve({ code: code ?? 1, stdout, stderr });
+      stopStdin();
+      settle(() => resolve({ code: code ?? 1, stdout, stderr }));
     });
   });
 }
@@ -81,13 +118,6 @@ function remoteShellPath(p: string): string {
   return shellQuote(p);
 }
 
-/** Path for scp remote side — OpenSSH does not expand ~ reliably. */
-function scpRemotePath(p: string): string {
-  if (p.startsWith("~/")) return p.slice(2);
-  if (p === "~") return ".";
-  return p;
-}
-
 /** Expand ~/ on remote via shell; we pass paths as-is to ssh remote commands. */
 export async function preflight(target: ResolvedTarget): Promise<void> {
   if (target.mode === "direct" && target.key) {
@@ -104,32 +134,18 @@ export async function preflight(target: ResolvedTarget): Promise<void> {
   }
 }
 
-function scpBaseArgs(target: ResolvedTarget): string[] {
-  return [
-    ...(target.mode === "direct"
-      ? ["-P", String(target.port), ...(target.key ? ["-i", target.key] : [])]
-      : []),
-    "-o",
-    "BatchMode=yes",
-    "-o",
-    "StrictHostKeyChecking=accept-new",
-  ];
-}
-
 export async function uploadBatch(opts: {
   target: ResolvedTarget;
-  localDir: string;
   batchId: string;
-  files?: string[];
+  files: string[];
   onProgress?: (uploadedBytes: number) => void;
 }): Promise<string> {
-  const { target, localDir, batchId, files } = opts;
+  const { target, batchId, files } = opts;
   const spec = buildSshSpec(target);
   const remoteFinal = remoteJoin(target.remoteDir, batchId);
   const remotePartial = `${remoteFinal}.partial`;
   const shellFinal = remoteShellPath(remoteFinal);
   const shellPartial = remoteShellPath(remotePartial);
-  const remoteDest = `${spec.destHost}:${scpRemotePath(remotePartial)}/`;
 
   const prepare = [
     `rm -rf ${shellPartial} ${shellFinal}`,
@@ -150,36 +166,30 @@ export async function uploadBatch(opts: {
       `rm -rf ${shellPartial}`,
     ]).catch(() => undefined);
 
-  const scpCommon = scpBaseArgs(target);
-
   try {
-    if (files && files.length > 0) {
-      let uploaded = 0;
-      for (const file of files) {
-        const scp = await run(
-          "scp",
-          [...scpCommon, file, `${remoteDest}${basename(file)}`],
-          { timeoutMs: 600_000 },
-        );
-        if (scp.code !== 0) {
-          throw new Error(formatSshError(scp.stderr.trim() || "scp failed"));
-        }
-        try {
-          uploaded += (await stat(file)).size;
-        } catch {
-          // size is only for progress
-        }
-        opts.onProgress?.(uploaded);
+    let uploaded = 0;
+    for (const file of files) {
+      let size = 0;
+      try {
+        size = (await stat(file)).size;
+      } catch {
+        // size is only for progress
       }
-    } else {
-      const scp = await run(
-        "scp",
-        ["-r", ...scpCommon, `${localDir}/.`, remoteDest],
-        { timeoutMs: 600_000 },
+      const remoteFile = remoteShellPath(remoteJoin(remotePartial, basename(file)));
+      const put = await run(
+        "ssh",
+        [...spec.baseArgs, spec.destHost, `cat > ${remoteFile}`],
+        {
+          timeoutMs: 600_000,
+          stdin: createReadStream(file),
+          onStdinBytes: (n) => opts.onProgress?.(uploaded + n),
+        },
       );
-      if (scp.code !== 0) {
-        throw new Error(formatSshError(scp.stderr.trim() || "scp failed"));
+      if (put.code !== 0) {
+        throw new Error(formatSshError(put.stderr.trim() || "upload failed"));
       }
+      uploaded += size;
+      opts.onProgress?.(uploaded);
     }
   } catch (err) {
     await cleanupPartial();
@@ -212,15 +222,28 @@ export async function removeRemoteBatch(
   ]);
 }
 
-export async function pruneRemote(
-  target: ResolvedTarget,
-  ttlMinutes: number,
-): Promise<number> {
-  const spec = buildSshSpec(target);
-  const minutes = Math.max(1, Math.floor(ttlMinutes));
-  const script = `
+export function remotePruneScript(
+  remoteDir: string,
+  opts: { ttlMinutes: number; all?: boolean } = { ttlMinutes: 5 },
+): string {
+  const dir = remoteShellPath(remoteDir);
+  if (opts.all) {
+    return `
 set -e
-dir=${remoteShellPath(target.remoteDir)}
+dir=${dir}
+count=0
+for d in "$dir"/agents-*; do
+  [ -d "$d" ] || continue
+  rm -rf "$d"
+  count=$((count+1))
+done
+echo $count
+`.trim();
+  }
+  const minutes = Math.max(1, Math.floor(opts.ttlMinutes));
+  return `
+set -e
+dir=${dir}
 count=0
 for d in "$dir"/agents-*; do
   [ -d "$d" ] || continue
@@ -235,6 +258,18 @@ for d in "$dir"/agents-*; do
 done
 echo $count
 `.trim();
+}
+
+export async function pruneRemote(
+  target: ResolvedTarget,
+  ttlMinutes: number,
+  opts: { all?: boolean } = {},
+): Promise<number> {
+  const spec = buildSshSpec(target);
+  const script = remotePruneScript(target.remoteDir, {
+    ttlMinutes,
+    all: opts.all,
+  });
 
   const res = await run("ssh", [...spec.baseArgs, spec.destHost, script], {
     timeoutMs: 60_000,

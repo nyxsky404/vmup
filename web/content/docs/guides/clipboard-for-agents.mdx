@@ -1,10 +1,10 @@
 ---
 title: Clipboard to SSH for Claude Code or Cursor
-description: Use vmup --clip to batch clipboard files over SSH and paste one folder path into Claude Code, Cursor, or any agent that reads paths on the host.
+description: Use vmup --clip to batch clipboard files over SSH and paste the prompt into Claude Code, Cursor, or any agent that reads paths on the host.
 icon: Bot
 ---
 
-Claude Code, Cursor, and Codex on a VM open files by path. They do not see your laptop clipboard. `vmup --clip` uploads what you copy and leaves **one remote folder path** to paste into the thread.
+Claude Code, Cursor, and Codex on a VM open files by path. They do not see your laptop clipboard. `vmup --clip` uploads what you copy and leaves a **prompt** (with the remote folder path inside it) to paste into the thread.
 
 Same end state as [First upload](/docs/quickstart). This page is the clipboard loop. Full key list and pngpaste: [Capture the clipboard](/docs/guides/clipboard). Screenshots as the job: [Upload screenshots to a remote coding agent](/docs/guides/screenshots-to-agent).
 
@@ -32,12 +32,8 @@ Prompt:
 Please inspect all files in ~/vmup/agents-…/
 ```
 
-The folder path is already on the clipboard. Paste it into Claude Code, Cursor, or Codex in the same thread. The agent inspects that directory on the host.
+The prompt is already on the clipboard (`clipboard_copy = "prompt"`). Paste it into Claude Code, Cursor, or Codex in the same thread. The agent inspects that directory on the host. Set `clipboard_copy = "path"` if you only want the folder, or `"none"` to skip the copy.
 
 Remote names are `image-01.png`, `file-01.pdf`, and so on. Original basenames are gone on the VM. [How a batch is built](/docs/explain/how-it-works) explains the rename.
 
-## If the paste is not enough
-
-The printed prompt is the sentence most agents need. If the model ignores a bare path, paste the `Please inspect all files in …` line too.
-
-TTL still applies (default 5 minutes). Raise it for a longer session: [Why batches expire](/docs/explain/ttl).
+TTL still applies (default 5 minutes). Raise it for a longer session, or run `vmup prune --all` to delete every remote batch now: [Why batches expire](/docs/explain/ttl).

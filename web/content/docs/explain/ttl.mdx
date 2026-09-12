@@ -1,14 +1,14 @@
 ---
 title: Why batches expire
-description: TTL is in minutes. The host cron deletes expired batches. The laptop sleep job is a backup if the VM was unreachable.
+description: TTL is in minutes. The host cron deletes expired batches. vmup prune --all deletes every remote batch now. The laptop sleep job is a backup if the VM was unreachable.
 icon: Timer
 ---
 
-A batch is throwaway context for an agent turn. vmup defaults to **5 minutes** so `~/vmup` does not accumulate screenshots from last week. You can raise TTL; you cannot turn expiry off with a flag (use a large `--ttl` or stop the sweeper if you must keep files).
+A batch is throwaway context for an agent turn. vmup defaults to **5 minutes** so `~/vmup` does not accumulate screenshots from last week. You can raise TTL; you cannot turn expiry off with a flag (use a large `--ttl` or stop the sweeper if you must keep files). To delete every remote batch now, run `vmup prune --all`.
 
 Recipes: [Clean up batches](/docs/guides/cleanup).
 
-## Two clocks
+## How batches disappear
 
 **Remote sweeper.** `~/vmup/.cleanup.sh` is a bash script installed over SSH. Crontab runs it every minute:
 
@@ -23,7 +23,7 @@ The script only touches `agents-*` directories one level under the remote root. 
 
 **Client sleep.** After a successful upload, vmup spawns `bash -c 'sleep T && ssh … rm -rf <batch>'` detached. `T` is `max(60, ttlMinutes * 60)` seconds. If the laptop sleeps, the process dies, and this path does nothing. That is why the sweeper warning exists: the host cron still runs when your laptop lid is shut.
 
-`vmup prune` is a third path: you decide, now, from this machine.
+**Prune.** `vmup prune` is a third path: you decide, now, from this machine. Default prune still honors TTL and also drops leftover `*.partial` dirs. `vmup prune --all` deletes every `agents-*` batch immediately, including ones still inside TTL. `vmup prune --id <batchId>` deletes one. Not `--all` and `--id` together.
 
 ## TTL resolution
 
@@ -37,7 +37,7 @@ Order: `--ttl` → `VMUP_TTL_MINUTES` → `VMUP_TTL_HOURS` → profile → top-l
 
 ## Partial dirs
 
-Failed uploads try to `rm` `agents-….partial`. The sweeper and `prune` also delete leftover `*.partial` directories (prune deletes them immediately; the sweeper uses the same age as live batches).
+Failed uploads try to `rm` `agents-….partial`. The sweeper and `prune` also delete leftover `*.partial` directories (age prune deletes them immediately; `--all` deletes live batches and leftover partials together; the sweeper uses the same age as live batches).
 
 ## Local cache
 

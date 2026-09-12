@@ -51,8 +51,8 @@ const beats = [
   },
   {
     n: '03',
-    title: 'Paste the path',
-    body: 'The remote folder lands on your clipboard with Please inspect all files in … Stay in the thread.',
+    title: 'Paste the prompt',
+    body: 'The prompt lands on your clipboard with the remote folder path inside it. Stay in the thread.',
   },
 ];
 
@@ -61,14 +61,14 @@ const reasons = [
     title: 'No extra daemon',
     body: (
       <>
-        Files go over <code>ssh</code> and <code>scp</code> you already have. No
+        Files go over <code>ssh</code> you already have. No
         browser upload, no agent plugin.
       </>
     ),
   },
   {
     title: 'The agent only needs a directory',
-    body: 'You paste a path. You do not configure Cursor, Claude Code, or anything else.',
+    body: 'You paste the prompt. You do not configure Cursor, Claude Code, or anything else.',
   },
   {
     title: 'One path per batch',
@@ -120,7 +120,7 @@ const facts: { id: string; body: ReactNode }[] = [
     id: 'deps',
     body: (
       <>
-        Node 18+ and OpenSSH (<code>ssh</code> / <code>scp</code>) on your{' '}
+        Node 18+ and OpenSSH (<code>ssh</code>) on your{' '}
         <code>PATH</code>
       </>
     ),
@@ -145,7 +145,7 @@ const facts: { id: string; body: ReactNode }[] = [
   },
   {
     id: 'ttl',
-    body: 'Default TTL 5 minutes; sweeper cron every minute',
+    body: 'Default TTL 5 minutes; sweeper cron every minute; prune --all wipes now',
   },
   {
     id: 'limits',
@@ -156,6 +156,16 @@ const facts: { id: string; body: ReactNode }[] = [
     body: (
       <>
         <code>--json</code> on stdout for scripts; spinner still on stderr
+      </>
+    ),
+  },
+  {
+    id: 'clipboard',
+    body: (
+      <>
+        After upload, the prompt is copied (
+        <code>clipboard_copy = &quot;prompt&quot;</code>). Set{' '}
+        <code>path</code> or <code>none</code> in config.
       </>
     ),
   },
@@ -190,7 +200,8 @@ export default function HomePage() {
       </HeroHeading>
       <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
         Send screenshots, PDFs, recordings, and other local files to the VM your
-        coding agent is running on. One SSH upload. One folder path to paste.
+        coding agent is running on. One SSH upload. Paste the prompt; the folder
+        path is inside it.
       </p>
 
       <section id="install" className="mt-10 scroll-mt-24">
@@ -210,7 +221,7 @@ export default function HomePage() {
 
       <figure className="mt-6 overflow-hidden rounded-xl border border-border bg-card">
         <figcaption className="border-b border-border px-4 py-3 text-sm leading-relaxed text-muted-foreground">
-          Paste the printed path into the agent. It is already on your
+          Paste the printed prompt into the agent. It is already on your
           clipboard.
         </figcaption>
         <pre className="vmup-code-scroll overflow-x-auto px-4 py-4 font-mono text-[13px] leading-relaxed text-foreground sm:text-sm">
@@ -239,8 +250,8 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
           <p>
             <code>scp</code> moves one file. A morning of screenshots, a notes
             PDF, and a screen recording is a different job: stage a batch,
-            upload it, hand back one path, delete it when you are done. vmup
-            does that job.
+            upload it, hand back a prompt with the folder path, delete it when
+            you are done. vmup does that job.
           </p>
         </div>
       </section>
@@ -326,6 +337,7 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
           </p>
           <p>
             <code>vmup prune</code> deletes expired batches from here.{' '}
+            <code>--all</code> deletes every remote batch now, ignoring TTL.{' '}
             <code>--id</code> deletes one. <code>--local</code> also clears
             leftover staging under <code>~/.cache/vmup/</code>. Successful
             uploads already delete that cache unless you pass{' '}

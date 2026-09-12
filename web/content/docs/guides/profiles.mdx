@@ -43,7 +43,7 @@ remote_dir = "~/vmup"
 ttl_minutes = 5
 ```
 
-vmup passes `-p`, `-i`, `BatchMode=yes`, and `StrictHostKeyChecking=accept-new` to `ssh` / `scp`.
+vmup passes `-p`, `-i`, `BatchMode=yes`, and `StrictHostKeyChecking=accept-new` to `ssh`.
 
 **SSH config alias** (`ssh_host`):
 
@@ -54,7 +54,7 @@ remote_dir = "~/vmup"
 ttl_minutes = 5
 ```
 
-vmup runs `ssh lab …` and `scp … lab:…`. User, key, and port come from `~/.ssh/config`. vmup does not add `-i` or `-p` in this mode.
+vmup runs `ssh lab …`. User, key, and port come from `~/.ssh/config`. vmup does not add `-i` or `-p` in this mode.
 
 A profile with `ssh_host` set uses alias mode even if `host` is also present. [Direct SSH vs ssh_host](/docs/explain/ssh-modes) explains the tradeoff.
 

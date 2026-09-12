@@ -1,6 +1,6 @@
 ---
 title: Watch a folder
-description: Watch a folder for files added after start, press Enter to upload one SSH batch, and paste the remote folder path into the coding agent.
+description: Watch a folder for files added after start, press Enter to upload one SSH batch, and paste the prompt into the coding agent.
 icon: FolderOpen
 ---
 
@@ -49,6 +49,8 @@ Watching: /Users/you/Desktop
 
 Zero files after stop: `No files to upload`, exit 2.
 
+A successful upload copies the prompt to the clipboard by default. See `clipboard_copy` in [config.toml](/docs/reference/config).
+
 ## Images-only watch
 
 With `accept_all_files = false`, the banner changes:
@@ -66,4 +68,4 @@ vmup watch -p work --ttl 15 --keep-local --json
 
 `--clip` and `--watch` together are rejected.
 
-Screenshots landing in a folder: [Upload screenshots to a remote coding agent](/docs/guides/screenshots-to-agent).
+Screenshots landing in a folder: [Upload screenshots to a remote coding agent](/docs/guides/screenshots-to-agent). `--ttl` on watch is that batch’s lifetime. Wipe every remote batch now with `vmup prune --all`.

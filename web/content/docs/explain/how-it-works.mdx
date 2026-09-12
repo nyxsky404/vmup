@@ -1,6 +1,6 @@
 ---
 title: How a batch is built
-description: Collect files, stage them under a batch id, scp into a partial remote dir, rename into place, and copy the folder path to the clipboard.
+description: Collect files, stage them under a batch id, stream them over ssh into a partial remote dir, rename into place, and copy the prompt to the clipboard.
 icon: Boxes
 ---
 
@@ -17,7 +17,7 @@ Four inputs, one staging session:
 
 `--clip` and `--watch` cannot run together because both hold stdin.
 
-SSH **preflight starts as soon as the session exists**, in parallel with collect. A long picker does not block the first `ssh` call. The result is awaited after collect, before scp.
+SSH **preflight starts as soon as the session exists**, in parallel with collect. A long picker does not block the first `ssh` call. The result is awaited after collect, before upload.
 
 ## Stage
 
@@ -37,7 +37,7 @@ Hidden junk is dropped at collect for directories and watch. Validate then appli
 
 `ssh` runs `mkdir -p <remote_dir> && test -d <remote_dir> && echo OK` with a 20s timeout. Direct mode also checks the private key exists and is not group/world-readable.
 
-Failure here keeps local staging and skips scp. Exit 3.
+Failure here keeps local staging and skips the upload. Exit 3.
 
 ## Upload
 
@@ -45,10 +45,10 @@ Remote layout:
 
 1. `rm -rf` the final dir and a sibling `*.partial`
 2. `mkdir` the partial dir
-3. `scp` each staged file into `user@host:<remote>/<batchId>.partial/`
+3. Stream each staged file over `ssh` (`cat >` the remote path, local file on stdin) into `<remote>/<batchId>.partial/`
 4. `mv` partial → final
 
-Agents never see a half-written folder. A failed scp removes the partial dir. Local staging stays so you can look at what would have been sent.
+Agents never see a half-written folder. A failed upload removes the partial dir. Local staging stays so you can look at what would have been sent.
 
 Progress on a TTY:
 
@@ -56,7 +56,7 @@ Progress on a TTY:
 ⠋ Uploading 3 files  1.2 MB / 4.5 MB  4s
 ```
 
-Bytes are summed from local `stat` as each scp returns. JSON mode still animates stderr when it is a TTY.
+The right-hand size is the sum of local `stat`s. The left-hand size is bytes ssh has accepted on stdin, including the current file, so a single large file ticks up during the transfer. JSON mode still animates stderr when it is a TTY.
 
 ## After success
 
@@ -67,8 +67,10 @@ vmup then:
 1. **Client delete:** a detached `sleep <ttlMinutes * 60>` (minimum 60s) then `ssh rm -rf` the batch. This only runs while this process’s machine stays up.
 2. **Sweeper probe:** `test -x ~/vmup/.cleanup.sh`. If missing, human mode warns.
 3. **Prompt:** `prompt_template` with `{{remote_path}}` set to the final dir plus `/`.
-4. **Clipboard:** the remote path (not the prompt) is copied via `pbcopy` / `wl-copy` / `xclip`.
+4. **Clipboard:** `clipboard_copy` (`prompt` by default, or `path`, or `none`) via `pbcopy` / `wl-copy` / `xclip`. `--json` skips this.
+
+To delete batches from this laptop without waiting: `vmup prune` (expired) or `vmup prune --all` (every `agents-*` dir). Recipes: [Clean up batches](/docs/guides/cleanup).
 
 The agent does not run vmup. You paste. The default sentence is `Please inspect all files in <path>`.
 
-Ctrl+C during collect deletes staging and exits 130. After upload has started, interrupt handling is the default Node behavior plus whatever OpenSSH does; the partial-dir cleanup is on scp failure, not on SIGINT mid-scp.
+Ctrl+C during collect deletes staging and exits 130. After upload has started, interrupt handling is the default Node behavior plus whatever OpenSSH does; the partial-dir cleanup is on upload failure, not on SIGINT mid-transfer.

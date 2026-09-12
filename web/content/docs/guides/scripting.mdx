@@ -34,7 +34,7 @@ vmup shot.png notes.pdf --json
 echo $?
 ```
 
-Exit `0` and a JSON object with `"ok": true` means the remote folder exists. Parse `remotePath` and `prompt`. Full schema: [JSON output](/docs/reference/json).
+Exit `0` and a JSON object with `"ok": true` means the remote folder exists. Parse `remotePath` and `prompt`. `--json` does not copy to the clipboard. Full schema: [JSON output](/docs/reference/json).
 
 ```bash
 vmup --json shot.png | jq -r '.prompt'
@@ -69,7 +69,7 @@ Non-zero exit: `"ok": false` and `"error"` on stdout when you passed `--json`.
 VMUP_HOST=10.0.0.8 VMUP_USER=ubuntu vmup check
 ```
 
-Useful on a laptop that already has a profile, when a job should hit a different IP. [Environment variables](/docs/reference/env) lists every key.
+Useful on a laptop that already has a profile, when a job should hit a different IP. [Environment variables](/docs/reference/env) lists every key, including `VMUP_CLIPBOARD_COPY` (`prompt`, `path`, or `none`).
 
 ## Disable the update notice
 
@@ -77,12 +77,22 @@ Useful on a laptop that already has a profile, when a job should hit a different
 export VMUP_NO_UPDATE_CHECK=1
 ```
 
-`CI=true` or `CI=1` also skips it. `--json` never prints the notice (it would break parsers).
+That skips both the stderr banner and the background npm fetch. `CI=true` or `CI=1` does the same.
+
+`--json`, non-TTY stdout/stderr (pipes), and `-V` / `--version` never print the notice. The banner is printed from `~/.cache/vmup/update-check.json` at most once per day while the install is behind; the command does not wait on npm.
 
 ## Colors
 
 `NO_COLOR` (any value), `FORCE_COLOR=0`, or `TERM=dumb` turn off ANSI. Color is off when stdout is not a TTY.
 
+## Wipe remote batches
+
+```bash
+vmup prune --all
+```
+
+Deletes every remote `agents-*` directory, including ones still inside TTL. `--id` deletes one batch. Default `vmup prune` still honors TTL. Recipes: [Clean up batches](/docs/guides/cleanup).
+
 ## `prune --json`
 
-`vmup prune` accepts `--json`, but it does **not** print a JSON result body. The flag only suppresses the update notice. Human lines (`Pruned N remote batch(es)`) still go to stderr. Prefer `vmup check --json` and `vmup … --json` for parsers.
+`vmup prune` accepts `--json` (including with `--all`), but it does **not** print a JSON result body. The flag only suppresses the update notice. Human lines (`Pruned N remote batch(es)`) still go to stderr. Prefer `vmup check --json` and `vmup … --json` for parsers.

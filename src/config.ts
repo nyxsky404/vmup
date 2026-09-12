@@ -11,12 +11,15 @@ import {
   DEFAULT_MAX_FILE_MB,
   DEFAULT_ACCEPT_ALL_FILES,
   DEFAULT_CLIP_DEDUP,
+  DEFAULT_CLIPBOARD_COPY,
+  CLIPBOARD_COPY_VALUES,
   LEGACY_IMAGES_PROMPT,
   configDir,
   configPath as getConfigPath,
   defaultSshKeyHint,
   defaultWatchDir,
   expandHome,
+  type ClipboardCopy,
 } from "./constants.js";
 
 export type ProfileConfig = {
@@ -46,6 +49,8 @@ export type VmupConfig = {
   max_file_mb?: number;
   /** Skip identical clipboard captures in --clip (default true). */
   clip_dedup?: boolean;
+  /** After upload, copy `prompt` (default), `path`, or `none`. Not asked at init. */
+  clipboard_copy?: string;
   profiles?: Record<string, ProfileConfig>;
 };
 
@@ -65,6 +70,7 @@ export type ResolvedTarget = {
   acceptAllFiles: boolean;
   maxFileMb: number;
   clipDedup: boolean;
+  clipboardCopy: ClipboardCopy;
 };
 
 export function configPath(): string {
@@ -160,6 +166,23 @@ function resolvePrompt(cfg: VmupConfig): string {
   return raw;
 }
 
+export function parseClipboardCopy(raw: string | undefined): ClipboardCopy | undefined {
+  if (!raw) return undefined;
+  const v = raw.trim().toLowerCase();
+  for (const allowed of CLIPBOARD_COPY_VALUES) {
+    if (v === allowed) return allowed;
+  }
+  return undefined;
+}
+
+function resolveClipboardCopy(cfg: VmupConfig): ClipboardCopy {
+  return (
+    parseClipboardCopy(envOverride("VMUP_CLIPBOARD_COPY")) ??
+    parseClipboardCopy(cfg.clipboard_copy) ??
+    DEFAULT_CLIPBOARD_COPY
+  );
+}
+
 export function resolveTarget(
   cfg: VmupConfig,
   opts: ResolveOptions = {},
@@ -209,6 +232,7 @@ export function resolveTarget(
     acceptAllFiles,
     maxFileMb: Number.isFinite(maxFileMb) && maxFileMb > 0 ? maxFileMb : DEFAULT_MAX_FILE_MB,
     clipDedup,
+    clipboardCopy: resolveClipboardCopy(cfg),
   };
 
   if (opts.sshHost || envOverride("VMUP_SSH_HOST")) {
@@ -300,6 +324,7 @@ export function emptyTemplateConfig(): VmupConfig {
     accept_all_files: DEFAULT_ACCEPT_ALL_FILES,
     max_file_mb: DEFAULT_MAX_FILE_MB,
     clip_dedup: DEFAULT_CLIP_DEDUP,
+    clipboard_copy: DEFAULT_CLIPBOARD_COPY,
     profiles: {
       [DEFAULT_PROFILE]: {
         user: DEFAULT_USER,

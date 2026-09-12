@@ -37,7 +37,7 @@ program
 
 program
   .command("init")
-  .description("Create config and optionally install remote cleanup")
+  .description("Create or update config; optional remote cleanup")
   .option("-y, --yes", "Non-interactive (requires VMUP_HOST)")
   .option("--no-sweeper", "Skip remote sweeper install in -y mode")
   .action(async (opts) => {
@@ -50,11 +50,11 @@ program
 
 program
   .command("check")
-  .description("Test SSH using saved config (no wizard)")
-  .option("-p, --profile <name>", "Profile name")
-  .option("--ssh-host <alias>", "SSH config alias")
+  .description("Test SSH using saved config")
+  .option("-p, --profile <name>", "Use saved remote (default if omitted)")
+  .option("--ssh-host <alias>", "Use a Host from ~/.ssh/config")
   .option("--sweeper", "Install/refresh remote cleanup sweeper")
-  .option("--json", "JSON output")
+  .option("--json", "Print machine-readable JSON")
   .action(async (opts) => {
     const code = await runCheck({
       profile: opts.profile,
@@ -67,7 +67,7 @@ program
 
 program
   .command("profiles")
-  .description("List configured profiles")
+  .description("List saved profiles")
   .action(async () => {
     const cfg = await loadConfig();
     console.log(`Config: ${configPath()}`);
@@ -87,16 +87,21 @@ program
 
 program
   .command("prune")
-  .description("Prune expired remote batches (and optional local cache)")
-  .option("-p, --profile <name>", "Profile name")
-  .option("--ssh-host <alias>", "SSH config alias")
+  .description("Delete expired remote batches (or all with --all)")
+  .option("-p, --profile <name>", "Use saved remote (default if omitted)")
+  .option("--ssh-host <alias>", "Use a Host from ~/.ssh/config")
   .option("--local", "Also prune local staging orphans")
   .option("--id <batchId>", "Delete a specific remote batch id")
+  .option("--all", "Delete all remote batches, ignoring TTL")
   .option("--install-sweeper", "Install/refresh remote cleanup cron")
-  .option("--ttl <minutes>", "TTL override in minutes", (v) => Number(v))
-  .option("--json", "JSON output")
+  .option("--ttl <minutes>", "Age cutoff in minutes (default 5)", (v) => Number(v))
+  .option("--json", "Print machine-readable JSON")
   .action(async (opts) => {
     try {
+      if (opts.all && opts.id) {
+        console.error("Use either --all or --id, not both");
+        await done(EXIT.USAGE, !!opts.json);
+      }
       if (opts.local) {
         const n = await pruneLocalOrphans(24);
         console.error(`Removed ${n} local orphan batch(es)`);
@@ -119,7 +124,7 @@ program
         await removeRemoteBatch(target, opts.id);
         console.error(`Removed ${opts.id}`);
       } else {
-        const n = await pruneRemote(target, target.ttlMinutes);
+        const n = await pruneRemote(target, target.ttlMinutes, { all: !!opts.all });
         console.error(`Pruned ${n} remote batch(es)`);
       }
       await done(EXIT.OK, !!opts.json);
@@ -132,14 +137,14 @@ program
 program
   .command("watch")
   .description("Watch a folder and upload a batch when you stop")
-  .option("-p, --profile <name>", "Profile name")
-  .option("--ssh-host <alias>", "SSH config alias")
+  .option("-p, --profile <name>", "Use saved remote (default if omitted)")
+  .option("--ssh-host <alias>", "Use a Host from ~/.ssh/config")
   .option("--dir <path>", "Folder to watch")
-  .option("--video", "Include videos when accept_all_files is false")
-  .option("--force", "Allow extra types in images-only mode")
-  .option("--keep-local", "Keep local staging after success")
-  .option("--ttl <minutes>", "TTL override in minutes", (v) => Number(v))
-  .option("--json", "JSON output")
+  .option("--video", "Also collect videos in images-only mode")
+  .option("--force", "Allow extra file types in images-only mode")
+  .option("--keep-local", "Keep local staging after a successful upload")
+  .option("--ttl <minutes>", "Remote batch lifetime in minutes (default 5)", (v) => Number(v))
+  .option("--json", "Print machine-readable JSON")
   .action(async (opts) => {
     const code = await runUpload({
       profile: opts.profile,
@@ -156,17 +161,17 @@ program
   });
 
 program
-  .argument("[files...]", "Files or directories to upload")
-  .option("-p, --profile <name>", "Profile name")
-  .option("--ssh-host <alias>", "SSH config alias")
-  .option("--clip", "Clipboard capture loop")
-  .option("--watch", "Watch screenshots folder (same as vmup watch)")
+  .argument("[files...]", "Files to upload; omit to open a picker")
+  .option("-p, --profile <name>", "Use saved remote (default if omitted)")
+  .option("--ssh-host <alias>", "Use a Host from ~/.ssh/config")
+  .option("--clip", "Capture clipboard files until you type done")
+  .option("--watch", "Watch a folder, then upload (same as vmup watch)")
   .option("--dir <path>", "Folder to watch (with --watch)")
-  .option("--video", "Include videos when accept_all_files is false")
-  .option("--force", "Allow extra types in images-only mode")
-  .option("--keep-local", "Keep local staging after success")
-  .option("--ttl <minutes>", "TTL override in minutes", (v) => Number(v))
-  .option("--json", "JSON output")
+  .option("--video", "Also collect videos in images-only mode")
+  .option("--force", "Allow extra file types in images-only mode")
+  .option("--keep-local", "Keep local staging after a successful upload")
+  .option("--ttl <minutes>", "Remote batch lifetime in minutes (default 5)", (v) => Number(v))
+  .option("--json", "Print machine-readable JSON")
   .action(async (files: string[], opts) => {
     const code = await runUpload({
       files,

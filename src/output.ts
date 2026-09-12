@@ -3,6 +3,7 @@ import { platform } from "node:os";
 import type { ResolvedTarget } from "./config.js";
 import { renderPrompt } from "./config.js";
 import { color } from "./color.js";
+import type { ClipboardCopy } from "./constants.js";
 
 export type HumanResult = {
   count: number;
@@ -34,6 +35,18 @@ export function buildHumanOutput(r: HumanResult): string {
     r.prompt,
   ];
   return lines.join("\n");
+}
+
+export function clipboardPayload(
+  mode: ClipboardCopy,
+  remotePath: string,
+  prompt: string,
+): { text: string; label: string } | null {
+  if (mode === "none") return null;
+  if (mode === "path") {
+    return { text: remotePath, label: "copied agent folder path to clipboard" };
+  }
+  return { text: prompt, label: "copied prompt to clipboard" };
 }
 
 export async function copyToClipboard(text: string): Promise<boolean> {
@@ -81,7 +94,6 @@ export async function emitSuccess(opts: {
   target: ResolvedTarget;
   remotePath: string;
   files: string[];
-  copy?: boolean;
   sweeper?: boolean;
 }): Promise<void> {
   const remotePath = opts.remotePath.endsWith("/")
@@ -115,12 +127,17 @@ export async function emitSuccess(opts: {
     }),
   );
 
-  if (opts.copy !== false) {
-    const ok = await copyToClipboard(remotePath);
+  const payload = clipboardPayload(
+    opts.target.clipboardCopy,
+    remotePath,
+    prompt,
+  );
+  if (payload) {
+    const ok = await copyToClipboard(payload.text);
     if (!ok) {
       console.error(color.dim("(clipboard copy unavailable)"));
     } else {
-      console.error(color.dim("(copied agent folder path to clipboard)"));
+      console.error(color.dim(`(${payload.label})`));
     }
   }
 

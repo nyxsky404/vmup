@@ -20,6 +20,10 @@ export const DEFAULT_MAX_FILE_MB = 200;
 export const DEFAULT_MAX_FILES = 200;
 export const DEFAULT_ACCEPT_ALL_FILES = true;
 export const DEFAULT_CLIP_DEDUP = true;
+/** After a successful human-mode upload: copy the prompt, the folder path, or nothing. */
+export const CLIPBOARD_COPY_VALUES = ["prompt", "path", "none"] as const;
+export type ClipboardCopy = (typeof CLIPBOARD_COPY_VALUES)[number];
+export const DEFAULT_CLIPBOARD_COPY: ClipboardCopy = "prompt";
 
 export const IMAGE_EXTS = new Set([
   ".png",

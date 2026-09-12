@@ -1,10 +1,10 @@
 ---
 title: Upload files
-description: Pass paths, drop a directory, or use the native picker. Every mode uploads over SSH into one remote folder and leaves a clipboard path for the agent.
+description: Pass paths, drop a directory, or use the native picker. Every mode uploads over SSH into one remote folder and copies the prompt for the agent.
 icon: Upload
 ---
 
-Every upload mode ends the same way: one remote folder, a printed prompt, the path on your clipboard. Pick the input that matches how the files showed up.
+Every upload mode ends the same way: one remote folder, a printed prompt, that prompt on your clipboard (or the path, or nothing — `clipboard_copy` in [config.toml](/docs/reference/config)). Pick the input that matches how the files showed up.
 
 SSH is tested in parallel with collect. A slow picker does not wait on the network first.
 
@@ -79,7 +79,7 @@ vmup shot.png --keep-local
 
 Successful uploads delete `~/.cache/vmup/<batchId>/` unless you pass `--keep-local`. The remote upload still happens. stderr prints `Local staging kept: …`.
 
-Failed SSH or scp also leave staging in place so you can inspect it.
+Failed SSH or upload also leave staging in place so you can inspect it.
 
 ## Target a profile or a one-shot alias
 
@@ -97,3 +97,5 @@ vmup shot.png --json
 ```
 
 JSON goes to stdout. The spinner still animates on stderr when stderr is a TTY. Schema: [JSON output](/docs/reference/json).
+
+Remote batches expire after TTL. Wipe them now: [Clean up batches](/docs/guides/cleanup).

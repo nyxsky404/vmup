@@ -14,7 +14,7 @@
 
 The npm package is [`@nyxsky404/vmup`](https://www.npmjs.com/package/@nyxsky404/vmup). The command is `vmup`. Full documentation is on the [docs site](https://vmup.dev/docs).
 
-A coding agent on a VM reads files by path. Screenshots, PDFs, and recordings sit on your laptop. vmup copies them over SSH into one remote folder, prints a prompt, and puts that folder path on your clipboard. Paste it into the agent thread.
+A coding agent on a VM reads files by path. Screenshots, PDFs, and recordings sit on your laptop. vmup copies them over SSH into one remote folder, prints a prompt, and copies that prompt to your clipboard. Paste it into the agent thread.
 
 ```text
 Uploaded 3 files → default
@@ -24,7 +24,7 @@ Prompt:
 Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/
 ```
 
-> **Important:** You need **Node.js 18+** and **OpenSSH** (`ssh` and `scp` on your `PATH`). Native Windows is not supported; use [WSL](https://learn.microsoft.com/windows/wsl/).
+> **Important:** You need **Node.js 18+** and **OpenSSH** (`ssh` on your `PATH`). Native Windows is not supported; use [WSL](https://learn.microsoft.com/windows/wsl/).
 
 ## Overview
 
@@ -45,24 +45,25 @@ collect → validate → stage → upload → print path + prompt → TTL cleanu
 | Per-file size | 200 MB |
 | Files per batch | 200 |
 | File types | All (set `accept_all_files = false` for images only) |
+| Clipboard after upload | Prompt (`clipboard_copy = "prompt"`; `"path"` or `"none"`) |
 
-Transport is your system OpenSSH. Files land in a `.partial` directory, then rename into place so the agent never sees a half-written folder.
+Transport is your system OpenSSH. Each file is streamed over `ssh` into a `.partial` directory, then renamed into place so the agent never sees a half-written folder. On a TTY, the spinner counts bytes as they are written.
 
 ## Features
 
 - **Four collect modes** — file args, native picker, clipboard loop, foreground folder watch
 - **One agent folder** — stable `image-NN` / `video-NN` / `file-NN` names inside `agents-…/`
 - **Profiles and aliases** — saved hosts in config, or `--ssh-host` for a one-shot `~/.ssh/config` alias
-- **Clipboard-ready output** — remote path copied; printed prompt ready to paste
+- **Clipboard-ready output** — prompt copied by default; set `clipboard_copy` to `path` or `none`
 - **JSON for scripts** — `--json` on stdout; spinner stays on stderr
-- **TTL cleanup** — remote sweeper every minute, plus a client-side fallback delete
+- **TTL cleanup** — remote sweeper every minute, a client-side fallback delete, or `vmup prune --all` to wipe now
 
 ## Getting started
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) 18 or newer
-- OpenSSH client (`ssh`, `scp`)
+- OpenSSH client (`ssh`)
 - A remote host you can reach with a key, or an alias in `~/.ssh/config`
 
 Confirm both before installing:
@@ -70,7 +71,6 @@ Confirm both before installing:
 ```bash
 node -v
 ssh -V
-which scp
 ```
 
 ### Install
@@ -131,7 +131,7 @@ Remote dir: ~/vmup
 Sweeper: installed
 ```
 
-After a successful upload, paste the printed prompt into the agent. The clipboard already holds the folder path.
+After a successful upload, paste into the agent. The clipboard already holds the prompt.
 
 > **Tip:** Non-interactive setup: `VMUP_HOST=… vmup init -y`. Add `VMUP_USER` / `VMUP_KEY` as needed. `--no-sweeper` skips remote cron.
 
@@ -139,7 +139,7 @@ If the VM is off during init, config is still saved. You will see `SSH setup inc
 
 ## Usage
 
-Every collect mode ends the same way: one remote folder, a printed prompt, the path on your clipboard (human mode).
+Every collect mode ends the same way: one remote folder, a printed prompt, that prompt on your clipboard (human mode). Set `clipboard_copy` to `path` or `none` if you want something else.
 
 ### File arguments
 
@@ -209,10 +209,10 @@ vmup shot.png --json
 | --- | --- |
 | `vmup [files…]` | Upload (picker if no files) |
 | `vmup init` | Create or update config; optional remote sweeper |
-| `vmup check` | Test SSH (no wizard). `--sweeper` installs/refreshes cleanup |
+| `vmup check` | Test SSH using saved config. `--sweeper` installs/refreshes cleanup |
 | `vmup profiles` | List saved profiles |
 | `vmup watch` | Same as `vmup --watch` |
-| `vmup prune` | Delete expired remote batches |
+| `vmup prune` | Delete expired remote batches (`--all` ignores TTL) |
 
 `vmup init -y` requires `VMUP_HOST`. Re-running `vmup init` interactively adds a profile or overwrites an existing one (current values shown in brackets).
 
@@ -265,6 +265,7 @@ watch_include_video = false
 accept_all_files = true
 max_file_mb = 200
 clip_dedup = true
+clipboard_copy = "prompt"
 
 [profiles.default]
 host = "192.168.1.10"
@@ -275,7 +276,7 @@ remote_dir = "~/vmup"
 ttl_minutes = 5
 ```
 
-`{{remote_path}}` is replaced with the remote folder (trailing `/` added if missing). After you change `ttl_minutes`, run `vmup check --sweeper` so the remote script matches. Editing the file alone does not rewrite `~/vmup/.cleanup.sh`.
+`{{remote_path}}` is replaced with the remote folder (trailing `/` added if missing). After upload, human mode copies the prompt to the clipboard (`clipboard_copy = "prompt"`). Use `"path"` for the folder only, or `"none"` to skip the copy. `--json` never copies. After you change `ttl_minutes`, run `vmup check --sweeper` so the remote script matches. Editing the file alone does not rewrite `~/vmup/.cleanup.sh`.
 
 Selected environment variables:
 
@@ -285,8 +286,9 @@ Selected environment variables:
 | `VMUP_PROFILE` / `VMUP_SSH_HOST` | Profile name, or one-shot OpenSSH alias |
 | `VMUP_REMOTE_DIR` / `VMUP_TTL_MINUTES` | Remote root and TTL |
 | `VMUP_ACCEPT_ALL` | `0` images-only, `1` all types |
+| `VMUP_CLIPBOARD_COPY` | `prompt` (default), `path`, or `none` |
 | `VMUP_MAX_FILE_MB` | Per-file size cap |
-| `VMUP_NO_UPDATE_CHECK` | `1` skips the npm notice |
+| `VMUP_NO_UPDATE_CHECK` | `1` skips the notice and the background registry check |
 | `NO_COLOR` | Any value: no ANSI |
 
 Empty string is treated as unset. `SSH_AUTH_SOCK` allows a missing `key` in direct mode.
@@ -297,12 +299,13 @@ Remote batches expire after **TTL minutes** (default 5). `vmup init` installs `~
 
 ```bash
 vmup prune
+vmup prune --all
 vmup prune --id agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
 vmup prune --local
 vmup prune --install-sweeper
 ```
 
-`--local` also deletes staging under `~/.cache/vmup/` older than 24 hours. Successful uploads already delete that cache unless you pass `--keep-local`. Failed SSH or scp **keeps** local staging.
+`vmup prune --all` deletes every remote `agents-*` batch immediately, even if TTL has not elapsed. `--local` also deletes staging under `~/.cache/vmup/` older than 24 hours. Successful uploads already delete that cache unless you pass `--keep-local`. Failed SSH or upload **keeps** local staging.
 
 > **Warning:** The client-side delete is a detached `sleep` then `ssh rm`. It dies if this machine sleeps or exits. If `~/vmup/.cleanup.sh` is missing, batches may linger. Reinstall with `vmup check --sweeper`.
 
@@ -313,7 +316,7 @@ vmup shot.png --json
 vmup check --json
 ```
 
-JSON goes to **stdout**. Spinner, skip warnings, and human text stay on **stderr**. `--json` does not copy the path to the clipboard.
+JSON goes to **stdout**. Spinner, skip warnings, and human text stay on **stderr**. `--json` does not copy to the clipboard.
 
 ```json
 {
@@ -328,7 +331,7 @@ JSON goes to **stdout**. Spinner, skip warnings, and human text stay on **stderr
 }
 ```
 
-`vmup prune --json` does not emit this schema. The flag only hides the update notice.
+`vmup prune --json` (including with `--all`) does not emit this schema. The flag only hides the update notice.
 
 | Code | Meaning |
 | --- | --- |
@@ -352,11 +355,13 @@ JSON goes to **stdout**. Spinner, skip warnings, and human text stay on **stderr
 | `No files to upload` (exit 2) | Path missing, picker cancelled, or watch/clip with zero captures |
 | `SSH preflight failed` + `Local staging kept` | Fix the host, then retry. Staging stays under `~/.cache/vmup/` |
 | `Use either --profile or --ssh-host` | Pick one |
+| `Use either --all or --id, not both` | Pick one |
 | Sweeper missing | `vmup check --sweeper` |
+| Batches still on the VM | `vmup prune --all` (ignores TTL). One batch: `vmup prune --id …` |
 | Clipboard image ignored (macOS) | `brew install pngpaste` |
 | No GUI picker (Linux) | Install `zenity`/`kdialog`, or pass file paths |
 
-`vmup check` is the retry path that skips the wizard. Preflight timeout is 20 seconds. scp timeout is 10 minutes per file. `--force` never skips connectivity checks.
+`vmup check` is the retry path that skips the wizard. Preflight timeout is 20 seconds. Upload timeout is 10 minutes per file. `--force` never skips connectivity checks.
 
 A working `ssh lab` and a failing `vmup -p lab` usually means the profile is in **direct** mode (`ubuntu@host`) while you expected the alias. `vmup profiles` prints `ssh_host=lab` for alias mode.
 

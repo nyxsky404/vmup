@@ -28,7 +28,7 @@ Type `new` (or press Enter) to add. Type `overwrite`, `over`, or `o` to replace 
 6. Decide whether this profile becomes the default. The default answer is **No**.
 7. Decide whether to install the remote sweeper on this host.
 
-Watch folder and `accept_all_files` are asked only on the first init, when no profiles existed yet. Edit those in the file later. See [config.toml](/docs/reference/config).
+Watch folder and `accept_all_files` are asked only on the first init, when no profiles existed yet. `clipboard_copy` is never asked; edit it in the file (`prompt` by default, or `path` / `none`). See [config.toml](/docs/reference/config).
 
 ## Overwrite a profile
 
@@ -70,6 +70,7 @@ Next:
   vmup               # file picker
   vmup --clip        # clipboard loop
   vmup watch         # watch folder (also: vmup --watch)
+  vmup prune --all   # delete every remote batch now
 ```
 
 SSH can fail after a successful write. Config is already on disk. Run `vmup check`, then `vmup check --sweeper` if the cleanup script never landed.

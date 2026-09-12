@@ -1,10 +1,10 @@
 ---
 title: Upload screenshots to a remote coding agent
-description: "Send laptop screenshots to an agent on a VM: capture with --clip or watch a folder, upload over SSH, paste one remote folder path."
+description: "Send laptop screenshots to an agent on a VM: capture with --clip or watch a folder, upload over SSH, paste the prompt."
 icon: Camera
 ---
 
-The screenshot is on your laptop. The agent reads files by path on the VM. Pick an input, upload one batch, paste the folder path into the thread.
+The screenshot is on your laptop. The agent reads files by path on the VM. Pick an input, upload one batch, paste the prompt into the thread.
 
 You need [Install](/docs/install) and [First upload](/docs/quickstart) done (`vmup init`, `vmup check` OK).
 
@@ -26,7 +26,7 @@ On macOS, a copied **file** in Finder needs no extra tools. A bitmap on the clip
 vmup --clip
 ```
 
-Copy the screenshot, press **Enter**, repeat if you have more, then type `done` (or Ctrl+D). vmup uploads the batch and copies the remote folder path.
+Copy the screenshot, press **Enter**, repeat if you have more, then type `done` (or Ctrl+D). vmup uploads the batch and copies the prompt to the clipboard.
 
 ## Watch the screenshot folder
 
@@ -40,12 +40,12 @@ Default folder is `watch_dir` in config, else Desktop on macOS and `~/Pictures/S
 vmup watch --dir ~/Desktop
 ```
 
-## Paste the path
+## Paste the prompt
 
-Stdout prints the remote folder and a prompt. The clipboard already holds the path.
+Stdout prints the remote folder and a prompt. The clipboard already holds the prompt (`clipboard_copy = "prompt"`). Set `"path"` or `"none"` in [config.toml](/docs/reference/config) if you want something else.
 
 ```text
 Please inspect all files in ~/vmup/agents-…/
 ```
 
-Paste that into Claude Code, Cursor, or any agent that reads directories on the host. Remote batches expire after **5 minutes** unless you raised TTL. See [Why batches expire](/docs/explain/ttl). More on the paste step: [Clipboard to SSH for Claude Code or Cursor](/docs/guides/clipboard-for-agents).
+Paste that into Claude Code, Cursor, or any agent that reads directories on the host. Remote batches expire after **5 minutes** unless you raised TTL. Delete them now with `vmup prune --all`. See [Why batches expire](/docs/explain/ttl). More on the paste step: [Clipboard to SSH for Claude Code or Cursor](/docs/guides/clipboard-for-agents).

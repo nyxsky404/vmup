@@ -1,3 +1,5 @@
+import { Transform } from "node:stream";
+
 const FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 export type Spinner = {
@@ -11,6 +13,18 @@ export function formatBytes(n: number): string {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
   return `${(n / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+/** Pass-through that reports cumulative bytes as they flow (respects backpressure). */
+export function countBytes(onBytes: (n: number) => void): Transform {
+  let n = 0;
+  return new Transform({
+    transform(chunk, _enc, cb) {
+      n += Buffer.byteLength(chunk);
+      onBytes(n);
+      cb(null, chunk);
+    },
+  });
 }
 
 /**
@@ -34,7 +48,9 @@ export function startSpinner(label: string, quiet: boolean): Spinner {
   const started = Date.now();
   const write = () => {
     const sec = Math.floor((Date.now() - started) / 1000);
-    process.stderr.write(`\r${FRAMES[i % FRAMES.length]} ${current}  ${sec}s`);
+    process.stderr.write(
+      `\r${FRAMES[i % FRAMES.length]} ${current}  ${sec}s\x1b[K`,
+    );
     i += 1;
   };
   write();

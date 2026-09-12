@@ -1,6 +1,6 @@
 ---
 title: Direct SSH vs ssh_host
-description: Choose direct SSH (host, user, key, port) or an OpenSSH alias (ssh_host) from ~/.ssh/config. vmup still calls ssh and scp.
+description: Choose direct SSH (host, user, key, port) or an OpenSSH alias (ssh_host) from ~/.ssh/config. vmup still calls ssh.
 icon: Cable
 ---
 
@@ -16,8 +16,9 @@ vmup builds:
 
 ```text
 ssh -p <port> -i <key> -o BatchMode=yes -o StrictHostKeyChecking=accept-new user@host <command>
-scp -P <port> -i <key> -o BatchMode=yes -o StrictHostKeyChecking=accept-new <file> user@host:<path>
 ```
+
+File uploads reuse that ssh: the local file is piped to `cat > <remote-file>` so the spinner can count bytes as they are written.
 
 `BatchMode=yes` refuses a password prompt. If the key is missing from `authorized_keys`, the command fails instead of hanging. `accept-new` adds unknown host keys; it does not blindly accept a changed key (OpenSSH still fails on mismatch).
 
@@ -33,18 +34,17 @@ Used when the profile sets `ssh_host`, or when you pass `--ssh-host` / `VMUP_SSH
 
 ```text
 ssh lab <command>
-scp -o BatchMode=yes -o StrictHostKeyChecking=accept-new <file> lab:<path>
 ```
 
 No `-p`, no `-i` from vmup. User, port, `IdentityFile`, `ProxyJump`, and `HostName` come from `~/.ssh/config`. If `ssh lab` works in your terminal, this mode is the one that matches that behavior.
 
 `--ssh-host` without a profile names the target `ssh:<alias>` in output. A saved profile keeps its real name (`lab`) even when that profile’s field is `ssh_host`.
 
-scp in alias mode still adds `BatchMode` and `accept-new`. A `Host` block that already sets those options is fine.
+A `Host` block that already sets `BatchMode` or `accept-new` is fine.
 
 ## Remote paths and `~`
 
-OpenSSH scp does not expand `~` on the remote side the way you expect. vmup strips a leading `~/` for the scp destination and expands `~` via `$HOME` in remote shell snippets (`mkdir`, `mv`, `rm`, the sweeper). Displayed agent paths keep the `~/vmup/…` form.
+vmup expands `~` via `$HOME` in remote shell snippets (`mkdir`, `cat`, `mv`, `rm`, the sweeper). Displayed agent paths keep the `~/vmup/…` form.
 
 ## Which to pick
 

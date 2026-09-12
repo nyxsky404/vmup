@@ -12,6 +12,7 @@ Exact strings (or the stable prefix) so you can grep logs and match [Fix SSH](/d
 |---|---|
 | `Use either --profile or --ssh-host, not both` | `resolveTarget` |
 | `Use either --clip or --watch, not both` | `runUpload` |
+| `Use either --all or --id, not both` | `vmup prune --all --id` |
 | `ssh_host alias is missing` | `assertTargetConnectable` |
 | `Profile "<name>" has no host. Run: vmup init` | `assertTargetConnectable` |
 | `Profile "<name>" has no key. Set key in config or use ssh-agent.` | `assertTargetConnectable` (direct, no key, no `SSH_AUTH_SOCK`) |
@@ -36,9 +37,12 @@ Exact strings (or the stable prefix) so you can grep logs and match [Fix SSH](/d
 | `SSH preflight failed: <err>` + `Local staging kept: <dir>` | Preflight after collect |
 | `SSH failed: <err>` | `vmup check` |
 | `Sweeper install failed: <err>` | `vmup check --sweeper` |
-| `Upload failed: <err>` + `Local staging kept: <dir>` | scp or remote finalize |
+| `Upload failed: <err>` + `Local staging kept: <dir>` | ssh put or remote finalize |
 | `Checking SSH…` / `Uploading N file(s)  <done> / <total>` | Spinner labels (stderr, TTY) |
 | `Remote sweeper is not installed.` + linger warning + `Reinstall:  vmup check --sweeper` | Human upload when sweeper check returned `false` |
+| `(copied prompt to clipboard)` | Human upload, `clipboard_copy = "prompt"` (default) |
+| `(copied agent folder path to clipboard)` | Human upload, `clipboard_copy = "path"` |
+| `(clipboard copy unavailable)` | `pbcopy` / `wl-copy` / `xclip` failed. Upload still succeeded. |
 
 ## Collect
 
@@ -58,7 +62,7 @@ Exact strings (or the stable prefix) so you can grep logs and match [Fix SSH](/d
 | `Removed N local orphan batch(es)` | `--local` |
 | `Remote sweeper installed` | `--install-sweeper` |
 | `Removed <id>` | `--id` success |
-| `Pruned N remote batch(es)` | Age prune |
+| `Pruned N remote batch(es)` | Age prune or `--all` |
 
 ## Init (informational)
 

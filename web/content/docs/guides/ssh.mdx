@@ -4,7 +4,7 @@ description: "Read the printed SSH error, match it to a cause (key, host, permis
 icon: Unplug
 ---
 
-vmup shells out to your `ssh` and `scp`. It does not implement SSH itself. `vmup check` is the retry path that skips the init wizard.
+vmup shells out to your `ssh`. It does not implement SSH itself. `vmup check` is the retry path that skips the init wizard.
 
 ```bash
 vmup check
@@ -32,7 +32,7 @@ vmup check --ssh-host lab
 | `has no key` / `use ssh-agent` | Direct mode, no `key`, no `SSH_AUTH_SOCK` | Set `key` or start the agent. |
 | `Use either --profile or --ssh-host, not both` | Both flags | Pick one. |
 
-Preflight timeout is **20 seconds**. scp timeout is **10 minutes** per file.
+Preflight timeout is **20 seconds**. Upload timeout is **10 minutes** per file.
 
 ## Init saved config, SSH failed
 
@@ -72,7 +72,7 @@ brew install pngpaste
 
 ## Sweeper: missing
 
-SSH works; `~/vmup/.cleanup.sh` is not executable on the host. Batches still upload. They may outlive TTL if this machine sleeps.
+SSH works; `~/vmup/.cleanup.sh` is not executable on the host. Batches still upload. They may outlive TTL if this machine sleeps. Reinstall the sweeper, or delete them now with `vmup prune --all`.
 
 ```bash
 vmup check --sweeper

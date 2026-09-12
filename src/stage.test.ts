@@ -9,14 +9,18 @@ import {
   stageFile,
 } from "./stage.js";
 import { resolveTarget, type VmupConfig } from "./config.js";
+import { clipboardPayload } from "./output.js";
 import { isImagePath, isVideoPath, validatePaths } from "./validate.js";
-import { formatBytes } from "./progress.js";
+import { countBytes, formatBytes } from "./progress.js";
 import { assertKeyUsable, formatSshError } from "./ssh-key.js";
 import { fileSha256 } from "./hash.js";
 import { isNewer, detectPackageManager, updateCommand } from "./update-check.js";
+import { remotePruneScript } from "./transport/ssh.js";
 import { chmod, writeFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { PassThrough, Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
 describe("batch id", () => {
   it("matches agents-date-time-uuid", () => {
@@ -93,6 +97,58 @@ describe("resolveTarget", () => {
       {},
     );
     assert.equal(t.promptTemplate, "Please inspect all files in {{remote_path}}");
+  });
+
+  it("clipboard_copy defaults to prompt", () => {
+    const t = resolveTarget(cfg, {});
+    assert.equal(t.clipboardCopy, "prompt");
+  });
+
+  it("clipboard_copy from config", () => {
+    const t = resolveTarget({ ...cfg, clipboard_copy: "path" }, {});
+    assert.equal(t.clipboardCopy, "path");
+    const none = resolveTarget({ ...cfg, clipboard_copy: "none" }, {});
+    assert.equal(none.clipboardCopy, "none");
+  });
+
+  it("invalid clipboard_copy falls back to prompt", () => {
+    const t = resolveTarget({ ...cfg, clipboard_copy: "folder" }, {});
+    assert.equal(t.clipboardCopy, "prompt");
+  });
+
+  it("VMUP_CLIPBOARD_COPY overrides config", () => {
+    const prev = process.env.VMUP_CLIPBOARD_COPY;
+    process.env.VMUP_CLIPBOARD_COPY = "none";
+    try {
+      const t = resolveTarget({ ...cfg, clipboard_copy: "path" }, {});
+      assert.equal(t.clipboardCopy, "none");
+    } finally {
+      if (prev === undefined) delete process.env.VMUP_CLIPBOARD_COPY;
+      else process.env.VMUP_CLIPBOARD_COPY = prev;
+    }
+  });
+});
+
+describe("clipboardPayload", () => {
+  const path = "~/vmup/agents-1/";
+  const prompt = "Please inspect all files in ~/vmup/agents-1/";
+
+  it("copies the prompt by default mode", () => {
+    assert.deepEqual(clipboardPayload("prompt", path, prompt), {
+      text: prompt,
+      label: "copied prompt to clipboard",
+    });
+  });
+
+  it("copies the folder path", () => {
+    assert.deepEqual(clipboardPayload("path", path, prompt), {
+      text: path,
+      label: "copied agent folder path to clipboard",
+    });
+  });
+
+  it("copies nothing when none", () => {
+    assert.equal(clipboardPayload("none", path, prompt), null);
   });
 });
 
@@ -209,12 +265,42 @@ describe("fileSha256", () => {
   });
 });
 
+describe("remotePruneScript", () => {
+  it("age prune uses mmin and drops partials immediately", () => {
+    const s = remotePruneScript("~/vmup", { ttlMinutes: 5 });
+    assert.match(s, /-mmin \+5/);
+    assert.match(s, /\*\.partial/);
+    assert.match(s, /agents-\*/);
+  });
+
+  it("--all deletes every agents-* dir with no age filter", () => {
+    const s = remotePruneScript("~/vmup", { ttlMinutes: 5, all: true });
+    assert.equal(s.includes("-mmin"), false);
+    assert.match(s, /agents-\*/);
+    assert.match(s, /rm -rf "\$d"/);
+  });
+});
+
 describe("formatBytes", () => {
   it("formats sizes", () => {
     assert.equal(formatBytes(0), "0 B");
     assert.equal(formatBytes(512), "512 B");
     assert.equal(formatBytes(2048), "2.0 KB");
     assert.equal(formatBytes(2 * 1024 * 1024), "2.0 MB");
+  });
+});
+
+describe("countBytes", () => {
+  it("reports cumulative bytes as chunks pass through", async () => {
+    const seen: number[] = [];
+    const sink = new PassThrough();
+    sink.resume();
+    await pipeline(
+      Readable.from([Buffer.from("ab"), Buffer.from("cd")]),
+      countBytes((n) => seen.push(n)),
+      sink,
+    );
+    assert.deepEqual(seen, [2, 4]);
   });
 });
 
