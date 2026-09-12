@@ -1,0 +1,99 @@
+---
+title: How to paste an image into Claude Code over SSH
+description: "Ctrl+V cannot paste a laptop screenshot into Claude Code over SSH. Copy the PNG onto the remote host, then give Claude the file path. Four methods that work."
+---
+
+You cannot paste an image into Claude Code over SSH with Ctrl+V. The screenshot is on the laptop clipboard. `claude` runs on the server and only reads files that exist there. Put the PNG on that disk, then paste a path:
+
+```text
+Look at /tmp/bug.png and tell me why the header is clipped
+```
+
+That is the whole fix. Native paste is not a keybinding you can repair. Mixed PDFs and recordings: [Send laptop files to a coding agent on a remote VM](/learn/send-files-to-remote-coding-agent). Tool-by-tool: [clipaste vs clipssh vs cssh](/learn/claude-code-ssh-screenshot-tools).
+
+## Why paste fails over SSH
+
+Claude on the server sees the server. Your screenshot sits in the local clipboard. SSH does not forward image bytes. OSC 52 copies text **out** of the remote session. It does not paste a PNG in.
+
+tmux adds another clipboard. Image paste does not survive that stack. If Claude printed **no image found in clipboard**, that is a remote-clipboard miss: [diagnose the error](/learn/claude-code-no-image-found-clipboard-ssh).
+
+## Save the screenshot as a file
+
+Snip to a PNG on the laptop first. `Cmd+Shift+4` on macOS (hold Control if you want the clipboard), `Win+Shift+S` on Windows, your usual tool on Linux. If the shot is only on the clipboard, save it to disk. On macOS, a bitmap (not a Finder file) needs [pngpaste](https://github.com/jcsalterego/pngpaste) to write a PNG. Claude on the remote host cannot reach NSPasteboard, Win32, or Wayland.
+
+A local helper that turns the clipboard into `~/.screenshots/bug.png` is enough for this step. The SSH problem starts after that.
+
+## Copy it onto the remote host
+
+Pick one of these. They all put bytes on the disk Claude can read.
+
+### scp one file
+
+`scp` ships with OpenSSH on macOS, Linux, and Windows:
+
+```bash
+scp bug.png user@server:/tmp/
+```
+
+Then in Claude Code on the server: `Look at /tmp/bug.png`.
+
+Alias the round trip if you do this daily. This grabs the newest file from a screenshots folder and prints the remote path:
+
+```bash
+sshot() {
+  f=$(ls -t ~/.screenshots | head -1)
+  scp ~/.screenshots/"$f" user@server:/tmp/ && echo "/tmp/$f"
+}
+```
+
+Use this for one named file you already saved. Three screenshots and a PDF means several `scp` runs, then you still list every path in the prompt.
+
+### Drag into VS Code or Cursor Remote-SSH
+
+If you are connected with Remote-SSH, drag the image from the desktop into the Explorer sidebar. The editor uploads it into the remote workspace. Reference the short relative path from the integrated terminal where Claude Code is running.
+
+No `scp` incantation. Still one file at a time, and you need that editor. If Cursor attached a local `C:\` path instead: [Cursor Remote-SSH cannot analyze local files](/learn/cursor-remote-ssh-local-files).
+
+### Clipboard-to-SSH helpers
+
+A pile of tools exist because this gap is so common: clipaste, cssh, clipssh, sshshot, pastehop, imgssh. Most read the local clipboard, push bytes over SSH or a reverse tunnel, and leave a remote path, or install an `xclip` shim so Ctrl+V looks local.
+
+They are built for **one screenshot**. Many install a remote helper, a daemon, or an editor extension. PDFs and recordings are out of scope. See [Claude Code SSH screenshot tools compared](/learn/claude-code-ssh-screenshot-tools) for the split between shims and uploads.
+
+### One folder from vmup
+
+Several screenshots in one turn, and you want one prompt instead of a list of `/tmp` paths:
+
+```bash
+vmup --clip
+```
+
+Copy each shot, press Enter, type `done`. Paste the printed folder prompt into Claude Code. TTL is 5 minutes. Setup: [First upload](/docs/quickstart). The batch job (PDFs, recordings, watch folder): [Send laptop files to a coding agent on a remote VM](/learn/send-files-to-remote-coding-agent).
+
+## Give Claude the remote path
+
+Text pastes across SSH. The path is text.
+
+```text
+Look at /tmp/bug.png
+Please inspect all files in ~/vmup/agents-…/
+```
+
+If paste still fails after the file is on the host, you are in a different bug: the terminal ate Ctrl+V as text, or Claude printed [No image found in clipboard](/learn/claude-code-no-image-found-clipboard-ssh). The file path in the prompt still works.
+
+## Quick answers
+
+**Can I paste a screenshot into Claude Code over SSH?**
+No. The image is on your local clipboard and Claude Code only reads the remote machine’s filesystem. Copy the file onto that machine and give Claude the path.
+
+**Does SSH forward the clipboard for images?**
+No. Terminal clipboard integration (OSC 52) copies text out of the remote session. It does not paste a PNG in.
+
+**What is the fastest way to get one screenshot onto the server?**
+Run `scp bug.png user@server:/tmp/` then tell Claude to look at `/tmp/bug.png`. Alias that round trip if you do it more than once a day.
+
+**Can I drag an image into Claude Code over Remote-SSH?**
+Yes. With VS Code or Cursor Remote-SSH, drag the file into the Explorer sidebar so it uploads into the remote workspace, then reference the path in the integrated terminal.
+
+**Does tmux break image paste over SSH?**
+Yes. tmux adds another clipboard, and image paste was never going to survive it. A file path on the remote disk does not care.

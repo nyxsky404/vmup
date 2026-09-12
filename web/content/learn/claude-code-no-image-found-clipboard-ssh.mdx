@@ -1,0 +1,79 @@
+---
+title: "Claude Code: no image found in clipboard over SSH"
+description: "Claude Code says no image found in clipboard over SSH. The remote clipboard is empty. Diagnose tmux, WSL, and Ctrl+V, then scp the PNG and pass that path."
+---
+
+You copied a screenshot, pressed Ctrl+V in Claude Code over SSH, and got **no image found in clipboard**. Sometimes the line is longer: no image found, you are SSH’d, try `scp`. Claude asked the **remote** clipboard for a PNG. That clipboard is empty. The snip is still on the laptop.
+
+This page is the error string: what it means, how to tell SSH from a local clipboard bug, what tmux and WSL add. The four copy methods live on [How to paste an image into Claude Code over SSH](/learn/claude-code-paste-image-ssh). Shims vs path uploaders: [Claude Code SSH screenshot tools compared](/learn/claude-code-ssh-screenshot-tools).
+
+## What the error is telling you
+
+Claude Code’s image paste does not stream the PNG through the SSH channel as a file upload. It reads a clipboard on the machine where `claude` runs.
+
+On your laptop, that clipboard has the snip. On the VM, there is no display server, or `xclip`/`wl-paste` points at an empty clipboard, or OSC 52 never returned image bytes. Claude reports no image. The local clipboard is fine. You checked the wrong one.
+
+A related failure is **silence**: Ctrl+V inserts nothing, or inserts a file path from Cmd+V on a Mac (`/Users/you/Desktop/shot.png`) that does not exist on Linux. Same gap, less text.
+
+## Diagnose in this order
+
+### 1. Confirm you are remote
+
+If the session started with `ssh`, VS Code Remote-SSH, or [Cursor Remote-SSH](/learn/cursor-remote-ssh-local-files), treat the clipboard as empty. Skip local paste tricks until the file is on that host.
+
+Local Claude Code can still print this error when the clipboard holds text, a file URL, or a format the decoder rejects. If `hostname` is your laptop, inspect what you copied. If `hostname` is the VM, stop debugging Preview and start copying a file.
+
+### 2. tmux
+
+tmux inside SSH adds another clipboard. Image paste does not survive it. OSC 52 passthrough might fix **text** copy out. It will not give Claude a PNG. Use a remote file path. Detach tmux only if you are testing whether the error message changes; the fix is still a file on disk.
+
+### 3. WSL, then SSH
+
+Windows snip → WSL Claude Code is already a clipboard boundary (WSLg BMP, Windows Terminal grabbing Ctrl+V). SSH from WSL to a VM is a second boundary. Fixing WSL paste does not fix the VM. Copy the file to the VM.
+
+### 4. The terminal ate Ctrl+V
+
+Windows Terminal, some tmux binds, and some Claude versions disagree about Ctrl+V vs Alt+V. If a keybinding never reaches Claude, you will not even get the error. Put the path in the prompt with ordinary text paste. Text **does** cross SSH.
+
+### 5. Claude Code version
+
+Issues exist for [Ctrl+V image paste broken over SSH](https://github.com/anthropics/claude-code/issues/69330) after clipboard-handling changes, and for missing [OSC 52 / OSC 5522 support](https://github.com/anthropics/claude-code/issues/42712). A version bump can break a setup that worked last month. A file path keeps working across those swings.
+
+## Fix it with a path
+
+One `scp` is enough to clear the error:
+
+```bash
+scp bug.png user@server:/tmp/
+```
+
+```text
+Look at /tmp/bug.png
+```
+
+Claude reads files even when paste fails. The other methods (Remote-SSH drag, shims, a batch folder): [How to paste an image into Claude Code over SSH](/learn/claude-code-paste-image-ssh).
+
+## Local sessions that print the same string
+
+If you are not on SSH and still see no image found:
+
+- The clipboard holds text or a mix, not a PNG.
+- You copied a Finder file (a URL) instead of bitmap data.
+- The image is huge; Claude Code has rejected oversized pastes (crop or resize).
+- WSL received `image/bmp` Claude cannot decode.
+
+Those are local bugs. Over SSH, do not start there.
+
+## Quick answers
+
+**What does “No image found in clipboard” mean in Claude Code over SSH?**
+Claude Code asked the remote clipboard for a PNG and got nothing. Over SSH that clipboard is empty or missing. Your screenshot is still on the laptop.
+
+**Is this the same as Ctrl+V doing nothing?**
+Often yes. Some terminals swallow Ctrl+V as text paste. Some sessions print the error. The file still has to reach the remote disk either way.
+
+**Does this error also happen locally?**
+Yes, when the clipboard holds text, a file URL, or a format Claude cannot decode. Over SSH, start by assuming the remote clipboard is the wrong one.
+
+**How do I fix it without a clipboard daemon?**
+Save the screenshot, `scp` it to the host, and put the remote path in the prompt. Claude reads files even when paste fails.

@@ -1,0 +1,66 @@
+---
+title: Cursor Remote-SSH cannot analyze local files
+description: "Cursor cannot analyze local files over Remote-SSH. A Windows or Mac path in chat is a dead link. Upload the file to the host, then attach the remote path."
+---
+
+When Cursor is connected with Remote-SSH, the agent cannot analyze local documents until you upload them to the remote server. [Cursor’s forum report](https://forum.cursor.com/t/cursor-cannot-analyze-local-documents-when-connected-via-ssh-files-must-be-uploaded-to-the-remote-server/168451) is the usual case: a local `C:\Users\…\1.html` pill in chat, a Linux workspace, and the agent cannot open the file.
+
+The UI looks like a local chat. The tools execute on the VM. Claude Code over a raw `ssh` session has the same disk rule: [How to paste an image into Claude Code over SSH](/learn/claude-code-paste-image-ssh).
+
+## What Cursor actually opens
+
+The workspace folder is on the remote disk. `@filename` in that workspace works. A screenshot you just snipped on the laptop does not, until those bytes exist on the host.
+
+Cursor has said some types upload **by content** over SSH: images and several text formats (pdf, md, txt, csv, json, xml, yaml, toml, ini, log). Other types stay as local path references. HTML was the example in the public bug. Treat “it attached” as “maybe the server can read it.” If the agent says it cannot find the file, the path is still local.
+
+Clipboard paste into **Cursor Agent CLI** is a separate hole. On Windows, `Win+Shift+S` then Ctrl+V often attaches nothing. Cursor staff have called that a known CLI gap. Save a file and `@path`, or drag a file into the CLI, or upload to the host first.
+
+## Give Cursor a file it can read
+
+### Drag into the Remote-SSH explorer
+
+Drag the screenshot or document into the Explorer sidebar while the window is on the remote folder. Cursor uploads it into that tree. Attach the remote path, or ask the agent to inspect the file next to the code.
+
+Works when you already live in Cursor Remote-SSH. One file at a time.
+
+### scp, then @ the remote path
+
+```bash
+scp bug.png user@vm:~/bug.png
+```
+
+In the remote chat: `@bug.png` if it landed in the workspace, or tell the agent the absolute path. Same pattern as any SSH copy.
+
+### Upload a batch, paste one prompt
+
+For a screenshot plus a PDF plus a recording, copy them to one remote folder and paste a directory prompt. The agent on the VM can list that folder without you wiring each `@`. Recipe: [Send laptop files to a coding agent on a remote VM](/learn/send-files-to-remote-coding-agent).
+
+```bash
+vmup ./bug.png ./notes.pdf
+```
+
+Paste the printed prompt into the Cursor thread that is already on the host. `--clip` loop: [Clipboard to SSH for Claude Code or Cursor](/docs/guides/clipboard-for-agents).
+
+### VS Code / Cursor extensions that paste a path
+
+Extensions such as remotepix and Claude Paste hook Ctrl+V in the integrated terminal, write a PNG under `~/remotepix/` or similar, and insert the remote path. They need an active Remote-SSH window. They do not help a raw `ssh` session in a standalone terminal. How they sit next to clipaste and clipssh: [Claude Code SSH screenshot tools compared](/learn/claude-code-ssh-screenshot-tools).
+
+## What will not work
+
+Attaching a local Explorer/Finder file and hoping the remote agent follows `C:\` or `/Users/you/Desktop`. Typing a laptop path into the prompt. Pasting a clipboard bitmap into Cursor CLI on Windows and expecting an image pill.
+
+If the chat shows a local path in the attachment chip, the server does not have that file.
+
+## Quick answers
+
+**Why can’t Cursor analyze a local file over Remote-SSH?**
+The agent runs on the remote host. A local Windows or macOS path in the chat is a link the server cannot open.
+
+**Do any attachments work over Cursor Remote-SSH?**
+Cursor uploads some types by content (images and several text formats). Other types, including HTML in the public report, stay as local paths and fail. Copy those files onto the remote disk.
+
+**How do I give Cursor a screenshot on a remote VM?**
+Put the PNG on the host: drag it into the Remote-SSH explorer, scp it, or upload a batch, then reference the remote path or folder in the thread.
+
+**Does Cursor Agent CLI paste clipboard images on Windows?**
+Clipboard paste into Cursor Agent CLI is unreliable on Windows, especially after Win+Shift+S. Save a file and attach it with @path, or upload it to the host first.

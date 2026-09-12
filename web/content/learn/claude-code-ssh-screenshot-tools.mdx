@@ -1,0 +1,117 @@
+---
+title: Claude Code SSH screenshot tools compared
+description: "clipaste vs clipssh vs cssh for Claude Code over SSH, plus scp, Invoke, and vmup. Pick a shim, a path uploader, or a batch copy. Updated September 2026."
+---
+
+clipaste vs clipssh vs cssh is the usual comparison when Ctrl+V will not paste a screenshot into Claude Code over SSH. They are not interchangeable. Some install a remote `xclip` shim so paste looks local. Some upload a PNG and leave a path. Invoke only saves a local file; you still `scp`. Updated September 2026.
+
+How paste actually fails, with scp recipes: [How to paste an image into Claude Code over SSH](/learn/claude-code-paste-image-ssh).
+
+## What you are choosing
+
+Score each tool on four things: whether it needs a remote install, whether Ctrl+V stays native, whether it handles files that are not PNGs, and whether leftover files expire.
+
+Three designs show up over and over:
+
+1. **You copy a file** (`scp`, drag into Remote-SSH, rsync). No extra process.
+2. **A clipboard uploader** reads the local PNG, writes it on the host, leaves a path to paste.
+3. **A paste shim** plus a tunnel or daemon, so Ctrl+V in remote Claude Code fetches the image.
+
+Shims feel closest to local Claude Code. They also install the most machinery: reverse tunnels, `xclip` on PATH, sometimes Xvfb for Codex. Uploaders stay closer to OpenSSH and break the moment you need a PDF.
+
+## The field
+
+| Tool | How it moves the image | Remote install | Beyond screenshots | Cleanup |
+|---|---|---|---|---|
+| `scp` / drag-and-drop | You pick the path | No | Any file | None |
+| clipaste | Local daemon, SSH tunnel, `xclip` shim so Ctrl+V fetches the PNG | Yes (`ssh-setup`) | Images. Codex uses a helper path, not the shim | Varies |
+| cssh | Multiplexed SSH push plus remote `xclip` shim; optional Xvfb for Codex | Yes | Images | One-shot file plus TTL |
+| clipssh | Clipboard PNG over SSH, remote path copied locally | No daemon | Images | `/tmp` unless you change dir |
+| sshshot | Watches clipboard or screenshot folder, uploads, copies remote path | No daemon | Images | Remote screenshot dir |
+| pastehop (`ph`) | Upload + paste path; WezTerm/Kitty can hook Ctrl+V | No remote daemon | Images or a file you name | Staging dir |
+| imgssh | Wrapper around `ssh`; Ctrl+] uploads and types the remote path | No | PNG clipboard | `/tmp` |
+| VS Code / Cursor extensions (Claude Paste, remotepix) | Extension host writes a remote file and inserts the path | Extension, Remote-SSH only | Images | Configurable |
+| Invoke | Local screenshot-to-path hotkey | No | Local images. SSH still needs `scp` or another uploader | Local `~/.screenshots/` |
+| **vmup** | Batch over OpenSSH, prompt with folder path on the clipboard | No | Images, PDFs, recordings, other types | TTL 5 minutes, `prune --all` |
+
+Names and behaviors are what the projects document. Versions move; check the repo before you depend on a shim.
+
+## clipaste vs clipssh vs cssh
+
+Use this when you searched for a clipaste alternative, or for clipssh vs cssh.
+
+| | clipaste | cssh | clipssh |
+|---|---|---|---|
+| Goal | Ctrl+V in remote Claude Code | Ctrl+V, plus optional Codex/Xvfb | One command, then paste a path |
+| Remote install | Yes (`ssh-setup`, `xclip` shim) | Yes (`xclip` shim; Xvfb for Codex) | No daemon |
+| Key gotcha | Use Ctrl+V, not Cmd+V, on a Linux remote | Extra X server if you want Codex paste | Leaves files under `/tmp` unless you change dir |
+| Not for | PDFs, recordings, boxes you cannot modify | Same | Native `[Image #1]` without pasting a path |
+
+clipaste and cssh are shims. clipssh is a path uploader. If you cannot install helpers on the VM, skip the first two. If you need a PDF in the same turn, skip all three and use `scp` or vmup.
+
+clipaste alternatives with no remote shim: clipssh, sshshot, or `scp`. cssh if you still want Ctrl+V and will install a helper.
+
+## scp and Remote-SSH drag
+
+No new binary. `scp bug.png user@host:/tmp/` then `Look at /tmp/bug.png`. In VS Code or Cursor Remote-SSH, drag the file into Explorer.
+
+Best when you already saved one file and you do not want a daemon. Worst when you do this twenty times a morning, or you have a PDF and a recording in the same turn. [vmup vs scp and rsync](/docs/explain/vs-scp).
+
+## Ctrl+V shims (clipaste, cssh)
+
+These exist so remote Claude Code can keep using Ctrl+V. clipaste runs a local HTTP server and, after `clipaste ssh-setup user@host`, installs a remote shim. On a Linux remote you press **Ctrl+V**, not Cmd+V: Cmd+V pastes a Mac path the server cannot read. Codex often bypasses `xclip`, so the same setup tells you to run a helper and hand Claude the printed path.
+
+cssh is the same idea with a multiplexed SSH push and an optional headless X server so Codex has a real clipboard.
+
+Pick a shim if you live in the TUI, you only need screenshots, and you will maintain a tunnel plus a remote PATH change. Skip it if you cannot install helpers on the VM, or you need files that are not PNGs.
+
+## Path uploaders (clipssh, sshshot, pastehop, imgssh)
+
+These skip the fake clipboard. They write `~/…/clipboard-….png` or `/tmp/imgssh-….png` and give you that string. clipssh is one command after a screenshot. sshshot can watch the screenshot folder. pastehop can bind Ctrl+V in WezTerm or Kitty. imgssh wraps `ssh` and types the path on Ctrl+].
+
+Pick one if you want less remote state than a shim and you are fine pasting a path instead of a native image attachment. They still optimize for **one image**. Leftover files in `/tmp` are your problem unless the tool documents a TTL.
+
+## Invoke
+
+Invoke is a local dictation app with a screenshot-to-path hotkey. It saves a PNG under `~/.screenshots/` and pastes the **local** path. That is the right fix for Claude Code on the same machine, WSL included. Over SSH, Invoke’s own guide says you still `scp` that file (or alias it). It does not replace an uploader.
+
+## vmup
+
+vmup collects a batch (paths, picker, `--clip`, or a watched folder), streams it over the `ssh` you already have, and copies a prompt that already contains the remote folder:
+
+```text
+Please inspect all files in ~/vmup/agents-…/
+```
+
+No remote daemon, no `xclip` shim, no editor extension. File types are not limited to images. Remote batches expire (default 5 minutes). [Send laptop files to a coding agent on a remote VM](/learn/send-files-to-remote-coding-agent). [First upload](/docs/quickstart).
+
+You paste a folder prompt, not a native image pill. If you need Ctrl+V inside Claude’s TUI to attach `[Image #1]`, a shim is closer. If you need several files and cleanup, a batch folder is closer.
+
+## How to pick
+
+One saved PNG, keep the name, no extra tools: `scp` or Remote-SSH drag.
+
+Live in Claude’s TUI, screenshots only, you accept a tunnel and a remote shim: clipaste or cssh.
+
+One screenshot, path paste, no remote install: clipssh, sshshot, pastehop, or imgssh.
+
+Local Claude Code / WSL, no second SSH hop: Invoke’s hotkey, or any local path. SSH from WSL to a VM is still remote: `scp` or an uploader.
+
+Several files, mixed types, OpenSSH only, then delete: vmup.
+
+## Quick answers
+
+**What is the simplest tool to paste a screenshot into Claude Code over SSH?**
+scp. Save the PNG, copy it to the server, paste the remote path. Everything else automates that loop.
+
+**Do clipboard daemons work without installing anything on the server?**
+Some path-upload CLIs (clipssh, sshshot, pastehop, vmup) use the ssh you already have. Shim tools (clipaste, cssh) install a remote helper or reverse tunnel so Ctrl+V looks native.
+
+**Which tools handle PDFs and recordings, not only images?**
+scp, rsync, and vmup. Most Claude Code SSH paste helpers are screenshot-only.
+
+**When should I pick a Ctrl+V shim instead of a batch upload?**
+Pick a shim if you live in the TUI and want one screenshot to attach like a local paste. Pick a batch upload if you have several files, no extra daemon, and a prompt with one folder path.
+
+**What is a clipaste alternative for Claude Code over SSH?**
+clipssh or sshshot if you want a path and no remote shim. cssh if you still want Ctrl+V and will install a helper. scp if you want zero new tools. vmup if you have several files, not one PNG.

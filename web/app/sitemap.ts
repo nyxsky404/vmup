@@ -1,6 +1,11 @@
 import type { MetadataRoute } from 'next';
-import { source } from '@/lib/source';
-import { docsSourcePath, gitLastModified, homePageSourcePath } from '@/lib/last-modified';
+import { learnSource, source } from '@/lib/source';
+import {
+  docsSourcePath,
+  gitLastModified,
+  homePageSourcePath,
+  learnSourcePath,
+} from '@/lib/last-modified';
 import { absoluteUrl } from '@/lib/shared';
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -11,6 +16,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: page.url === '/docs' ? 0.9 : 0.7,
   }));
 
+  const learn = [
+    {
+      url: absoluteUrl('/learn'),
+      lastModified: gitLastModified(
+        'web/app/learn/page.tsx',
+        'web/lib/learn.ts',
+      ),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    ...learnSource.getPages().map((page) => ({
+      url: absoluteUrl(page.url),
+      lastModified: learnSourcePath(page),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
+  ];
+
   return [
     {
       url: absoluteUrl('/'),
@@ -18,6 +41,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 1,
     },
+    ...learn,
     ...docs,
   ];
 }

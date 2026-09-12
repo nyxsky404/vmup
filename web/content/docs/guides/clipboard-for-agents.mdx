@@ -37,3 +37,5 @@ The prompt is already on the clipboard (`clipboard_copy = "prompt"`). Paste it i
 Remote names are `image-01.png`, `file-01.pdf`, and so on. Original basenames are gone on the VM. [How a batch is built](/docs/explain/how-it-works) explains the rename.
 
 TTL still applies (default 5 minutes). Raise it for a longer session, or run `vmup prune --all` to delete every remote batch now: [Why batches expire](/docs/explain/ttl).
+
+If Claude prints `No image found in clipboard` over SSH: [diagnose the remote clipboard](/learn/claude-code-no-image-found-clipboard-ssh). Cursor Remote-SSH attaching a local path: [Cursor cannot analyze local files](/learn/cursor-remote-ssh-local-files).

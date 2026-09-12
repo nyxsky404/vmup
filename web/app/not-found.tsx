@@ -28,6 +28,10 @@ export default function NotFound() {
           <Link href="/docs" className="underline underline-offset-4">
             Docs
           </Link>
+          {' · '}
+          <Link href="/learn" className="underline underline-offset-4">
+            Learn
+          </Link>
         </p>
       </main>
     </HomeLayout>

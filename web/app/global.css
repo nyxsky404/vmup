@@ -375,6 +375,103 @@ body:has(#nd-sidebar-mobile[data-state='open'])
   }
 }
 
+.learn-article {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: color-mix(in oklab, var(--foreground) 85%, transparent);
+}
+
+.learn-article :where(h2) {
+  margin-top: 2.75rem;
+  margin-bottom: 0.85rem;
+  scroll-margin-top: 5rem;
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--foreground);
+}
+
+.learn-article :where(h3) {
+  margin-top: 2rem;
+  margin-bottom: 0.65rem;
+  scroll-margin-top: 5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+
+.learn-article :where(p) {
+  margin-top: 1rem;
+}
+
+.learn-article :where(ul, ol) {
+  margin-top: 1rem;
+  padding-inline-start: 1.25rem;
+}
+
+.learn-article :where(li) {
+  margin-top: 0.4rem;
+}
+
+.learn-article :where(a) {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.learn-article :where(hr) {
+  margin-block: 2rem;
+  border-color: var(--border);
+}
+
+.learn-article :where(pre) {
+  margin-block: 1.25rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+  padding: 1rem 1rem;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.learn-article :where(figure) {
+  margin-block: 1.25rem;
+}
+
+.learn-article :where(table) {
+  width: 100%;
+  margin-block: 1.5rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.learn-article :where(th) {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+}
+
+.learn-article :where(td) {
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.learn-article :where(strong) {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
 ::selection {
   background: oklch(0.922 0 0 / 18%);
 }

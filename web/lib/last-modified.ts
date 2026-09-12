@@ -61,4 +61,12 @@ export function docsSourcePath(page: { path: string; absolutePath?: string }) {
   );
 }
 
+export function learnSourcePath(page: { path: string; absolutePath?: string }) {
+  return gitLastModified(
+    page.absolutePath,
+    `web/content/learn/${page.path}`,
+    `content/learn/${page.path}`,
+  );
+}
+
 export const homePageSourcePath = 'web/app/(home)/page.tsx';

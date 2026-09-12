@@ -8,7 +8,11 @@ export const appDescription =
 export const docsRoute = '/docs';
 export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
+export const learnRoute = '/learn';
+export const learnImageRoute = '/og/learn';
+export const learnContentRoute = '/llms.mdx/learn';
 export const softwareVersion = '0.4.0';
+export type ContentCollection = 'docs' | 'learn';
 
 /** Document title that ignores the root "%s — vmup" template. */
 export function absoluteTitle(title: string) {
@@ -67,8 +71,26 @@ const docsSeoTitles: Record<string, string> = {
   '/docs/reference/file-types': 'vmup file types, size limits, and names',
 };
 
+const learnSeoTitles: Record<string, string> = {
+  '/learn': 'Guides for remote coding agents over SSH',
+  '/learn/claude-code-paste-image-ssh':
+    'How to paste an image into Claude Code over SSH',
+  '/learn/send-files-to-remote-coding-agent':
+    'Send laptop files to a coding agent on a remote VM',
+  '/learn/cursor-remote-ssh-local-files':
+    'Cursor Remote-SSH cannot analyze local files',
+  '/learn/claude-code-ssh-screenshot-tools':
+    'clipaste vs clipssh vs cssh for Claude Code SSH',
+  '/learn/claude-code-no-image-found-clipboard-ssh':
+    'Claude Code: no image found in clipboard over SSH',
+};
+
 export function docsSeoTitle(pageUrl: string, pageName: string) {
   return docsBrowserTitle(undefined, docsSeoTitles[pageUrl] ?? pageName);
+}
+
+export function learnSeoTitle(pageUrl: string, pageName: string) {
+  return docsBrowserTitle(undefined, learnSeoTitles[pageUrl] ?? pageName);
 }
 
 export const productionSiteOrigin = 'https://vmup.dev';
@@ -110,18 +132,28 @@ export const gitConfig = {
   branch: 'main',
 };
 
-const getContentUrl = createGetUrl(docsContentRoute);
+const getDocsContentUrl = createGetUrl(docsContentRoute);
+const getLearnContentUrl = createGetUrl(learnContentRoute);
+const getDocsImageUrl = createGetUrl(docsImageRoute);
+const getLearnImageUrl = createGetUrl(learnImageRoute);
 
-export function getPageMarkdownUrl(page: { slugs: string[]; locale?: string }) {
+export function getPageMarkdownUrl(
+  page: { slugs: string[]; locale?: string },
+  collection: ContentCollection = 'docs',
+) {
   const segments = [...page.slugs, 'content.md'];
+  const getUrl =
+    collection === 'learn' ? getLearnContentUrl : getDocsContentUrl;
 
-  return { segments, url: getContentUrl(segments, page.locale) };
+  return { segments, url: getUrl(segments, page.locale) };
 }
 
-const getImageUrl = createGetUrl(docsImageRoute);
-
-export function getPageImageUrl(page: { slugs: string[]; locale?: string }) {
+export function getPageImageUrl(
+  page: { slugs: string[]; locale?: string },
+  collection: ContentCollection = 'docs',
+) {
   const segments = [...page.slugs, 'image.png'];
+  const getUrl = collection === 'learn' ? getLearnImageUrl : getDocsImageUrl;
 
-  return { segments, url: getImageUrl(segments, page.locale) };
+  return { segments, url: getUrl(segments, page.locale) };
 }

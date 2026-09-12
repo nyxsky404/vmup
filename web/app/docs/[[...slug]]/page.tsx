@@ -104,6 +104,13 @@ export async function generateMetadata(
     description,
     alternates: {
       canonical: page.url,
+      ...(page.url === '/docs'
+        ? {
+            types: {
+              'text/plain': '/llms.txt',
+            },
+          }
+        : {}),
     },
     openGraph: {
       type: 'article',

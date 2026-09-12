@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   description: appDescription,
   alternates: {
     canonical: absoluteUrl('/'),
+    types: {
+      'text/plain': '/llms.txt',
+    },
   },
   openGraph: {
     type: 'website',
@@ -172,11 +175,11 @@ const facts: { id: string; body: ReactNode }[] = [
 ];
 
 const docs = [
+  { href: '/learn', label: 'Learn' },
+  { href: '/learn/claude-code-paste-image-ssh', label: 'Paste over SSH' },
   { href: '/docs/quickstart', label: 'First upload' },
   { href: '/docs/guides/screenshots-to-agent', label: 'Screenshots to agent' },
   { href: '/docs/guides/clipboard-for-agents', label: 'Clipboard for agents' },
-  { href: '/docs/guides/watch', label: 'Watch a folder' },
-  { href: '/docs/explain/ttl', label: 'TTL and cleanup' },
   { href: '/docs/explain/vs-scp', label: 'vs scp / rsync' },
 ];
 
@@ -387,6 +390,13 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
           </Link>
           {' · '}
           <Link
+            href="/learn"
+            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+          >
+            Learn
+          </Link>
+          {' · '}
+          <Link
             href="/docs"
             className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
           >
@@ -397,7 +407,7 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
 
       <footer className="mt-24 border-t border-border pt-8 text-sm text-muted-foreground max-lg:pb-[max(2rem,env(safe-area-inset-bottom))]">
         <nav
-          aria-label="Documentation"
+          aria-label="Guides"
           className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 sm:gap-x-6 max-lg:gap-y-0"
         >
           {docs.map((item) => (

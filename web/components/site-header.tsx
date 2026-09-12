@@ -80,6 +80,7 @@ function NavIconLink({
 export function SiteHeader({ className, ...props }: ComponentProps<'header'>) {
   const pathname = usePathname();
   const docsActive = pathname === '/docs' || pathname.startsWith('/docs/');
+  const learnActive = pathname === '/learn' || pathname.startsWith('/learn/');
 
   return (
     <header
@@ -113,6 +114,19 @@ export function SiteHeader({ className, ...props }: ComponentProps<'header'>) {
             )}
           >
             Docs
+          </Link>
+          <Link
+            href="/learn"
+            aria-current={learnActive ? 'page' : undefined}
+            className={cn(
+              buttonVariants({ color: 'ghost', size: 'sm' }),
+              'text-fd-muted-foreground max-lg:min-h-11 max-lg:px-3',
+              'motion-safe:transition-[color,background-color,scale] motion-safe:duration-150 motion-safe:ease-out',
+              'motion-safe:active:scale-[0.96]',
+              learnActive && 'text-fd-foreground',
+            )}
+          >
+            Learn
           </Link>
           <NavIconLink href={NPM_URL} label="npm" external>
             <NpmIcon />

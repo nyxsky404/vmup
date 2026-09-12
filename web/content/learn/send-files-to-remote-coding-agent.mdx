@@ -1,0 +1,103 @@
+---
+title: Send laptop files to a coding agent on a remote VM
+description: "A remote coding agent reads paths on the VM. Screenshots, PDFs, and recordings on your laptop stay invisible until you copy them over SSH into one folder."
+---
+
+Send laptop files to a coding agent on a remote VM the same way you would hand a folder across a desk: copy the files over SSH, then tell the agent the directory. A screenshot, a notes PDF, and a `.mov` all fail for the same reason. The agent opens paths on the host. Those files are still on the laptop.
+
+This page is the mixed-batch job. One PNG into Claude Code: [How to paste an image into Claude Code over SSH](/learn/claude-code-paste-image-ssh). Cursor attaching a local `C:\` path: [Cursor Remote-SSH cannot analyze local files](/learn/cursor-remote-ssh-local-files).
+
+## Collect the local files
+
+Gather what the agent should see **on the laptop** first.
+
+| What you have | Typical capture |
+|---|---|
+| Screenshot | Snipping tool, then a file on disk or the clipboard |
+| PDF, log, export | Already a path, or a Finder/Explorer copy |
+| Screen recording | `.mov` / `.webm` in Desktop or Downloads |
+| A mix of the above | Several paths, or a folder you drop files into |
+
+Cursor over Remote-SSH has the same rule for documents: a local `C:\Users\…\file.html` pill in chat points at the wrong disk. Details: [Cursor Remote-SSH cannot analyze local files](/learn/cursor-remote-ssh-local-files).
+
+Do not start in the remote thread hoping Ctrl+V will carry a binary. It will not.
+
+## Upload one batch over SSH
+
+`scp` is enough for one named file you want to keep:
+
+```bash
+scp shot.png notes.pdf rec.mov ubuntu@host:/tmp/
+```
+
+Then you type three paths into the prompt. Original names stay. Nothing expires. After a morning of captures, `/tmp` is a junk drawer and you are still listing files by hand.
+
+`rsync` is the wrong default here. You do not want a mirrored tree. You want a throwaway folder the agent can list. Keep `rsync` for nested projects that should stay in sync. See [vmup vs scp and rsync](/docs/explain/vs-scp).
+
+A batch CLI does the agent-shaped job: collect, upload once, print one directory.
+
+```bash
+vmup shot.png notes.pdf rec.mov
+```
+
+Stdout:
+
+```text
+Uploaded 3 files → default
+Agent folder: ~/vmup/agents-20260911-140128-a1b2c3d4/
+
+Prompt:
+Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/
+```
+
+Remote names are `image-01.png`, `file-01.pdf`, `video-01.mov`. Original basenames are gone on the VM on purpose: the listing is stable. If you need the original name on the host, use `scp`.
+
+If the files are still on the clipboard:
+
+```bash
+vmup --clip
+```
+
+If they land in Desktop or Screenshots after you snip:
+
+```bash
+vmup watch
+```
+
+On macOS, clipboard images need [pngpaste](https://github.com/jcsalterego/pngpaste). Copied Finder files do not. Native Windows is not supported; use WSL or pass paths. Recipes: [Upload screenshots to a remote coding agent](/docs/guides/screenshots-to-agent).
+
+Batches expire after 5 minutes. Raise TTL for a long session. `vmup prune --all` deletes every remote batch immediately. [Why batches expire](/docs/explain/ttl).
+
+## Paste the folder prompt
+
+The agent does not need your laptop paths. It needs one directory on the host:
+
+```text
+Please inspect all files in ~/vmup/agents-…/
+```
+
+Paste that into Claude Code, Cursor, or Codex in the same thread. Codex also accepts a remote path on launch: `codex -i ~/vmup/agents-…/image-01.png "fix this"`. The clipboard already holds the folder prompt after a vmup upload (`clipboard_copy = "prompt"`). Set `"path"` if you only want the folder.
+
+That is the whole loop: collect locally, upload over SSH, stay in the thread.
+
+## When to stay on scp or rsync
+
+Need the original filename on the VM: `scp` or `rsync`.
+
+Need a nested directory to stay in sync: `rsync`.
+
+Need one pasteable prompt for a coding agent, then cleanup: a batch folder. You can use all three on the same machine. vmup still calls `ssh`.
+
+## Quick answers
+
+**Why can’t a remote coding agent see files on my laptop?**
+The agent process reads paths on the host it runs on. A screenshot, PDF, or recording that exists only on your laptop is a path to the wrong disk.
+
+**Is scp enough to send files to Claude Code or Cursor on a VM?**
+scp is enough for one named file you want to keep. Several screenshots plus a PDF means several copies and a prompt that lists every path. A batch folder is the other job.
+
+**Can I send PDFs and recordings, not just screenshots?**
+Yes. The filesystem boundary is the same for every type. Upload the files, then give the agent a directory to inspect.
+
+**Should I use rsync to feed a coding agent?**
+Use rsync when a nested tree should stay in sync. Use a one-shot batch when the agent only needs a throwaway folder, then delete it.

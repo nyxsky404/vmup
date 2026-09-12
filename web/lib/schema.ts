@@ -1,5 +1,14 @@
 import { GITHUB_URL, NPM_URL, PACKAGE_NAME } from '@/lib/install';
 import {
+  isLearnArticleUrl,
+  learnFaqs,
+  learnHowTos,
+  learnIsoDate,
+  learnPostMeta,
+  learnPublishedAt,
+} from '@/lib/learn';
+import { learnPostSummaries } from '@/lib/learn-pages';
+import {
   absoluteUrl,
   appDescription,
   appName,
@@ -221,6 +230,162 @@ export function docsJsonLd(page: {
   }
   if (page.url === '/docs/quickstart') {
     graph.push(quickstartHowTo(pageUrl, page.data.description));
+  }
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': graph,
+  };
+}
+
+function faqPage(pageUrl: string, faqs: Array<{ name: string; text: string }>) {
+  return {
+    '@type': 'FAQPage',
+    '@id': `${pageUrl}#faq`,
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.name,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.text,
+      },
+    })),
+  };
+}
+
+export function learnJsonLd(page: {
+  url: string;
+  data: { title: string; description?: string };
+  lastModified?: Date;
+  image?: string;
+}) {
+  const origin = absoluteUrl('/');
+  const orgId = `${origin}#organization`;
+  const pageUrl = absoluteUrl(page.url);
+  const datePublished =
+    isLearnArticleUrl(page.url)
+      ? learnIsoDate(learnPostMeta[page.url].date)
+      : learnPublishedAt;
+  const dateModified = page.lastModified?.toISOString() ?? datePublished;
+  const image = page.image
+    ? absoluteUrl(page.image)
+    : absoluteUrl('/brand/app-icon-1024.png');
+  const crumbs: Array<{
+    '@type': 'ListItem';
+    position: number;
+    name: string;
+    item: string;
+  }> = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: origin,
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Learn',
+      item: absoluteUrl('/learn'),
+    },
+  ];
+
+  if (page.url !== '/learn') {
+    crumbs.push({
+      '@type': 'ListItem',
+      position: 3,
+      name: page.data.title,
+      item: pageUrl,
+    });
+  }
+
+  const graph: object[] = [
+    {
+      '@type': 'Organization',
+      '@id': orgId,
+      name: appName,
+      url: origin,
+      logo: {
+        '@type': 'ImageObject',
+        url: absoluteUrl('/brand/app-icon-1024.png'),
+        width: 1024,
+        height: 1024,
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: crumbs,
+    },
+  ];
+
+  if (page.url === '/learn') {
+    graph.push({
+      '@type': 'CollectionPage',
+      '@id': `${pageUrl}#webpage`,
+      name: page.data.title,
+      description: page.data.description,
+      url: pageUrl,
+      image,
+      datePublished,
+      dateModified,
+      publisher: { '@id': orgId },
+      isPartOf: { '@id': `${origin}#website` },
+      mainEntity: { '@id': `${pageUrl}#list` },
+    });
+    graph.push({
+      '@type': 'ItemList',
+      '@id': `${pageUrl}#list`,
+      itemListElement: learnPostSummaries().map((post, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: post.title,
+        url: absoluteUrl(post.url),
+      })),
+    });
+  } else {
+    graph.push({
+      '@type': 'Article',
+      '@id': `${pageUrl}#article`,
+      headline: page.data.title,
+      description: page.data.description,
+      url: pageUrl,
+      image,
+      datePublished,
+      dateModified,
+      author: { '@id': orgId },
+      publisher: { '@id': orgId },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': `${pageUrl}#webpage` },
+      isPartOf: { '@id': `${origin}#website` },
+    });
+    graph.push({
+      '@type': 'WebPage',
+      '@id': `${pageUrl}#webpage`,
+      name: page.data.title,
+      description: page.data.description,
+      url: pageUrl,
+      image,
+      datePublished,
+      dateModified,
+      publisher: { '@id': orgId },
+      isPartOf: { '@id': `${origin}#website` },
+      mainEntity: { '@id': `${pageUrl}#article` },
+    });
+  }
+
+  const faqs = learnFaqs[page.url];
+  if (faqs?.length) {
+    graph.push(faqPage(pageUrl, faqs));
+  }
+
+  const howTo = learnHowTos[page.url];
+  if (howTo) {
+    graph.push({
+      '@type': 'HowTo',
+      '@id': `${pageUrl}#howto`,
+      name: howTo.name,
+      description: page.data.description,
+      step: howToSteps(pageUrl, howTo.steps),
+    });
   }
 
   return {

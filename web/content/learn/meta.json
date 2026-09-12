@@ -1,0 +1,10 @@
+{
+  "title": "Learn",
+  "pages": [
+    "claude-code-paste-image-ssh",
+    "send-files-to-remote-coding-agent",
+    "cursor-remote-ssh-local-files",
+    "claude-code-ssh-screenshot-tools",
+    "claude-code-no-image-found-clipboard-ssh"
+  ]
+}

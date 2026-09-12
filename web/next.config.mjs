@@ -24,6 +24,16 @@ const config = {
         permanent: true,
       },
       {
+        source: '/learn/index',
+        destination: '/learn',
+        permanent: true,
+      },
+      {
+        source: '/learn/index/',
+        destination: '/learn',
+        permanent: true,
+      },
+      {
         source: '/security.txt',
         destination: '/.well-known/security.txt',
         permanent: true,
