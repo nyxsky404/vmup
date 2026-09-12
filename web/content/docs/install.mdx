@@ -61,4 +61,4 @@ Linux clipboard images use `wl-paste` (Wayland) or `xclip` (X11).
 ## After install
 
 1. [First upload](/docs/quickstart) walks through `vmup init` and a file.
-2. Newer releases print a one-line notice at most once per day. Disable it with `VMUP_NO_UPDATE_CHECK=1`. CI (`CI=true` or `CI=1`) skips the check. `--json` never prints it.
+2. Newer releases print a two-line notice at most once per day while you stay on an older version. The command itself does not wait on npm; a background process refreshes the cache, so the first run after a new publish may be quiet and the next run prints. Disable with `VMUP_NO_UPDATE_CHECK=1`. CI (`CI=true` or `CI=1`), `--json`, non-TTY output, and `-V` / `--version` never print it.

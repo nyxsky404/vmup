@@ -111,7 +111,7 @@ Then:
 vmup --version
 ```
 
-> **Tip:** Newer releases print a one-line notice at most once per day. Disable it with `VMUP_NO_UPDATE_CHECK=1`. CI (`CI=true` or `CI=1`) skips it. `--json` never prints it.
+> **Tip:** Newer releases print a two-line notice at most once per day while you stay on an older version. The command does not wait on npm. Disable with `VMUP_NO_UPDATE_CHECK=1`. CI (`CI=true` or `CI=1`), `--json`, non-TTY output, and `-V` skip it.
 
 ## Quickstart
 

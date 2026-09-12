@@ -1,17 +1,29 @@
+import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { cacheDir, PACKAGE_NAME, PACKAGE_VERSION } from "./constants.js";
 import { color } from "./color.js";
 
-const CHECK_EVERY_MS = 24 * 60 * 60 * 1000;
+export const CHECK_EVERY_MS = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 2000;
-const NOTICE_TIMEOUT_MS = 1500;
 
-type Cache = {
+export type UpdateCache = {
   checkedAt: number;
   latest: string;
   notifiedAt?: number;
   notifiedVersion?: string;
+};
+
+export type UpdateCheckIo = {
+  now?: () => number;
+  readCache?: () => Promise<UpdateCache | null>;
+  writeCache?: (c: UpdateCache) => Promise<void>;
+  spawnCheck?: () => void;
+  env?: NodeJS.ProcessEnv;
+  stdoutTTY?: boolean;
+  stderrTTY?: boolean;
+  currentVersion?: string;
 };
 
 export function isNewer(latest: string, current: string): boolean {
@@ -27,25 +39,52 @@ export function isNewer(latest: string, current: string): boolean {
   return false;
 }
 
-function skipCheck(): boolean {
-  if (process.env.VMUP_NO_UPDATE_CHECK === "1") return true;
-  if (process.env.CI === "true" || process.env.CI === "1") return true;
+export function skipUpdateCheck(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.VMUP_NO_UPDATE_CHECK === "1") return true;
+  if (env.CI === "true" || env.CI === "1") return true;
   return false;
+}
+
+export function isInteractiveTty(
+  stdoutTTY = Boolean(process.stdout.isTTY),
+  stderrTTY = Boolean(process.stderr.isTTY),
+): boolean {
+  return stdoutTTY && stderrTTY;
+}
+
+export function cacheIsStale(
+  cache: UpdateCache | null,
+  now: number,
+  interval = CHECK_EVERY_MS,
+): boolean {
+  return !cache || now - cache.checkedAt > interval;
+}
+
+/** Version to print from cache, or null if the user should not be told this run. */
+export function noticeFromCache(
+  cache: UpdateCache | null,
+  currentVersion: string,
+  now: number,
+  interval = CHECK_EVERY_MS,
+): string | null {
+  if (!cache?.latest || !isNewer(cache.latest, currentVersion)) return null;
+  if (cache.notifiedAt != null && now - cache.notifiedAt < interval) return null;
+  return cache.latest;
 }
 
 function cacheFile(): string {
   return join(cacheDir(), "update-check.json");
 }
 
-async function readCache(): Promise<Cache | null> {
+async function readCacheFile(): Promise<UpdateCache | null> {
   try {
-    return JSON.parse(await readFile(cacheFile(), "utf8")) as Cache;
+    return JSON.parse(await readFile(cacheFile(), "utf8")) as UpdateCache;
   } catch {
     return null;
   }
 }
 
-async function writeCache(c: Cache): Promise<void> {
+async function writeCacheFile(c: UpdateCache): Promise<void> {
   await mkdir(cacheDir(), { recursive: true });
   await writeFile(cacheFile(), JSON.stringify(c) + "\n", "utf8");
 }
@@ -66,6 +105,24 @@ async function fetchLatest(): Promise<string | null> {
     return null;
   } finally {
     clearTimeout(t);
+  }
+}
+
+function childScript(): string {
+  return join(dirname(fileURLToPath(import.meta.url)), "update-check-child.js");
+}
+
+function spawnBackgroundCheck(): void {
+  try {
+    const child = spawn(process.execPath, [childScript()], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    child.on("error", () => undefined);
+    child.unref();
+  } catch {
+    // never fail the command
   }
 }
 
@@ -116,60 +173,86 @@ export function formatUpdateNotice(latest: string, pm = detectPackageManager()):
   ].join("\n");
 }
 
-/** Resolves to a newer version string when the user should be told. */
-export function beginUpdateCheck(): Promise<string | null> {
-  if (skipCheck()) return Promise.resolve(null);
+/** Reads cache (and maybe starts a background refresh). Never waits on npm. */
+export function beginUpdateCheck(io: UpdateCheckIo = {}): Promise<string | null> {
+  const env = io.env ?? process.env;
+  if (skipUpdateCheck(env)) return Promise.resolve(null);
+  if (
+    !isInteractiveTty(
+      io.stdoutTTY ?? Boolean(process.stdout.isTTY),
+      io.stderrTTY ?? Boolean(process.stderr.isTTY),
+    )
+  ) {
+    return Promise.resolve(null);
+  }
+
+  const now = io.now ?? Date.now;
+  const read = io.readCache ?? readCacheFile;
+  const write = io.writeCache ?? writeCacheFile;
+  const spawnCheck = io.spawnCheck ?? spawnBackgroundCheck;
+  const currentVersion = io.currentVersion ?? PACKAGE_VERSION;
 
   return (async () => {
-    const now = Date.now();
-    let cache = await readCache();
-    const stale = !cache || now - cache.checkedAt > CHECK_EVERY_MS;
-
-    if (stale) {
-      const latest = await fetchLatest();
-      if (latest) {
-        cache = {
-          checkedAt: now,
-          latest,
-          notifiedAt: cache?.notifiedAt,
-          notifiedVersion: cache?.notifiedVersion,
-        };
-        await writeCache(cache).catch(() => undefined);
-      }
+    let cache = await read();
+    const t = now();
+    if (cacheIsStale(cache, t)) {
+      const stamped: UpdateCache = {
+        checkedAt: t,
+        latest: cache?.latest ?? "",
+        notifiedAt: cache?.notifiedAt,
+        notifiedVersion: cache?.notifiedVersion,
+      };
+      await write(stamped).catch(() => undefined);
+      spawnCheck();
+      cache = stamped;
     }
-
-    if (!cache || !isNewer(cache.latest, PACKAGE_VERSION)) return null;
-
-    const already =
-      cache.notifiedVersion === cache.latest &&
-      cache.notifiedAt != null &&
-      now - cache.notifiedAt < CHECK_EVERY_MS;
-    if (already) return null;
-
-    return cache.latest;
+    return noticeFromCache(cache, currentVersion, t);
   })();
 }
 
 export async function printUpdateNotice(
   pending: Promise<string | null>,
   json: boolean,
+  io: UpdateCheckIo = {},
 ): Promise<void> {
-  if (json || skipCheck()) return;
+  const env = io.env ?? process.env;
+  if (json || skipUpdateCheck(env)) return;
+  if (
+    !isInteractiveTty(
+      io.stdoutTTY ?? Boolean(process.stdout.isTTY),
+      io.stderrTTY ?? Boolean(process.stderr.isTTY),
+    )
+  ) {
+    return;
+  }
   try {
-    const latest = await Promise.race([
-      pending,
-      new Promise<null>((r) => setTimeout(() => r(null), NOTICE_TIMEOUT_MS)),
-    ]);
+    const latest = await pending;
     if (!latest) return;
     console.error(`\n${formatUpdateNotice(latest)}`);
-    const cache = (await readCache()) ?? {
-      checkedAt: Date.now(),
-      latest,
-    };
-    cache.notifiedAt = Date.now();
-    cache.notifiedVersion = latest;
-    await writeCache(cache).catch(() => undefined);
+    const read = io.readCache ?? readCacheFile;
+    const write = io.writeCache ?? writeCacheFile;
+    const t = (io.now ?? Date.now)();
+    const prev = await read();
+    await write({
+      checkedAt: prev?.checkedAt ?? t,
+      latest: prev?.latest || latest,
+      notifiedAt: t,
+      notifiedVersion: latest,
+    }).catch(() => undefined);
   } catch {
     // never fail the command
   }
+}
+
+/** Detached child: fetch latest and persist. Does not print. */
+export async function runUpdateCheckChild(): Promise<void> {
+  const latest = await fetchLatest();
+  if (!latest) return;
+  const prev = await readCacheFile();
+  await writeCacheFile({
+    checkedAt: Date.now(),
+    latest,
+    notifiedAt: prev?.notifiedAt,
+    notifiedVersion: prev?.notifiedVersion,
+  });
 }
