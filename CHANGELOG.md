@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.4.0 — 2026-09-12
+
 - `vmup prune --all` deletes every remote `agents-*` batch, including ones still inside TTL.
 - `--help` copy: saved remotes, clipboard loop, images-only `--video` / `--force`, TTL in minutes, omit files to open a picker.
 - After upload, copy the prompt to the clipboard by default (`clipboard_copy = "prompt"`). Set `"path"` or `"none"` in config, or `VMUP_CLIPBOARD_COPY`. Not asked at init. `--json` still skips the copy.
