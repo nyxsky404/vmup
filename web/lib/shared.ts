@@ -8,7 +8,7 @@ export const appDescription =
 export const docsRoute = '/docs';
 export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
-export const softwareVersion = '0.3.2';
+export const softwareVersion = '0.4.0';
 
 /** Document title that ignores the root "%s — vmup" template. */
 export function absoluteTitle(title: string) {

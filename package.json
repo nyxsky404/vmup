@@ -1,6 +1,6 @@
 {
   "name": "@nyxsky404/vmup",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Batch files to a remote host over SSH for coding agents",
   "type": "module",
   "main": "./dist/cli.js",
