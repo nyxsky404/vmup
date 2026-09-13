@@ -202,9 +202,9 @@ export default function HomePage() {
         vmup gives coding agents one folder path on the remote host
       </HeroHeading>
       <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-        Send screenshots, PDFs, recordings, and other local files to the VM your
-        coding agent is running on. One SSH upload. Paste the prompt; the folder
-        path is inside it.
+        The <code>@nyxsky404/vmup</code> CLI sends screenshots, PDFs, recordings,
+        and other local files to the VM your coding agent is running on. One SSH
+        upload. Paste the prompt; the folder path is inside it.
       </p>
 
       <section id="install" className="mt-10 scroll-mt-24">

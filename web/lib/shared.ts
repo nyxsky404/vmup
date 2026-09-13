@@ -4,7 +4,7 @@ export const appName = 'vmup';
 export const appTitle =
   'vmup gives coding agents one folder path on the remote host';
 export const appDescription =
-  'vmup batches files over SSH and copies a prompt with the remote folder path to your clipboard. Default TTL is 5 minutes.';
+  'The @nyxsky404/vmup CLI batches local files over SSH into one folder for a remote coding agent, then copies a prompt with that folder path.';
 export const docsRoute = '/docs';
 export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
@@ -38,7 +38,7 @@ export function docsBrowserTitle(_slug: string[] | undefined, pageName: string) 
   return browserTitle(pageName);
 }
 
-/** SERP title when the on-page H1 is too short to rank well. */
+/** Descriptive title shared by page metadata, visible heading, and schema. */
 const docsSeoTitles: Record<string, string> = {
   '/docs': 'vmup documentation: install, first upload, and CLI reference',
   '/docs/install': 'Install vmup on macOS, Linux, or WSL',
@@ -86,7 +86,11 @@ const learnSeoTitles: Record<string, string> = {
 };
 
 export function docsSeoTitle(pageUrl: string, pageName: string) {
-  return docsBrowserTitle(undefined, docsSeoTitles[pageUrl] ?? pageName);
+  return docsBrowserTitle(undefined, docsHeadingTitle(pageUrl, pageName));
+}
+
+export function docsHeadingTitle(pageUrl: string, pageName: string) {
+  return docsSeoTitles[pageUrl] ?? pageName;
 }
 
 export function learnSeoTitle(pageUrl: string, pageName: string) {

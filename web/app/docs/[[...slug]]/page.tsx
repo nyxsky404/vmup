@@ -17,6 +17,7 @@ import { docsSourcePath } from '@/lib/last-modified';
 import { docsJsonLd } from '@/lib/schema';
 import {
   appName,
+  docsHeadingTitle,
   docsSeoTitle,
   getPageImageUrl,
   getPageMarkdownUrl,
@@ -35,6 +36,7 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   const MDX = page.data.body;
   const markdownUrl = getPageMarkdownUrl(page).url;
   const image = getPageImageUrl(page).url;
+  const headingTitle = docsHeadingTitle(page.url, page.data.title);
 
   return (
     <DocsPage
@@ -48,12 +50,12 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
       <JsonLd
         data={docsJsonLd({
           url: page.url,
-          data: page.data,
+          data: { title: headingTitle, description: page.data.description },
           lastModified: docsSourcePath(page),
           image,
         })}
       />
-      <DocsTitle>{page.data.title}</DocsTitle>
+      <DocsTitle>{headingTitle}</DocsTitle>
       <DocsDescription className="mb-0">{page.data.description}</DocsDescription>
       <div className="flex flex-row gap-2 items-center border-b pb-6">
         <MarkdownCopyButton
