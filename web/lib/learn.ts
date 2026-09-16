@@ -8,6 +8,7 @@ export const learnHub = {
 
 export const learnArticleUrls = [
   '/learn/claude-code-paste-image-ssh',
+  '/learn/codex-cli-image-ssh',
   '/learn/send-files-to-remote-coding-agent',
   '/learn/cursor-remote-ssh-local-files',
   '/learn/claude-code-ssh-screenshot-tools',
@@ -21,6 +22,7 @@ export const learnPostMeta: Record<
   { date: string; tag: string }
 > = {
   '/learn/claude-code-paste-image-ssh': { date: '2026-09-12', tag: 'ssh' },
+  '/learn/codex-cli-image-ssh': { date: '2026-09-16', tag: 'codex' },
   '/learn/send-files-to-remote-coding-agent': {
     date: '2026-09-12',
     tag: 'agents',
@@ -45,8 +47,38 @@ export function learnDateLabel(date: string) {
   }).format(new Date(`${date}T00:00:00.000Z`));
 }
 
+const learnRelatedUrls: Record<
+  LearnArticleUrl,
+  readonly LearnArticleUrl[]
+> = {
+  '/learn/claude-code-paste-image-ssh': [
+    '/learn/claude-code-no-image-found-clipboard-ssh',
+    '/learn/claude-code-ssh-screenshot-tools',
+  ],
+  '/learn/codex-cli-image-ssh': [
+    '/learn/send-files-to-remote-coding-agent',
+    '/learn/claude-code-paste-image-ssh',
+  ],
+  '/learn/send-files-to-remote-coding-agent': [
+    '/learn/cursor-remote-ssh-local-files',
+    '/learn/codex-cli-image-ssh',
+  ],
+  '/learn/cursor-remote-ssh-local-files': [
+    '/learn/send-files-to-remote-coding-agent',
+    '/learn/claude-code-paste-image-ssh',
+  ],
+  '/learn/claude-code-ssh-screenshot-tools': [
+    '/learn/claude-code-paste-image-ssh',
+    '/learn/claude-code-no-image-found-clipboard-ssh',
+  ],
+  '/learn/claude-code-no-image-found-clipboard-ssh': [
+    '/learn/claude-code-paste-image-ssh',
+    '/learn/claude-code-ssh-screenshot-tools',
+  ],
+};
+
 export function learnRelated(url: string) {
-  return learnArticleUrls.filter((item) => item !== url);
+  return isLearnArticleUrl(url) ? learnRelatedUrls[url] : [];
 }
 
 export function isLearnArticleUrl(url: string): url is LearnArticleUrl {
@@ -110,99 +142,121 @@ export const learnFaqs: Record<string, Faq[]> = {
   '/learn/claude-code-paste-image-ssh': [
     {
       name: 'Can I paste a screenshot into Claude Code over SSH?',
-      text: 'No. The image is on your local clipboard and Claude Code only reads the remote machine’s filesystem. Copy the file onto that machine and give Claude the path.',
+      text: 'Do not depend on direct clipboard paste over SSH. Copy the image onto the remote host and give Claude Code the remote path.',
     },
     {
       name: 'Does SSH forward the clipboard for images?',
-      text: 'No. Terminal clipboard integration (OSC 52) copies text out of the remote session. It does not paste a PNG in.',
+      text: 'Plain SSH does not upload a clipboard image as a file. Some terminals and helpers implement separate clipboard protocols, but support varies by terminal and Claude Code version.',
     },
     {
-      name: 'What is the fastest way to get one screenshot onto the server?',
-      text: 'Run scp bug.png user@server:/tmp/ then tell Claude to look at /tmp/bug.png. Alias that round trip if you do it more than once a day.',
+      name: 'What is the fastest manual method for one screenshot?',
+      text: 'Run scp bug.png user@server:/tmp/bug.png, then tell Claude Code to inspect /tmp/bug.png.',
     },
     {
       name: 'Can I drag an image into Claude Code over Remote-SSH?',
-      text: 'Yes. With VS Code or Cursor Remote-SSH, drag the file into the Explorer sidebar so it uploads into the remote workspace, then reference the path in the integrated terminal.',
+      text: 'Drag the image into the remote Explorer first, then reference the uploaded remote path from Claude Code.',
     },
     {
-      name: 'Does tmux break image paste over SSH?',
-      text: 'Yes. tmux adds another clipboard, and image paste was never going to survive it. A file path on the remote disk does not care.',
+      name: 'Does tmux make image paste less reliable?',
+      text: 'It adds another terminal and clipboard boundary. A remote file path is independent of tmux clipboard handling.',
+    },
+  ],
+  '/learn/codex-cli-image-ssh': [
+    {
+      name: 'How do I attach an image to Codex CLI over SSH?',
+      text: 'Upload the image to the remote host, then run codex --image /remote/path/image.png on that host.',
+    },
+    {
+      name: 'Does codex --image accept more than one image?',
+      text: 'Yes. Repeat --image or use the comma-separated form documented by the Codex CLI reference.',
+    },
+    {
+      name: 'Can remote Codex read a local macOS or Windows path?',
+      text: 'No. The remote process needs a path on the remote filesystem.',
+    },
+    {
+      name: 'Why not paste the screenshot directly?',
+      text: 'Clipboard-image paste varies by terminal and platform. An explicit remote path through --image is observable and documented.',
+    },
+    {
+      name: 'Should I use scp or vmup?',
+      text: 'Use scp for a small manual transfer. Use vmup when you want one temporary folder for several files and one prompt to paste.',
     },
   ],
   '/learn/send-files-to-remote-coding-agent': [
     {
       name: 'Why can’t a remote coding agent see files on my laptop?',
-      text: 'The agent process reads paths on the host it runs on. A screenshot, PDF, or recording that exists only on your laptop is a path to the wrong disk.',
+      text: 'The agent process reads files on its own host. A laptop path points to a different filesystem.',
     },
     {
-      name: 'Is scp enough to send files to Claude Code or Cursor on a VM?',
-      text: 'scp is enough for one named file you want to keep. Several screenshots plus a PDF means several copies and a prompt that lists every path. A batch folder is the other job.',
+      name: 'Is scp enough to send files to a remote coding agent?',
+      text: 'Yes. It is the clearest manual solution for named files; you must then give the agent each resulting remote path.',
     },
     {
-      name: 'Can I send PDFs and recordings, not just screenshots?',
-      text: 'Yes. The filesystem boundary is the same for every type. Upload the files, then give the agent a directory to inspect.',
+      name: 'Can I send PDFs and recordings as well as screenshots?',
+      text: 'Yes, if the agent supports reading those formats. The transfer boundary is the same for every file type.',
     },
     {
-      name: 'Should I use rsync to feed a coding agent?',
-      text: 'Use rsync when a nested tree should stay in sync. Use a one-shot batch when the agent only needs a throwaway folder, then delete it.',
+      name: 'Should I use rsync for agent inputs?',
+      text: 'Use rsync for a directory tree that must stay synchronized. Use scp or a disposable batch for one request.',
     },
   ],
   '/learn/cursor-remote-ssh-local-files': [
     {
       name: 'Why can’t Cursor analyze a local file over Remote-SSH?',
-      text: 'The agent runs on the remote host. A local Windows or macOS path in the chat is a link the server cannot open.',
+      text: 'The agent runs against the remote workspace. A local Windows or macOS path is not a file path on that server.',
     },
     {
       name: 'Do any attachments work over Cursor Remote-SSH?',
-      text: 'Cursor uploads some types by content (images and several text formats). Other types, including HTML in the public report, stay as local paths and fail. Copy those files onto the remote disk.',
+      text: 'Some supported formats are uploaded by content. If the attachment remains a local path, copy it into the remote workspace before asking the agent to read it.',
     },
     {
       name: 'How do I give Cursor a screenshot on a remote VM?',
-      text: 'Put the PNG on the host: drag it into the Remote-SSH explorer, scp it, or upload a batch, then reference the remote path or folder in the thread.',
+      text: 'Upload the PNG with scp, drag it into the remote Explorer, or send a batch, then reference the remote file.',
     },
     {
-      name: 'Does Cursor Agent CLI paste clipboard images on Windows?',
-      text: 'Clipboard paste into Cursor Agent CLI is unreliable on Windows, especially after Win+Shift+S. Save a file and attach it with @path, or upload it to the host first.',
+      name: 'What should I check before using @Files?',
+      text: 'Confirm the file appears in the remote Explorer or can be listed from the remote integrated terminal.',
     },
   ],
   '/learn/claude-code-ssh-screenshot-tools': [
     {
-      name: 'What is the simplest tool to paste a screenshot into Claude Code over SSH?',
-      text: 'scp. Save the PNG, copy it to the server, paste the remote path. Everything else automates that loop.',
+      name: 'What is the simplest way to give Claude Code a screenshot over SSH?',
+      text: 'Save the PNG, copy it with scp, and paste the remote path into Claude Code.',
     },
     {
-      name: 'Do clipboard daemons work without installing anything on the server?',
-      text: 'Some path-upload CLIs (clipssh, sshshot, pastehop, vmup) use the ssh you already have. Shim tools (clipaste, cssh) install a remote helper or reverse tunnel so Ctrl+V looks native.',
+      name: 'Which tools avoid a remote clipboard daemon?',
+      text: 'scp, clipssh, PasteHop, imgssh and vmup upload files without requiring a persistent remote clipboard daemon.',
     },
     {
-      name: 'Which tools handle PDFs and recordings, not only images?',
-      text: 'scp, rsync, and vmup. Most Claude Code SSH paste helpers are screenshot-only.',
+      name: 'Which options handle files beyond screenshots?',
+      text: 'scp, PasteHop and vmup accept explicit files. Confirm each tool’s current type restrictions before depending on it.',
     },
     {
-      name: 'When should I pick a Ctrl+V shim instead of a batch upload?',
-      text: 'Pick a shim if you live in the TUI and want one screenshot to attach like a local paste. Pick a batch upload if you have several files, no extra daemon, and a prompt with one folder path.',
+      name: 'When should I use a clipboard shim?',
+      text: 'Use one when preserving the paste gesture matters more than minimizing remote setup and background processes.',
     },
     {
-      name: 'What is a clipaste alternative for Claude Code over SSH?',
-      text: 'clipssh or sshshot if you want a path and no remote shim. cssh if you still want Ctrl+V and will install a helper. scp if you want zero new tools. vmup if you have several files, not one PNG.',
+      name: 'When should I use a batch folder?',
+      text: 'Use a batch when several screenshots, documents or recordings belong to one agent request and one directory prompt is easier than listing every path.',
     },
   ],
   '/learn/claude-code-no-image-found-clipboard-ssh': [
     {
       name: 'What does “No image found in clipboard” mean in Claude Code over SSH?',
-      text: 'Claude Code asked the remote clipboard for a PNG and got nothing. Over SSH that clipboard is empty or missing. Your screenshot is still on the laptop.',
+      text: 'Claude Code did not receive usable image data from the clipboard available to the remote process. The screenshot may still exist only on the laptop.',
     },
     {
       name: 'Is this the same as Ctrl+V doing nothing?',
-      text: 'Often yes. Some terminals swallow Ctrl+V as text paste. Some sessions print the error. The file still has to reach the remote disk either way.',
+      text: 'The underlying boundary may be the same, but the visible behavior depends on the terminal and Claude Code version. Some sessions print the error; others receive no image paste event.',
     },
     {
       name: 'Does this error also happen locally?',
-      text: 'Yes, when the clipboard holds text, a file URL, or a format Claude cannot decode. Over SSH, start by assuming the remote clipboard is the wrong one.',
+      text: 'Yes. A local clipboard can contain text, a file reference, or an image format Claude Code does not accept.',
     },
     {
       name: 'How do I fix it without a clipboard daemon?',
-      text: 'Save the screenshot, scp it to the host, and put the remote path in the prompt. Claude reads files even when paste fails.',
+      text: 'Save the image, upload it with scp, and put the remote path in the prompt.',
     },
   ],
 };
@@ -212,39 +266,54 @@ export const learnHowTos: Record<string, HowTo> = {
     name: 'Paste an image into Claude Code over SSH',
     steps: [
       {
-        name: 'Save the screenshot as a file',
-        text: 'Snip to a PNG on the laptop. Clipboard paste cannot cross SSH.',
-        hash: 'save-the-screenshot-as-a-file',
+        name: 'Upload one image with scp',
+        text: 'Copy the saved screenshot from the laptop to a path on the remote host.',
+        hash: 'upload-one-image-with-scp',
       },
       {
-        name: 'Copy it onto the remote host',
-        text: 'Use scp, drag into VS Code Remote-SSH, or upload a batch with vmup.',
-        hash: 'copy-it-onto-the-remote-host',
+        name: 'Give Claude Code the remote path',
+        text: 'Tell Claude Code to inspect the path that now exists on the server.',
+        hash: 'give-claude-code-the-remote-path',
       },
       {
-        name: 'Give Claude the remote path',
-        text: 'Paste a file path or a folder prompt into the Claude Code thread on the server.',
-        hash: 'give-claude-the-remote-path',
+        name: 'Stop repeating scp for every screenshot',
+        text: 'Use a clipboard loop or batch folder when several files belong to one request.',
+        hash: 'stop-repeating-scp-for-every-screenshot',
+      },
+    ],
+  },
+  '/learn/codex-cli-image-ssh': {
+    name: 'Attach an image to Codex CLI over SSH',
+    steps: [
+      {
+        name: 'Upload the image with scp',
+        text: 'Copy the image from the laptop to a path on the remote host.',
+        hash: 'upload-the-image-with-scp',
+      },
+      {
+        name: 'Attach the remote file with codex --image',
+        text: 'Start Codex on the remote host and pass the uploaded path through --image.',
+        hash: 'attach-the-remote-file-with-codex---image',
+      },
+      {
+        name: 'Send multiple images as one batch',
+        text: 'Repeat --image for selected files or upload one temporary folder for the request.',
+        hash: 'send-multiple-images-as-one-batch',
       },
     ],
   },
   '/learn/send-files-to-remote-coding-agent': {
-    name: 'Send laptop files to a coding agent on a remote VM',
+    name: 'Send files to a remote coding agent over SSH',
     steps: [
       {
-        name: 'Collect the local files',
-        text: 'Gather screenshots, PDFs, or recordings on the laptop as paths, clipboard items, or a watched folder.',
-        hash: 'collect-the-local-files',
+        name: 'Send the files manually with scp',
+        text: 'Copy the selected laptop files into a directory on the remote host.',
+        hash: 'send-the-files-manually-with-scp',
       },
       {
-        name: 'Upload one batch over SSH',
-        text: 'Copy the files into one remote directory the agent can list.',
-        hash: 'upload-one-batch-over-ssh',
-      },
-      {
-        name: 'Paste the folder prompt',
-        text: 'Tell the agent to inspect that directory. Delete the batch when you are done.',
-        hash: 'paste-the-folder-prompt',
+        name: 'Send one folder prompt instead',
+        text: 'Create one temporary remote batch and give the agent its directory path.',
+        hash: 'send-one-folder-prompt-instead',
       },
     ],
   },

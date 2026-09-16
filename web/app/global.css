@@ -442,6 +442,32 @@ body:has(#nd-sidebar-mobile[data-state='open'])
   margin-block: 1.25rem;
 }
 
+.learn-article :where(img) {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-block: 1.5rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+}
+
+.learn-article :where(.learn-proof-link) {
+  display: block;
+  margin-block: 1.5rem 0.5rem;
+  cursor: zoom-in;
+}
+
+.learn-article :where(.learn-proof-link img) {
+  margin: 0;
+  transition: border-color 160ms ease, opacity 160ms ease;
+}
+
+.learn-article :where(.learn-proof-link:hover img) {
+  border-color: color-mix(in oklab, var(--foreground) 28%, var(--border));
+  opacity: 0.98;
+}
+
 .learn-article :where(table) {
   width: 100%;
   margin-block: 1.5rem;

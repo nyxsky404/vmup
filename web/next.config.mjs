@@ -8,6 +8,9 @@ const withMDX = createMDX();
 const config = {
   reactStrictMode: true,
   skipTrailingSlashRedirect: true,
+  images: {
+    qualities: [75, 90],
+  },
   turbopack: {
     root: dirname(fileURLToPath(import.meta.url)),
   },

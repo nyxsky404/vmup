@@ -176,7 +176,18 @@ const facts: { id: string; body: ReactNode }[] = [
 
 const docs = [
   { href: '/learn', label: 'Learn' },
-  { href: '/learn/claude-code-paste-image-ssh', label: 'Paste over SSH' },
+  {
+    href: '/learn/claude-code-paste-image-ssh',
+    label: 'Paste an image into Claude Code over SSH',
+  },
+  {
+    href: '/learn/codex-cli-image-ssh',
+    label: 'Attach an image to Codex CLI over SSH',
+  },
+  {
+    href: '/learn/cursor-remote-ssh-local-files',
+    label: 'Give Cursor access to local files over Remote-SSH',
+  },
   { href: '/docs/quickstart', label: 'First upload' },
   { href: '/docs/guides/screenshots-to-agent', label: 'Screenshots to agent' },
   { href: '/docs/guides/clipboard-for-agents', label: 'Clipboard for agents' },

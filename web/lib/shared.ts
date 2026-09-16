@@ -75,6 +75,8 @@ const learnSeoTitles: Record<string, string> = {
   '/learn': 'Guides for remote coding agents over SSH',
   '/learn/claude-code-paste-image-ssh':
     'How to paste an image into Claude Code over SSH',
+  '/learn/codex-cli-image-ssh':
+    'Attach images to Codex CLI on a remote server — vmup',
   '/learn/send-files-to-remote-coding-agent':
     'Send laptop files to a coding agent on a remote VM',
   '/learn/cursor-remote-ssh-local-files':
