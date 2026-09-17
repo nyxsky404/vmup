@@ -26,7 +26,7 @@ export function LearnFooter({ className }: { className?: string }) {
         <a href={GITHUB_URL} className={cn(linkClass, 'underline')}>
           nyxsky404
         </a>{' '}
-        on GitHub. MIT
+        on GitHub.
       </p>
       <nav
         aria-label="Project"

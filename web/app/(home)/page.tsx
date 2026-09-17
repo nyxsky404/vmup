@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Coffee, Star } from 'lucide-react';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { HeroHeading } from '@/components/hero-heading';
@@ -6,7 +7,7 @@ import { FirstRunCommands, InstallTabs } from '@/components/install-tabs';
 import { JsonLd } from '@/components/json-ld';
 import { BrandMark } from '@/components/logo';
 import { WorkflowDiagram } from '@/components/workflow-diagram';
-import { GITHUB_ISSUES_URL, GITHUB_URL, NPM_URL } from '@/lib/install';
+import { BUY_ME_A_COFFEE_URL, GITHUB_URL, NPM_URL } from '@/lib/install';
 import { homeJsonLd } from '@/lib/schema';
 import {
   absoluteUrl,
@@ -172,26 +173,6 @@ const facts: { id: string; body: ReactNode }[] = [
       </>
     ),
   },
-];
-
-const docs = [
-  { href: '/learn', label: 'Learn' },
-  {
-    href: '/learn/claude-code-paste-image-ssh',
-    label: 'Paste an image into Claude Code over SSH',
-  },
-  {
-    href: '/learn/codex-cli-image-ssh',
-    label: 'Attach an image to Codex CLI over SSH',
-  },
-  {
-    href: '/learn/cursor-remote-ssh-local-files',
-    label: 'Give Cursor access to local files over Remote-SSH',
-  },
-  { href: '/docs/quickstart', label: 'First upload' },
-  { href: '/docs/guides/screenshots-to-agent', label: 'Screenshots to agent' },
-  { href: '/docs/guides/clipboard-for-agents', label: 'Clipboard for agents' },
-  { href: '/docs/explain/vs-scp', label: 'vs scp / rsync' },
 ];
 
 export default function HomePage() {
@@ -416,66 +397,103 @@ Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
         </p>
       </section>
 
-      <footer className="mt-24 border-t border-border pt-8 text-sm text-muted-foreground max-lg:pb-[max(2rem,env(safe-area-inset-bottom))]">
-        <nav
-          aria-label="Guides"
-          className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 sm:gap-x-6 max-lg:gap-y-0"
-        >
-          {docs.map((item) => (
-            <Link
-              key={item.href}
-              className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
-              href={item.href}
+      <footer className="mt-16 border-t border-border pt-8 text-sm text-muted-foreground max-lg:pb-[max(2rem,env(safe-area-inset-bottom))]">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-medium text-foreground">Found vmup useful?</p>
+            <p className="mt-1 text-muted-foreground">
+              A star helps other developers find it.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 min-[24rem]:flex-row">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-3.5 font-medium text-background transition-opacity duration-150 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background min-[24rem]:w-auto motion-safe:active:scale-[0.98]"
             >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <p className="mt-8 max-w-xl">
-          Maintained by{' '}
+              <Star aria-hidden="true" className="size-4" strokeWidth={2} />
+              Star on GitHub
+            </a>
+            <a
+              href={BUY_ME_A_COFFEE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-3.5 font-medium text-foreground transition-[background-color,border-color] duration-150 hover:border-foreground/20 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background min-[24rem]:w-auto motion-safe:active:scale-[0.98]"
+            >
+              <Coffee
+                aria-hidden="true"
+                className="size-4 text-[#9a6200] dark:text-[#ffdd00]"
+                strokeWidth={2}
+              />
+              Buy me a coffee
+            </a>
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <nav
+              aria-label="Footer"
+              className="flex flex-wrap items-center gap-x-4 max-lg:gap-y-0"
+            >
+              <Link
+                href="/docs"
+                className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+              >
+                Docs
+              </Link>
+              <Link
+                href="/learn"
+                className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+              >
+                Learn
+              </Link>
+              <Link
+                href="/docs/quickstart"
+                className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+              >
+                Quickstart
+              </Link>
+              <Link
+                href="/docs/changelog"
+                className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+              >
+                Changelog
+              </Link>
+              <a
+                href={NPM_URL}
+                className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+              >
+                npm
+              </a>
+            </nav>
+            <p className="mt-3">
+              Maintained by{' '}
+              <a
+                href={GITHUB_URL}
+                className="underline underline-offset-4"
+              >
+                nyxsky404
+              </a>{' '}
+            </p>
+          </div>
           <a
-            href={GITHUB_URL}
-            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
+            href="https://auraplusplus.com/projects/vmup-send-screenshot-to-vms-for-ai-agents-and-get-path-on-clipboard"
+            target="_blank"
+            rel="noopener"
+            title="View this project on Aura++"
+            className="inline-block w-36 shrink-0 rounded-lg opacity-55 grayscale transition-[opacity,filter] duration-150 hover:opacity-100 hover:grayscale-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            nyxsky404
-          </a>{' '}
-          on GitHub. MIT
-        </p>
-        <nav
-          aria-label="Project"
-          className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 max-lg:gap-y-0"
-        >
-          <a
-            href={GITHUB_URL}
-            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
-          >
-            GitHub
+            <img
+              src="https://auraplusplus.com/images/badges/featured-on-dark.svg"
+              alt="Featured on Aura++"
+              width="265"
+              height="58"
+              className="h-auto w-full"
+            />
           </a>
-          <a
-            href={NPM_URL}
-            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
-          >
-            npm
-          </a>
-          <a
-            href={GITHUB_ISSUES_URL}
-            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
-          >
-            Issues
-          </a>
-          <Link
-            href="/docs/contact"
-            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
-          >
-            Security
-          </Link>
-          <Link
-            href="/docs/changelog"
-            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
-          >
-            Changelog
-          </Link>
-        </nav>
+        </div>
       </footer>
     </main>
   );
