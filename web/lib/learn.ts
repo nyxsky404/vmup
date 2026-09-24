@@ -251,11 +251,15 @@ export const learnFaqs: Record<string, Faq[]> = {
     },
     {
       name: 'Which tools avoid a remote clipboard daemon?',
-      text: 'scp, clipssh, PasteHop, imgssh and vmup upload files without requiring a persistent remote clipboard daemon.',
+      text: 'scp, clipssh, PasteHop, imgssh, Paste2SSH, Claude Screenshot Uploader and vmup upload files without requiring a persistent remote clipboard daemon. Some run a local background app or watcher.',
     },
     {
       name: 'Which options handle files beyond screenshots?',
-      text: 'scp, PasteHop and vmup accept explicit files. Confirm each tool’s current type restrictions before depending on it.',
+      text: 'scp, PasteHop, Paste2SSH and vmup accept explicit files. Confirm each tool’s current type restrictions before depending on it.',
+    },
+    {
+      name: 'Does vmup watch upload each screenshot automatically?',
+      text: 'No. It stages new files in the watched folder, then uploads them together when you press Enter.',
     },
     {
       name: 'When should I use a clipboard shim?',

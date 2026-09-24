@@ -1,9 +1,9 @@
 ---
-title: Claude Code SSH screenshot tools compared
-description: "Compare scp, clipaste, cssh, clipssh, PasteHop, imgssh and vmup for sending Claude Code screenshots over SSH, including setup and workflow trade-offs."
+title: Claude Code SSH screenshot uploaders compared
+description: "Compare screenshot uploaders for Claude Code over SSH: manual scp, automatic Mac apps, clipboard tools, terminal helpers and vmup batches."
 ---
 
-Use `scp` when you want the smallest trustworthy solution for one screenshot; use a path uploader when you repeat that task, or a batch tool when several files belong together. Clipboard shims feel closer to native paste, but they add a tunnel, remote helper or display dependency that must be maintained.
+A Claude Code SSH screenshot uploader moves a laptop image to the server and gives you a path Claude Code can read. For one saved image, start with `scp`. Use an automatic uploader if every new screenshot should reach the server, or vmup if several images and files belong in one temporary agent folder.
 
 <LearnProofImage
   src="/learn/ssh-image-before-after.webp"
@@ -29,9 +29,11 @@ Inspect /tmp/bug.png.
 
 **Expected result:** Claude Code receives a server-side path and does not need access to the laptop clipboard.
 
-If that is enough, stop here. If the repetition is the problem, [install vmup](/docs/install) and complete the [first SSH upload](/docs/quickstart) before comparing it with a shim or path uploader.
+If that is enough, stop here. If the repetition is the problem, compare the uploaders below. For a batch, [install vmup](/docs/install) and complete the [first SSH upload](/docs/quickstart).
 
-## Tool comparison
+## Claude Code SSH screenshot uploader comparison
+
+On a narrow screen, swipe the table to see each tool's best fit and trade-off.
 
 | Tool | Design | Remote changes | Best fit | Main trade-off |
 |---|---|---|---|---|
@@ -40,18 +42,22 @@ If that is enough, stop here. If the repetition is the problem, [install vmup](/
 | [cssh](https://github.com/Hackerbone/cssh) | Clipboard sync plus remote `xclip` shim | Installs a shim; optional Xvfb for Codex | Native-feeling Claude Code paste | Modifies remote PATH and may run a daemon |
 | [clipssh](https://github.com/samuellawrentz/clipssh) | Reads local clipboard, uploads a PNG, copies the remote path | Uploaded file only | One screenshot with no remote daemon | Screenshot-focused; `/tmp` cleanup is your job |
 | [PasteHop](https://github.com/shantanugoel/pastehop) | Uploads a clipboard image or file and inserts/copies its remote path | Uploaded file; optional terminal integration | WezTerm or Kitty users who want a paste hook | Requires host trust and terminal integration for native paste |
-| [imgssh](https://github.com/coderredlab/imgssh) | Wraps the SSH process and uploads on a trigger | Uploaded file only | Ghostty users who accept an SSH wrapper | You must connect through the wrapper; PNG-focused |
+| [imgssh](https://github.com/coderredlab/imgssh) | Wraps SSH; `Ctrl+]` uploads a clipboard PNG and inserts its path | Uploaded file only | One image while working inside its SSH session | You must connect through the wrapper; PNG only |
+| [Paste2SSH](https://paste2ssh.com/) | Mac menu bar app watches copied images, uploads them and copies remote paths | Uploaded file only | Automatic clipboard screenshot upload on macOS | Every copied image uploads while paste mode is on |
+| [Claude Screenshot Uploader](https://github.com/mdrzn/claude-screenshot-uploader) | Mac screenshot-folder watcher uploads with rsync and copies remote paths | Uploaded file only | Automatic upload of newly saved screenshots | Requires a configured watched folder and background helper |
 | **vmup** | Batches paths, clipboard items or watched files into one remote folder | Uploaded batch plus TTL cleanup | Several images or mixed file types | Produces a folder prompt, not a native image pill |
 
-Every tool row links to its current project documentation. Check the project again before installation because flags, supported terminals and cleanup behavior can change.
+Every tool row links to its project documentation. Check it before installation because flags, supported platforms and cleanup behavior can change.
 
-## Shims versus path uploaders
+## Automatic upload, paste shims or a path on demand?
 
 **Clipboard shims** try to preserve Ctrl+V by making the remote clipboard look populated. clipaste and cssh fit this category. They are closest to local Claude Code, but they may alter SSH configuration, install a remote command or keep a background process alive.
 
-**Path uploaders** accept that the agent needs a file. clipssh, PasteHop and imgssh transfer an image and provide the resulting remote path. They are easier to reason about because the success condition is visible with `ls` or `file`.
+**Automatic uploaders** watch for a new clipboard image or saved screenshot. Paste2SSH watches copied images; Claude Screenshot Uploader watches a screenshot folder. They send each image to the selected server in the background and put its remote path on your clipboard. Choose the trigger you actually use, and check where each tool stores and cleans up remote files.
 
-**Expected result:** after either design succeeds, Claude Code receives a readable remote file. The difference is whether the tool simulates paste or exposes the path.
+**On-demand path uploaders** wait for a command or keypress. clipssh, PasteHop and imgssh transfer an image and provide the resulting remote path. They make the upload deliberate, and you can verify the file with `ls` or `file` on the server.
+
+With a path uploader, Claude Code receives a readable remote path. With a clipboard shim, the remote session receives image data through the shim's paste flow.
 
 ## Where vmup differs
 
@@ -61,14 +67,15 @@ vmup bug.png console.png notes.pdf
 
 **Expected result:** one `Agent folder:` path contains the whole set, and the generated prompt asks the agent to inspect that folder.
 
-vmup does not aim to recreate `[Image #1]` inside Claude Code. It is for the adjacent problem: several files, mixed formats, one remote directory and automatic expiry.
+vmup does not aim to recreate `[Image #1]` inside Claude Code. It is for several files, mixed formats, one remote directory and automatic expiry. [`vmup watch`](/docs/guides/watch) stages files added to a chosen folder while it runs in the foreground; **press Enter to upload the batch**. It does not upload each new screenshot automatically in the background.
 
 ## How to choose
 
 - One saved PNG and no new dependency: `scp`.
 - One clipboard screenshot and a remote path is acceptable: clipssh or PasteHop.
+- Every copied image should upload from a Mac: Paste2SSH. For screenshots saved to a watched folder, consider Claude Screenshot Uploader.
 - Native-feeling Claude Code paste is worth a daemon or remote shim: clipaste or cssh.
-- Ghostty-specific wrapper flow: imgssh.
+- One-session SSH wrapper and a keyboard trigger: imgssh.
 - Several files or mixed formats: vmup.
 
 For the complete manual workflow, read [paste an image into Claude Code over SSH](/learn/claude-code-paste-image-ssh). If the TUI prints an error, read [fix “No image found in clipboard”](/learn/claude-code-no-image-found-clipboard-ssh).
@@ -78,7 +85,7 @@ For the complete manual workflow, read [paste an image into Claude Code over SSH
 - Control transfer: macOS 26.6, OpenSSH 10.3p1, localhost SSH target, September 16, 2026
 - Linux control transfer: Ubuntu 26.04, OpenSSH 10.2p1, Lima VM to localhost SSH target
 - Batch workflow: vmup 0.4.0
-- Comparison claims: checked against each linked project README on September 16, 2026; third-party tools were not installed for this article
+- Comparison claims: checked against each linked project README or product page on September 24, 2026; third-party tools were not installed for this article
 
 ## Quick answers
 
@@ -86,10 +93,13 @@ For the complete manual workflow, read [paste an image into Claude Code over SSH
 Save the PNG, copy it with `scp`, and paste the remote path into Claude Code.
 
 **Which tools avoid a remote clipboard daemon?**
-`scp`, clipssh, PasteHop, imgssh and vmup upload files without requiring a persistent remote clipboard daemon.
+`scp`, clipssh, PasteHop, imgssh, Paste2SSH, Claude Screenshot Uploader and vmup upload files without requiring a persistent remote clipboard daemon. Some run a local background app or watcher.
 
 **Which options handle files beyond screenshots?**
-`scp`, PasteHop and vmup accept explicit files. Confirm each tool’s current type restrictions before depending on it.
+`scp`, PasteHop, Paste2SSH and vmup accept explicit files. Confirm each tool’s current type restrictions before depending on it.
+
+**Does vmup watch upload each screenshot automatically?**
+No. It stages new files in the watched folder, then uploads them together when you press Enter.
 
 **When should I use a clipboard shim?**
 Use one when preserving the paste gesture matters more than minimizing remote setup and background processes.

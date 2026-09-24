@@ -84,7 +84,7 @@ const learnSeoTitles: Record<string, string> = {
   '/learn/cursor-remote-ssh-local-files':
     'Cursor Remote-SSH local files: upload to the workspace',
   '/learn/claude-code-ssh-screenshot-tools':
-    'clipaste vs clipssh vs cssh for Claude Code SSH',
+    'Claude Code SSH screenshot uploaders compared',
   '/learn/claude-code-no-image-found-clipboard-ssh':
     'Claude Code: no image found in clipboard over SSH',
 };
