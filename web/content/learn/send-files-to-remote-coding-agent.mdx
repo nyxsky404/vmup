@@ -23,6 +23,14 @@ The transfer mechanism is independent of the agent. OpenSSH documents that [`scp
 
 Keep the manual route visible because it is free, installed with OpenSSH and preserves the original filenames.
 
+For one file, run `scp` on the laptop with the local path first and the remote path last:
+
+```bash
+scp ~/Desktop/bug.png user@server:/tmp/bug.png
+```
+
+**Expected result:** `/tmp/bug.png` exists on the server. The commands below copy several files into one remote directory.
+
 ### macOS or Linux
 
 ```bash
@@ -87,7 +95,7 @@ Use `rsync` for a directory tree that should remain synchronized between machine
 
 **Expected result:** choose the transfer tool based on whether the remote data should persist and stay synchronized, not based on which agent will read it.
 
-For Cursor-specific local paths, read [give Cursor access to local files over Remote-SSH](/learn/cursor-remote-ssh-local-files). For Codex image flags, read [attach an image to Codex CLI over SSH](/learn/codex-cli-image-ssh).
+For filenames, spaces, and wildcard examples, read [how to scp multiple files](/learn/scp-multiple-files). For Cursor-specific local paths, read [give Cursor access to local files over Remote-SSH](/learn/cursor-remote-ssh-local-files). For Codex image flags, read [attach an image to Codex CLI over SSH](/learn/codex-cli-image-ssh).
 
 ## Last tested with
 

@@ -1,0 +1,89 @@
+---
+title: How to scp multiple files to a remote server
+description: "Learn how to scp multiple files with one command, including filenames with spaces, wildcards, and a remote coding agent batch."
+---
+
+To scp multiple files, run `scp file1 file2 user@server:/destination/` on the computer that holds the files. Put every local source before the remote destination. The destination directory must already exist.
+
+## How to scp multiple files in one command
+
+Create the destination on the server, then run `scp` from your laptop:
+
+```bash
+ssh user@server \
+  'mkdir -p /tmp/agent-input'
+scp ~/Desktop/bug.png \
+  ~/Downloads/notes.pdf \
+  user@server:/tmp/agent-input/
+```
+
+**Expected result:** the server has `/tmp/agent-input/bug.png` and `/tmp/agent-input/notes.pdf`. OpenSSH documents the command form as [`scp source ... target`](https://man.openbsd.org/scp.1). Choose a directory outside `/tmp` if the files must persist.
+
+## Copy filenames that contain spaces
+
+Quote each path with spaces. `$HOME` still expands inside double quotes:
+
+```bash
+scp "$HOME/Desktop/bug screen.png" \
+  "$HOME/Downloads/review notes.pdf" \
+  user@server:/tmp/agent-input/
+```
+
+**Expected result:** both original filenames appear in the remote directory. If two source files from different folders have the same basename, rename one before copying so they do not target the same remote path.
+
+## Copy matching files with a wildcard
+
+Let your local shell select the files:
+
+```bash
+scp ~/Desktop/*.png \
+  user@server:/tmp/agent-input/
+```
+
+**Expected result:** PNG files directly inside your local Desktop are copied. The shell expands `*.png` on the laptop; it does not search subfolders. Check that files match before running the command, since shells handle an unmatched pattern differently.
+
+## Check the files on the remote host
+
+```bash
+ssh user@server \
+  'ls -lh /tmp/agent-input/'
+```
+
+**Expected result:** the listing includes each uploaded filename and a non-zero size. A local path such as `/Users/you/Desktop/bug.png` still refers to your laptop; use the remote path when another program on the server needs the file.
+
+If you use Windows through WSL, replace a Windows path such as `C:\Users\you\Desktop\bug.png` with `/mnt/c/Users/you/Desktop/bug.png` in the local `scp` command. Microsoft documents the [WSL drive mapping](https://learn.microsoft.com/en-us/windows/wsl/filesystems).
+
+## Send several files to a remote coding agent
+
+For a few named files, the `scp` command above is enough. Give your agent the resulting paths, such as `/tmp/agent-input/bug.png` and `/tmp/agent-input/notes.pdf`. The [remote coding agent guide](/learn/send-files-to-remote-coding-agent) covers that handoff in more detail.
+
+For a temporary batch with one folder path and prompt, [install vmup](/docs/install) and complete the [first SSH upload](/docs/quickstart):
+
+```bash
+vmup bug.png notes.pdf
+```
+
+**Expected result:** vmup prints `Agent folder:` and a prompt that points the agent to the remote batch. The default batch expires after five minutes. Use `scp` when original filenames or a persistent destination matter.
+
+For a single screenshot in Claude Code, see [paste an image over SSH](/learn/claude-code-paste-image-ssh). For files in a Cursor remote workspace, see [Cursor Remote-SSH local files](/learn/cursor-remote-ssh-local-files).
+
+## Last tested with
+
+- Manual named-file, spaced-name, and wildcard transfers: macOS OpenSSH to a localhost SSH test server, September 24, 2026
+- WSL path form: checked against Microsoft's WSL filesystem documentation; native WSL was not available
+
+## Quick answers
+
+**Can scp copy multiple files at once?**
+Yes. Put each source before one remote destination directory: `scp file1 file2 user@server:/destination/`.
+
+**How do I scp all PNG files in one folder?**
+Run `scp ~/Desktop/*.png user@server:/destination/` on the laptop. The local shell selects the matching files.
+
+**Where should I run the scp command?**
+Run it on the machine that holds the source files. If the files are on your laptop, run `scp` in a laptop terminal, outside the remote SSH session.
+
+**What if the remote destination directory does not exist?**
+Create it first with `ssh user@server 'mkdir -p /destination'`, then run `scp`.
+
+*Disclosure: vmup is maintained by the author of this article. The manual `scp` commands above work without vmup.*

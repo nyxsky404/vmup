@@ -77,6 +77,8 @@ const learnSeoTitles: Record<string, string> = {
     'How to paste an image into Claude Code over SSH',
   '/learn/codex-cli-image-ssh':
     'Attach images to Codex CLI on a remote server — vmup',
+  '/learn/scp-multiple-files':
+    'How to scp multiple files to a remote server',
   '/learn/send-files-to-remote-coding-agent':
     'Send laptop files to a coding agent on a remote VM',
   '/learn/cursor-remote-ssh-local-files':

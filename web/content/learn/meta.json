@@ -3,6 +3,7 @@
   "pages": [
     "claude-code-paste-image-ssh",
     "codex-cli-image-ssh",
+    "scp-multiple-files",
     "send-files-to-remote-coding-agent",
     "cursor-remote-ssh-local-files",
     "claude-code-ssh-screenshot-tools",

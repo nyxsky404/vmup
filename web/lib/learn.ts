@@ -9,6 +9,7 @@ export const learnHub = {
 export const learnArticleUrls = [
   '/learn/claude-code-paste-image-ssh',
   '/learn/codex-cli-image-ssh',
+  '/learn/scp-multiple-files',
   '/learn/send-files-to-remote-coding-agent',
   '/learn/cursor-remote-ssh-local-files',
   '/learn/claude-code-ssh-screenshot-tools',
@@ -23,6 +24,7 @@ export const learnPostMeta: Record<
 > = {
   '/learn/claude-code-paste-image-ssh': { date: '2026-09-12', tag: 'ssh' },
   '/learn/codex-cli-image-ssh': { date: '2026-09-16', tag: 'codex' },
+  '/learn/scp-multiple-files': { date: '2026-09-24', tag: 'ssh' },
   '/learn/send-files-to-remote-coding-agent': {
     date: '2026-09-12',
     tag: 'agents',
@@ -59,7 +61,12 @@ const learnRelatedUrls: Record<
     '/learn/send-files-to-remote-coding-agent',
     '/learn/claude-code-paste-image-ssh',
   ],
+  '/learn/scp-multiple-files': [
+    '/learn/send-files-to-remote-coding-agent',
+    '/learn/claude-code-paste-image-ssh',
+  ],
   '/learn/send-files-to-remote-coding-agent': [
+    '/learn/scp-multiple-files',
     '/learn/cursor-remote-ssh-local-files',
     '/learn/codex-cli-image-ssh',
   ],
@@ -139,6 +146,24 @@ type HowTo = {
 };
 
 export const learnFaqs: Record<string, Faq[]> = {
+  '/learn/scp-multiple-files': [
+    {
+      name: 'Can scp copy multiple files at once?',
+      text: 'Yes. Put each source before one remote destination directory: scp file1 file2 user@server:/destination/.',
+    },
+    {
+      name: 'How do I scp all PNG files in one folder?',
+      text: 'Run scp ~/Desktop/*.png user@server:/destination/ on the laptop. The local shell selects the matching files.',
+    },
+    {
+      name: 'Where should I run the scp command?',
+      text: 'Run it on the machine that holds the source files. If they are on your laptop, use a laptop terminal outside the remote SSH session.',
+    },
+    {
+      name: 'What if the remote destination directory does not exist?',
+      text: 'Run mkdir -p /destination on the remote host, then run scp from the machine holding the files.',
+    },
+  ],
   '/learn/claude-code-paste-image-ssh': [
     {
       name: 'Can I paste a screenshot into Claude Code over SSH?',
@@ -262,6 +287,21 @@ export const learnFaqs: Record<string, Faq[]> = {
 };
 
 export const learnHowTos: Record<string, HowTo> = {
+  '/learn/scp-multiple-files': {
+    name: 'Copy multiple files with scp',
+    steps: [
+      {
+        name: 'How to scp multiple files in one command',
+        text: 'Create the remote destination and copy selected local files in one scp command.',
+        hash: 'how-to-scp-multiple-files-in-one-command',
+      },
+      {
+        name: 'Check the files on the remote host',
+        text: 'List the destination on the server to confirm each uploaded file is present.',
+        hash: 'check-the-files-on-the-remote-host',
+      },
+    ],
+  },
   '/learn/claude-code-paste-image-ssh': {
     name: 'Paste an image into Claude Code over SSH',
     steps: [
