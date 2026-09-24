@@ -82,7 +82,7 @@ const learnSeoTitles: Record<string, string> = {
   '/learn/send-files-to-remote-coding-agent':
     'Send laptop files to a coding agent on a remote VM',
   '/learn/cursor-remote-ssh-local-files':
-    'Cursor Remote-SSH cannot analyze local files',
+    'Cursor Remote-SSH local files: upload to the workspace',
   '/learn/claude-code-ssh-screenshot-tools':
     'clipaste vs clipssh vs cssh for Claude Code SSH',
   '/learn/claude-code-no-image-found-clipboard-ssh':

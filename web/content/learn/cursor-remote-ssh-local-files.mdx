@@ -1,9 +1,9 @@
 ---
-title: Cursor Remote-SSH cannot access local files
-description: "Fix Cursor Remote-SSH local-file access by uploading the file to the remote workspace, then attaching or mentioning its remote path from the remote session."
+title: "Cursor Remote-SSH local files: upload to the remote workspace"
+description: "Move a laptop file into your Cursor Remote-SSH workspace with scp, then attach or mention its remote path so the agent can read it."
 ---
 
-Cursor’s remote agent cannot open a laptop path that was only attached as a local reference. Copy the file into the remote workspace, then attach or mention the remote path.
+To give Cursor access to a local file in Remote-SSH, copy it from your laptop into the remote workspace, then attach or mention its remote path. A laptop path alone does not give the remote agent the file.
 
 <LearnProofImage
   src="/learn/ssh-image-before-after.webp"
@@ -76,7 +76,7 @@ If the file is already saved, drag it from the desktop into Cursor’s Remote-SS
 - **The file is on WSL but the agent is on another server:** use `scp`; `/mnt/c/…` only exists inside the local WSL environment.
 - **The file uploaded outside the project:** use the absolute remote path, or move it into the remote workspace before using `@Files`.
 
-For mixed files, read [send files to a remote coding agent](/learn/send-files-to-remote-coding-agent). For the same filesystem boundary in a terminal agent, see [paste an image into Claude Code over SSH](/learn/claude-code-paste-image-ssh).
+For several saved files, read [how to scp multiple files](/learn/scp-multiple-files). For the full agent handoff, read [send files to a remote coding agent](/learn/send-files-to-remote-coding-agent). For the same filesystem boundary in a terminal agent, see [paste an image into Claude Code over SSH](/learn/claude-code-paste-image-ssh).
 
 ## Last tested with
 
