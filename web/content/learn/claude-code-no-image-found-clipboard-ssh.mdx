@@ -1,9 +1,9 @@
 ---
 title: "Claude Code: no image found in clipboard over SSH"
-description: "Fix “No image found in clipboard” in Claude Code over SSH by uploading the screenshot with scp and referencing its remote path. Includes tmux and WSL checks."
+description: "Claude Code says “No image found in clipboard” over SSH? Run scp from your laptop, then give Claude Code the uploaded image's remote path."
 ---
 
-“No image found in clipboard” means Claude Code did not receive usable image data from the clipboard available to the remote process. Save the screenshot as a file, transfer it to the server, and reference that remote path instead.
+When Claude Code says “No image found in clipboard” over SSH, the remote process did not receive usable image data. Save the screenshot on your laptop, run `scp` from the laptop to the server, and give Claude Code the uploaded image's remote path.
 
 <LearnProofImage
   src="/learn/ssh-image-before-after.webp"
@@ -69,7 +69,7 @@ Inspect /tmp/bug.png and explain the visible error.
 
 ## Send repeated screenshots without rebuilding the command
 
-`scp` is still the clearest manual fix for one screenshot. For repeated screenshots or a mixed batch, [install vmup](/docs/install) and complete the [first SSH upload](/docs/quickstart), then collect clipboard images into one remote folder:
+`scp` is still the clearest manual fix for one screenshot. For several saved images, [copy multiple files with scp](/learn/scp-multiple-files). For repeated screenshots or a mixed batch, [install vmup](/docs/install) and complete the [first SSH upload](/docs/quickstart), then collect clipboard images into one remote folder:
 
 ```bash
 vmup --clip
