@@ -1,0 +1,154 @@
+---
+title: "vmup: Send screenshots and files to a remote coding agent"
+description: "Use vmup to send screenshots, PDFs, recordings and other files over SSH into one temporary folder that your remote coding agent can inspect."
+---
+
+vmup is a command-line tool for sending local files to a remote coding agent. It collects the files for one task, uploads them over your existing SSH connection, and copies a prompt containing one remote folder path.
+
+<WorkflowDiagram />
+
+## What vmup does
+
+A coding agent running on a VM reads the VM filesystem. It cannot open a screenshot in your laptop clipboard or a PDF under your local Downloads folder.
+
+vmup handles that boundary in three steps:
+
+1. Collect screenshots and files from paths, the native picker, the clipboard or a watched folder.
+2. Upload the set into a new directory under `~/vmup` on the SSH host.
+3. Copy a prompt with that remote directory so you can paste it into the agent thread.
+
+The agent receives one folder for the task instead of a list of laptop paths it cannot open.
+
+## Install and configure vmup
+
+vmup requires Node 18 or newer and OpenSSH on macOS or Linux. Windows users can run it through WSL.
+
+```bash
+npm install -g @nyxsky404/vmup
+```
+
+Create a profile for the machine where your coding agent runs:
+
+```bash
+vmup init
+vmup check
+```
+
+`vmup init` writes the SSH host, user, key, port, remote directory and cleanup settings to `~/.config/vmup/config.toml`. `vmup check` tests the connection and remote directory before you send a file.
+
+Follow the [installation options](/docs/install) if you use pnpm, Yarn, Bun or the curl installer. The [first upload guide](/docs/quickstart) shows each prompt from setup through a successful transfer.
+
+## Send a screenshot or mixed file batch
+
+Pass one or more local paths:
+
+```bash
+vmup shot.png notes.pdf recording.mov
+```
+
+You can mix files from different local directories. A directory argument sends its immediate files. vmup validates the set, stages stable names by type, and uploads one batch.
+
+```text
+Uploaded 3 files → default
+Agent folder: ~/vmup/agents-20260927-120000-a1b2c3d4/
+
+Prompt:
+Please inspect all files in ~/vmup/agents-20260927-120000-a1b2c3d4/
+```
+
+The printed prompt also lands on your clipboard by default.
+
+## Paste one remote folder prompt
+
+Paste the generated sentence into Claude Code, Codex, Cursor or another agent running on the configured host:
+
+```text
+Please inspect all files in ~/vmup/agents-20260927-120000-a1b2c3d4/
+```
+
+The folder contains the complete input set for that request. The agent can list the directory, open the images, and read any file formats it supports.
+
+Set `clipboard_copy = "path"` if you want the bare folder path. Set it to `"none"` if another script handles the output.
+
+## Capture screenshots from the clipboard
+
+Start clipboard mode on your laptop:
+
+```bash
+vmup --clip
+```
+
+Copy a screenshot, return to vmup, and press Enter to capture it. Repeat for the rest of the task, then type `done` or press Ctrl+D. vmup uploads the finished set as one batch.
+
+macOS clipboard images require `pngpaste`:
+
+```bash
+brew install pngpaste
+```
+
+Linux uses `wl-paste` or `xclip`. Native Windows clipboard capture is unsupported, but WSL can send screenshots saved under `/mnt/c/...`. The [clipboard reference](/docs/guides/clipboard) covers capture keys, duplicate detection and empty clipboard errors.
+
+## Watch a screenshot folder
+
+Use watch mode when your screenshot tool saves new images to a folder:
+
+```bash
+vmup watch
+```
+
+vmup ignores files that existed when watch mode started. Take the screenshots for the task, then press Enter to upload them together. Pass a different directory when needed:
+
+```bash
+vmup watch --dir ~/Desktop
+```
+
+Watch mode runs in the foreground and uploads when you confirm the batch. It does not send each new screenshot in the background. See [watch a folder](/docs/guides/watch) for filters and keyboard controls.
+
+## What reaches the remote host
+
+Each upload creates a directory named like `agents-<date>-<time>-<uuid>`. vmup renames staged files to predictable names such as `image-01.png`, `file-01.pdf` and `video-01.mov`.
+
+The stable listing helps an agent inspect a batch, but the remote copy does not keep the original basename. Use `scp` when the original name or a permanent destination matters.
+
+vmup accepts all regular file types by default, subject to a 200 MB per-file limit and a 200-file batch limit. You can switch to images-only mode in config. Read the [file type and limit reference](/docs/reference/file-types) before sending a large batch.
+
+## Cleanup and privacy
+
+Files travel from your machine to your configured host through OpenSSH. vmup does not add a cloud storage service or require a remote agent plugin.
+
+Remote batches expire after five minutes by default. A sweeper removes expired `agents-*` directories under the configured remote root. Change the TTL when a task needs more time, or delete batches now:
+
+```bash
+vmup prune --all
+```
+
+The [TTL explanation](/docs/explain/ttl) covers the sweeper and cleanup commands. Treat each remote batch as sensitive until it expires or you remove it.
+
+## Choose vmup or scp
+
+| Job | Better fit |
+|---|---|
+| Copy one named file to a permanent location | `scp` |
+| Keep a directory tree synchronized | `rsync` |
+| Send several task files as one temporary agent folder | vmup |
+| Collect clipboard screenshots before one upload | `vmup --clip` |
+| Stage new screenshots from a folder | `vmup watch` |
+
+Start with `scp` for one file. Choose vmup when collection, one-folder handoff and automatic expiry remove repeated work. The [scp comparison](/docs/explain/vs-scp) lists the trade-offs in detail.
+
+## Quick answers
+
+**What does vmup send to a remote coding agent?**
+vmup uploads selected screenshots and files into one temporary folder on the remote host, then copies a prompt containing that folder path.
+
+**Does vmup replace scp?**
+Use `scp` for a direct copy with the original filename. Use vmup when several files belong to one agent request and one temporary folder is easier to share.
+
+**Can vmup capture screenshots from the clipboard?**
+Yes on macOS and Linux. Run `vmup --clip`, capture each clipboard item with Enter, then type `done` to upload the batch.
+
+**Does vmup upload files to a cloud service?**
+No. The CLI uses your OpenSSH connection to copy files from your machine to the host you configured.
+
+**How long do vmup files stay on the remote machine?**
+The default TTL is five minutes. You can change it in config or delete batches at once with `vmup prune --all`.

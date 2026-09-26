@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type { HTMLAttributes } from 'react';
 import type { MDXComponents } from 'mdx/types';
 import { MdxTable } from '@/components/mdx-table';
+import { WorkflowDiagram } from '@/components/workflow-diagram';
 
 function Pre(props: HTMLAttributes<HTMLPreElement>) {
   return <pre {...props} />;
@@ -35,6 +36,7 @@ function LearnProofImage({
 export function getLearnMdxComponents(): MDXComponents {
   return {
     LearnProofImage,
+    WorkflowDiagram,
     a: Link,
     table: MdxTable,
     pre: Pre,

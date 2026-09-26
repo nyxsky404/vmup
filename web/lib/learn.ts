@@ -7,6 +7,8 @@ export const learnHub = {
 };
 
 export const learnArticleUrls = [
+  '/learn/vmup-remote-agent-files',
+  '/learn/paste-screenshots-remote-terminal',
   '/learn/claude-code-paste-image-ssh',
   '/learn/codex-cli-image-ssh',
   '/learn/scp-multiple-files',
@@ -20,23 +22,66 @@ export type LearnArticleUrl = (typeof learnArticleUrls)[number];
 
 export const learnPostMeta: Record<
   LearnArticleUrl,
-  { date: string; tag: string }
+  { date: string; tags: readonly string[] }
 > = {
-  '/learn/claude-code-paste-image-ssh': { date: '2026-09-12', tag: 'ssh' },
-  '/learn/codex-cli-image-ssh': { date: '2026-09-16', tag: 'codex' },
-  '/learn/scp-multiple-files': { date: '2026-09-24', tag: 'ssh' },
+  '/learn/vmup-remote-agent-files': {
+    date: '2026-09-27',
+    tags: ['vmup', 'copy-files-via-ssh', 'send-files-remote-coding-agent'],
+  },
+  '/learn/paste-screenshots-remote-terminal': {
+    date: '2026-09-27',
+    tags: [
+      'paste-screenshot-remote-terminal',
+      'upload-screenshot-over-ssh',
+      'copy-clipboard-image-remote-server',
+    ],
+  },
+  '/learn/claude-code-paste-image-ssh': {
+    date: '2026-09-12',
+    tags: [
+      'claude-code-image-input',
+      'paste-screenshot-claude-code',
+      'claude-code-paste-image-ssh',
+    ],
+  },
+  '/learn/codex-cli-image-ssh': {
+    date: '2026-09-16',
+    tags: ['codex-cli-image', 'codex-image-ssh'],
+  },
+  '/learn/scp-multiple-files': {
+    date: '2026-09-24',
+    tags: [
+      'scp-multiple-files',
+      'scp-multiple-files-at-once',
+      'how-to-scp-multiple-files',
+    ],
+  },
   '/learn/send-files-to-remote-coding-agent': {
     date: '2026-09-12',
-    tag: 'agents',
+    tags: [
+      'scp-local-to-remote',
+      'copy-files-via-ssh',
+      'ssh-copy-files-local-to-remote',
+    ],
   },
-  '/learn/cursor-remote-ssh-local-files': { date: '2026-09-12', tag: 'cursor' },
+  '/learn/cursor-remote-ssh-local-files': {
+    date: '2026-09-12',
+    tags: ['cursor-remote-ssh-local-files', 'cursor-remote-ssh-upload-file'],
+  },
   '/learn/claude-code-ssh-screenshot-tools': {
     date: '2026-09-12',
-    tag: 'comparisons',
+    tags: [
+      'claude-code-ssh-screenshot-uploader',
+      'automatic-screenshot-upload-ssh',
+      'clipssh',
+    ],
   },
   '/learn/claude-code-no-image-found-clipboard-ssh': {
     date: '2026-09-12',
-    tag: 'ssh',
+    tags: [
+      'claude-code-no-image-found-clipboard',
+      'claude-code-image-clipboard-ssh',
+    ],
   },
 };
 
@@ -53,11 +98,24 @@ const learnRelatedUrls: Record<
   LearnArticleUrl,
   readonly LearnArticleUrl[]
 > = {
+  '/learn/vmup-remote-agent-files': [
+    '/learn/paste-screenshots-remote-terminal',
+    '/learn/send-files-to-remote-coding-agent',
+    '/learn/claude-code-ssh-screenshot-tools',
+  ],
+  '/learn/paste-screenshots-remote-terminal': [
+    '/learn/vmup-remote-agent-files',
+    '/learn/claude-code-paste-image-ssh',
+    '/learn/codex-cli-image-ssh',
+    '/learn/claude-code-ssh-screenshot-tools',
+  ],
   '/learn/claude-code-paste-image-ssh': [
+    '/learn/paste-screenshots-remote-terminal',
     '/learn/claude-code-no-image-found-clipboard-ssh',
     '/learn/claude-code-ssh-screenshot-tools',
   ],
   '/learn/codex-cli-image-ssh': [
+    '/learn/paste-screenshots-remote-terminal',
     '/learn/send-files-to-remote-coding-agent',
     '/learn/claude-code-paste-image-ssh',
   ],
@@ -66,6 +124,7 @@ const learnRelatedUrls: Record<
     '/learn/claude-code-paste-image-ssh',
   ],
   '/learn/send-files-to-remote-coding-agent': [
+    '/learn/paste-screenshots-remote-terminal',
     '/learn/scp-multiple-files',
     '/learn/cursor-remote-ssh-local-files',
     '/learn/codex-cli-image-ssh',
@@ -75,6 +134,7 @@ const learnRelatedUrls: Record<
     '/learn/claude-code-paste-image-ssh',
   ],
   '/learn/claude-code-ssh-screenshot-tools': [
+    '/learn/paste-screenshots-remote-terminal',
     '/learn/claude-code-paste-image-ssh',
     '/learn/claude-code-no-image-found-clipboard-ssh',
   ],
@@ -146,6 +206,50 @@ type HowTo = {
 };
 
 export const learnFaqs: Record<string, Faq[]> = {
+  '/learn/vmup-remote-agent-files': [
+    {
+      name: 'What does vmup send to a remote coding agent?',
+      text: 'vmup uploads selected screenshots and files into one temporary folder on the remote host, then copies a prompt containing that folder path.',
+    },
+    {
+      name: 'Does vmup replace scp?',
+      text: 'Use scp for a direct copy with the original filename. Use vmup when several files belong to one agent request and one temporary folder is easier to share.',
+    },
+    {
+      name: 'Can vmup capture screenshots from the clipboard?',
+      text: 'Yes on macOS and Linux. Run vmup --clip, capture each clipboard item with Enter, then type done to upload the batch.',
+    },
+    {
+      name: 'Does vmup upload files to a cloud service?',
+      text: 'No. The CLI uses your OpenSSH connection to copy files from your machine to the host you configured.',
+    },
+    {
+      name: 'How long do vmup files stay on the remote machine?',
+      text: 'The default TTL is five minutes. You can change it in config or delete batches at once with vmup prune --all.',
+    },
+  ],
+  '/learn/paste-screenshots-remote-terminal': [
+    {
+      name: 'Can I paste a screenshot into a remote terminal over SSH?',
+      text: 'Upload the screenshot to the SSH host, then paste its remote file path. Plain terminal paste does not copy local image bytes to the server.',
+    },
+    {
+      name: 'Why does Cmd+V or Ctrl+V fail with screenshots over SSH?',
+      text: 'The image lives in the laptop clipboard while the receiving process runs on the server. Text crosses the terminal session; the image needs a file-transfer step.',
+    },
+    {
+      name: 'Where should I run the upload command?',
+      text: 'Run scp or vmup on the laptop that holds the screenshot, outside the remote SSH shell.',
+    },
+    {
+      name: 'What do I paste after the upload?',
+      text: 'Paste the remote path or a prompt containing it, such as Inspect /tmp/bug.png.',
+    },
+    {
+      name: 'Can I send several screenshots in one batch?',
+      text: 'Yes. vmup --clip collects clipboard images, uploads them into one remote folder, and copies a prompt with that folder path.',
+    },
+  ],
   '/learn/scp-multiple-files': [
     {
       name: 'Can scp copy multiple files at once?',
@@ -291,6 +395,46 @@ export const learnFaqs: Record<string, Faq[]> = {
 };
 
 export const learnHowTos: Record<string, HowTo> = {
+  '/learn/vmup-remote-agent-files': {
+    name: 'Send screenshots and files to a remote coding agent with vmup',
+    steps: [
+      {
+        name: 'Install and configure vmup',
+        text: 'Install the CLI, run vmup init, and confirm the configured SSH target with vmup check.',
+        hash: 'install-and-configure-vmup',
+      },
+      {
+        name: 'Send a screenshot or mixed file batch',
+        text: 'Pass local paths to vmup or use clipboard mode to collect screenshots before upload.',
+        hash: 'send-a-screenshot-or-mixed-file-batch',
+      },
+      {
+        name: 'Paste one remote folder prompt',
+        text: 'Paste the generated prompt into the remote coding agent so it can inspect the uploaded folder.',
+        hash: 'paste-one-remote-folder-prompt',
+      },
+    ],
+  },
+  '/learn/paste-screenshots-remote-terminal': {
+    name: 'Paste screenshots into a remote terminal over SSH',
+    steps: [
+      {
+        name: 'Save the screenshot on your laptop',
+        text: 'Save the screenshot as a local PNG and confirm that it opens before transfer.',
+        hash: 'save-the-screenshot-on-your-laptop',
+      },
+      {
+        name: 'Upload the screenshot over SSH',
+        text: 'Run scp on the laptop to copy the PNG to a path on the remote host, then verify the file.',
+        hash: 'upload-the-screenshot-over-ssh',
+      },
+      {
+        name: 'Paste the remote path into the terminal',
+        text: 'Paste the server-side image path into the remote agent prompt or use it as a shell argument.',
+        hash: 'paste-the-remote-path-into-the-terminal',
+      },
+    ],
+  },
   '/learn/scp-multiple-files': {
     name: 'Copy multiple files with scp',
     steps: [

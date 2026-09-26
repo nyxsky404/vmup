@@ -55,7 +55,7 @@ export default function LearnIndexPage() {
         title: page.data.title,
         description: page.data.description,
         date: meta.date,
-        tag: meta.tag,
+        tags: meta.tags,
       },
     ];
   });
@@ -88,8 +88,11 @@ export default function LearnIndexPage() {
           <li key={post.url} className="py-8">
             <p className="text-[11px] tracking-wide text-muted-foreground">
               {learnDateLabel(post.date)}
-              <span aria-hidden="true"> · </span>
-              <span>#{post.tag}</span>
+              {post.tags.map((tag) => (
+                <span key={tag}>
+                  <span aria-hidden="true"> · </span>#{tag}
+                </span>
+              ))}
             </p>
             <h2 className="mt-2 text-lg font-medium tracking-tight text-foreground">
               <Link

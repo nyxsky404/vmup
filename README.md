@@ -1,6 +1,6 @@
 # vmup
 
-*Batch files to a remote host over SSH for coding agents*
+*Send screenshots and files to your remote coding agent over SSH*
 
 **Docs:** [https://vmup.dev/docs](https://vmup.dev/docs)
 

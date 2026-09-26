@@ -190,9 +190,7 @@ export default function HomePage() {
         For developers who run{' '}
         <span className="max-sm:whitespace-nowrap">coding agents over SSH</span>
       </p>
-      <HeroHeading>
-        vmup gives coding agents one folder path on the remote host
-      </HeroHeading>
+      <HeroHeading>{appTitle}</HeroHeading>
       <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
         The <code>@nyxsky404/vmup</code> CLI sends screenshots, PDFs, recordings,
         and other local files to the VM your coding agent is running on. One SSH

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/json-ld';
 import { LearnFooter } from '@/components/learn-footer';
 import { getLearnMdxComponents } from '@/components/learn-mdx';
+import { LearnVmupCard } from '@/components/learn-vmup-card';
 import { learnJsonLd } from '@/lib/schema';
 import {
   isLearnArticleUrl,
@@ -23,6 +24,8 @@ import {
 } from '@/lib/shared';
 
 type Props = PageProps<'/learn/[slug]'>;
+
+const vmupGuideUrl = '/learn/vmup-remote-agent-files';
 
 export const dynamicParams = false;
 
@@ -63,8 +66,6 @@ export default async function LearnPostPage(props: Props) {
       />
       <p className="text-[12px] tracking-wide text-muted-foreground">
         {learnDateLabel(meta.date)}
-        <span aria-hidden="true"> · </span>
-        <span>#{meta.tag}</span>
       </p>
       <h1 className="mt-3 font-serif text-[clamp(1.85rem,1rem+3.2vw,2.75rem)] leading-[1.12] tracking-tight text-foreground">
         {page.data.title}
@@ -75,32 +76,20 @@ export default async function LearnPostPage(props: Props) {
         </p>
       ) : null}
 
+      <ul
+        aria-label="Article tags"
+        className="mt-4 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-muted-foreground"
+      >
+        {meta.tags.map((tag) => (
+          <li key={tag}>#{tag}</li>
+        ))}
+      </ul>
+
+      <LearnVmupCard isGuide={page.url === vmupGuideUrl} />
+
       <article className="learn-article mt-10">
         <MDX components={getLearnMdxComponents()} />
       </article>
-
-      <aside className="mt-16 rounded-xl border border-border bg-card px-5 py-5">
-        <p className="font-medium text-foreground">Send a batch instead of pasting</p>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          vmup uploads the files over SSH and copies a prompt with the remote
-          folder path.
-        </p>
-        <p className="mt-3 flex flex-wrap items-center gap-x-2 text-sm">
-          <Link
-            href="/docs/install"
-            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
-          >
-            Install
-          </Link>
-          <span aria-hidden="true">·</span>
-          <Link
-            href="/docs/quickstart"
-            className="underline underline-offset-4 max-lg:inline-flex max-lg:min-h-11 max-lg:items-center"
-          >
-            First upload
-          </Link>
-        </p>
-      </aside>
 
       {related.length > 0 ? (
         <nav aria-label="More guides" className="mt-16">

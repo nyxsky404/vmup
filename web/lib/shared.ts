@@ -2,7 +2,7 @@ import { createGetUrl } from 'fumadocs-core/source';
 
 export const appName = 'vmup';
 export const appTitle =
-  'vmup gives coding agents one folder path on the remote host';
+  'vmup sends screenshots and files to your remote coding agent';
 export const appDescription =
   'The @nyxsky404/vmup CLI batches local files over SSH into one folder for a remote coding agent, then copies a prompt with that folder path.';
 export const docsRoute = '/docs';
@@ -73,6 +73,10 @@ const docsSeoTitles: Record<string, string> = {
 
 const learnSeoTitles: Record<string, string> = {
   '/learn': 'Guides for remote coding agents over SSH',
+  '/learn/vmup-remote-agent-files':
+    'vmup: Send screenshots and files to a remote coding agent',
+  '/learn/paste-screenshots-remote-terminal':
+    'How to paste screenshots into a remote terminal over SSH',
   '/learn/claude-code-paste-image-ssh':
     'How to paste an image into Claude Code over SSH',
   '/learn/codex-cli-image-ssh':

@@ -5,6 +5,11 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type ReactNode, useCallback, useState } from "react";
 
 export interface ButtonCopyProps {
+  ariaLabels?: {
+    idle: string;
+    loading: string;
+    success: string;
+  };
   className?: string;
   disabled?: boolean;
   duration?: number;
@@ -22,6 +27,7 @@ const defaultIcons = {
 };
 
 export default function ButtonCopy({
+  ariaLabels: customAriaLabels,
   onCopy,
   idleIcon = defaultIcons.idle,
   loadingIcon = defaultIcons.loading,
@@ -55,7 +61,7 @@ export default function ButtonCopy({
     success: successIcon,
   };
 
-  const ariaLabels = {
+  const ariaLabels = customAriaLabels ?? {
     idle: "Copy",
     loading: "Copying...",
     success: "Copied",

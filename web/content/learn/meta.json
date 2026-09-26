@@ -1,6 +1,8 @@
 {
   "title": "Learn",
   "pages": [
+    "vmup-remote-agent-files",
+    "paste-screenshots-remote-terminal",
     "claude-code-paste-image-ssh",
     "codex-cli-image-ssh",
     "scp-multiple-files",
