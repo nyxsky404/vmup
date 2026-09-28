@@ -76,7 +76,7 @@ const learnSeoTitles: Record<string, string> = {
   '/learn/vmup-remote-agent-files':
     'vmup: Send screenshots and files to a remote coding agent',
   '/learn/paste-screenshots-remote-terminal':
-    'How to paste screenshots into a remote terminal over SSH',
+    'Paste screenshots into a remote SSH terminal',
   '/learn/claude-code-paste-image-ssh':
     'How to paste an image into Claude Code over SSH',
   '/learn/codex-cli-image-ssh':
@@ -86,7 +86,7 @@ const learnSeoTitles: Record<string, string> = {
   '/learn/send-files-to-remote-coding-agent':
     'Send laptop files to a coding agent on a remote VM',
   '/learn/cursor-remote-ssh-local-files':
-    'Cursor Remote-SSH local files: upload to the workspace',
+    'Upload local files in Cursor Remote-SSH',
   '/learn/claude-code-ssh-screenshot-tools':
     'Claude Code SSH screenshot uploaders compared',
   '/learn/claude-code-no-image-found-clipboard-ssh':
