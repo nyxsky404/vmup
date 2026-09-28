@@ -33,12 +33,10 @@ export default function PerWordCrossfade({
 
   return (
     <span className={className} ref={ref}>
-      <span className="sr-only">{children}</span>
       {words.map((word, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: words have no stable id
-        <span key={index} aria-hidden="true" style={{ display: "inline-block" }}>
+        <span key={index} style={{ display: "inline-block" }}>
           <span
-            aria-hidden="true"
             className="per-word-crossfade-word"
             style={{
               display: "inline-block",
@@ -51,7 +49,6 @@ export default function PerWordCrossfade({
           </span>
           {index < words.length - 1 && (
             <span
-              aria-hidden="true"
               style={{ display: "inline-block", whiteSpace: "pre" }}
             >
               {" "}
