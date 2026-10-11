@@ -77,3 +77,11 @@ SSH works; `~/vmup/.cleanup.sh` is not executable on the host. Batches still upl
 ```bash
 vmup check --sweeper
 ```
+
+## Sweeper: outdated
+
+The installed script predates per-batch expiry metadata, or its cron entry is missing. A long `--ttl` override can still lose to an old script’s global cutoff. Upgrade or reschedule it once:
+
+```bash
+vmup check --sweeper
+```

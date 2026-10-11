@@ -19,6 +19,7 @@ A coding agent on a VM reads files by path. Screenshots, PDFs, and recordings si
 ```text
 Uploaded 3 files → default
 Agent folder: ~/vmup/agents-20260911-140128-a1b2c3d4/
+Expires: Sep 11, 2026, 2:06:28 PM GMT+5:30 (5-minute TTL)
 
 Prompt:
 Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/
@@ -56,7 +57,7 @@ Transport is your system OpenSSH. Each file is streamed over `ssh` into a `.part
 - **Profiles and aliases** — saved hosts in config, or `--ssh-host` for a one-shot `~/.ssh/config` alias
 - **Clipboard-ready output** — prompt copied by default; set `clipboard_copy` to `path` or `none`
 - **JSON for scripts** — `--json` on stdout; spinner stays on stderr
-- **TTL cleanup** — remote sweeper every minute, a client-side fallback delete, or `vmup prune --all` to wipe now
+- **Per-batch TTL cleanup** — each batch carries its own expiry; the remote sweeper runs every minute, with a client-side fallback delete
 
 ## Getting started
 
@@ -130,6 +131,8 @@ SSH OK  default  ubuntu@192.168.1.10
 Remote dir: ~/vmup
 Sweeper: installed
 ```
+
+`Sweeper: outdated` or `Sweeper: missing` points to `vmup check --sweeper`.
 
 After a successful upload, paste into the agent. The clipboard already holds the prompt.
 
@@ -276,7 +279,7 @@ remote_dir = "~/vmup"
 ttl_minutes = 5
 ```
 
-`{{remote_path}}` is replaced with the remote folder (trailing `/` added if missing). After upload, human mode copies the prompt to the clipboard (`clipboard_copy = "prompt"`). Use `"path"` for the folder only, or `"none"` to skip the copy. `--json` never copies. After you change `ttl_minutes`, run `vmup check --sweeper` so the remote script matches. Editing the file alone does not rewrite `~/vmup/.cleanup.sh`.
+`{{remote_path}}` is replaced with the remote folder (trailing `/` added if missing). After upload, human mode copies the prompt to the clipboard (`clipboard_copy = "prompt"`). Use `"path"` for the folder only, or `"none"` to skip the copy. `--json` never copies. Expiry details are printed separately and are never added to the prompt or path on the clipboard.
 
 Selected environment variables:
 
@@ -295,7 +298,7 @@ Empty string is treated as unset. `SSH_AUTH_SOCK` allows a missing `key` in dire
 
 ## Cleanup
 
-Remote batches expire after **TTL minutes** (default 5). `vmup init` installs `~/vmup/.cleanup.sh` and a crontab line that runs every minute. The script removes `agents-*` and `agents-*.partial` directories older than TTL. It does not wipe the remote root.
+Remote batches expire after **TTL minutes** (default 5). Each successful upload writes a hidden `.<batch-id>.expires` sidecar beside the batch. `vmup init` installs `~/vmup/.cleanup.sh`; cron runs it every minute and removes each batch after its own timestamp. Unmarked batches from older vmup versions use the sweeper’s installed fallback TTL. Incomplete `.partial` uploads become stale after 15 minutes. The script does not wipe the remote root.
 
 ```bash
 vmup prune
@@ -307,7 +310,7 @@ vmup prune --install-sweeper
 
 `vmup prune --all` deletes every remote `agents-*` batch immediately, even if TTL has not elapsed. `--local` also deletes staging under `~/.cache/vmup/` older than 24 hours. Successful uploads already delete that cache unless you pass `--keep-local`. Failed SSH or upload **keeps** local staging.
 
-> **Warning:** The client-side delete is a detached `sleep` then `ssh rm`. It dies if this machine sleeps or exits. If `~/vmup/.cleanup.sh` is missing, batches may linger. Reinstall with `vmup check --sweeper`.
+> **Warning:** The client-side delete is a detached `sleep` then `ssh rm`. It dies if this machine sleeps or exits. Missing, outdated, or unscheduled sweepers make remote cleanup unreliable. Install or upgrade with `vmup check --sweeper`.
 
 ## JSON and exit codes
 
@@ -324,10 +327,12 @@ JSON goes to **stdout**. Spinner, skip warnings, and human text stay on **stderr
   "batchId": "agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
   "profile": "default",
   "remotePath": "~/vmup/agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/",
+  "expiresAt": "2026-09-11T08:36:28.000Z",
   "prompt": "Please inspect all files in ~/vmup/agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/",
   "count": 2,
   "files": ["image-01.png", "file-01.pdf"],
-  "sweeper": true
+  "sweeper": true,
+  "sweeperStatus": "current"
 }
 ```
 
@@ -357,6 +362,7 @@ JSON goes to **stdout**. Spinner, skip warnings, and human text stay on **stderr
 | `Use either --profile or --ssh-host` | Pick one |
 | `Use either --all or --id, not both` | Pick one |
 | Sweeper missing | `vmup check --sweeper` |
+| Sweeper outdated | `vmup check --sweeper` |
 | Batches still on the VM | `vmup prune --all` (ignores TTL). One batch: `vmup prune --id …` |
 | Clipboard image ignored (macOS) | `brew install pngpaste` |
 | No GUI picker (Linux) | Install `zenity`/`kdialog`, or pass file paths |

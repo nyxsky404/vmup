@@ -16,10 +16,12 @@ Pass `--json` on upload (`vmup …`, `vmup watch`, `vmup --clip`) or `vmup check
   "batchId": "agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
   "profile": "default",
   "remotePath": "~/vmup/agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/",
+  "expiresAt": "2026-09-11T08:36:28.000Z",
   "prompt": "Please inspect all files in ~/vmup/agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/",
   "count": 2,
   "files": ["image-01.png", "file-01.pdf"],
-  "sweeper": true
+  "sweeper": true,
+  "sweeperStatus": "current"
 }
 ```
 
@@ -29,10 +31,12 @@ Pass `--json` on upload (`vmup …`, `vmup watch`, `vmup --clip`) or `vmup check
 | `batchId` | string | Staging / remote directory name |
 | `profile` | string | Profile name, or `ssh:<alias>` for `--ssh-host` |
 | `remotePath` | string | Always ends with `/` |
+| `expiresAt` | string | ISO 8601 timestamp computed by the remote host when the upload finishes |
 | `prompt` | string | `prompt_template` with `{{remote_path}}` replaced |
 | `count` | number | Staged file count |
 | `files` | string[] | **Basenames after rename** (`image-01.png`), not original paths |
-| `sweeper` | boolean or omitted | `true`/`false` if the check ran; omitted if the presence check threw |
+| `sweeper` | boolean or omitted | Backward-compatible presence flag: `true` for an executable current or outdated script, `false` when missing; omitted if the status check threw |
+| `sweeperStatus` | `current`, `outdated`, `missing`, or omitted | Exact remote sweeper state; omitted if the status check threw |
 
 Pretty-printed with `JSON.stringify(..., null, 2)`.
 
@@ -45,7 +49,8 @@ JSON mode returns after printing the object. It does not copy to the clipboard.
   "ok": true,
   "profile": "default",
   "remoteDir": "~/vmup",
-  "sweeper": true
+  "sweeper": true,
+  "sweeperStatus": "current"
 }
 ```
 

@@ -4,11 +4,14 @@ import type { ResolvedTarget } from "./config.js";
 import { renderPrompt } from "./config.js";
 import { color } from "./color.js";
 import type { ClipboardCopy } from "./constants.js";
+import type { SweeperStatus } from "./transport/ssh.js";
 
 export type HumanResult = {
   count: number;
   profileName: string;
   remotePath: string;
+  expiresAt: string;
+  ttlMinutes: number;
   prompt: string;
   files: string[];
 };
@@ -18,18 +21,28 @@ export type JsonResult = {
   batchId?: string;
   profile?: string;
   remotePath?: string;
+  expiresAt?: string;
   prompt?: string;
   count?: number;
   files?: string[];
   error?: string;
   localStaging?: string;
   sweeper?: boolean;
+  sweeperStatus?: SweeperStatus;
 };
+
+export function formatExpiryTime(expiresAt: string): string {
+  return new Date(expiresAt).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "long",
+  });
+}
 
 export function buildHumanOutput(r: HumanResult): string {
   const lines = [
     `${color.green(`Uploaded ${r.count} file${r.count === 1 ? "" : "s"}`)} ${color.dim("→")} ${r.profileName}`,
     `${color.dim("Agent folder:")} ${color.cyan(r.remotePath)}`,
+    `${color.dim("Expires:")} ${formatExpiryTime(r.expiresAt)} ${color.dim(`(${r.ttlMinutes}-minute TTL)`)}`,
     "",
     color.dim("Prompt:"),
     r.prompt,
@@ -93,14 +106,16 @@ export async function emitSuccess(opts: {
   batchId: string;
   target: ResolvedTarget;
   remotePath: string;
+  expiresAtEpochSeconds: number;
   files: string[];
-  sweeper?: boolean;
+  sweeperStatus?: SweeperStatus;
 }): Promise<void> {
   const remotePath = opts.remotePath.endsWith("/")
     ? opts.remotePath
     : `${opts.remotePath}/`;
   const prompt = renderPrompt(opts.target.promptTemplate, remotePath);
   const fileNames = opts.files.map((f) => f.split(/[/\\]/).pop()!);
+  const expiresAt = new Date(opts.expiresAtEpochSeconds * 1000).toISOString();
 
   if (opts.json) {
     const payload: JsonResult = {
@@ -108,10 +123,15 @@ export async function emitSuccess(opts: {
       batchId: opts.batchId,
       profile: opts.target.profileName,
       remotePath,
+      expiresAt,
       prompt,
       count: opts.files.length,
       files: fileNames,
-      sweeper: opts.sweeper,
+      sweeper:
+        opts.sweeperStatus == null
+          ? undefined
+          : opts.sweeperStatus !== "missing",
+      sweeperStatus: opts.sweeperStatus,
     };
     console.log(JSON.stringify(payload, null, 2));
     return;
@@ -122,6 +142,8 @@ export async function emitSuccess(opts: {
       count: opts.files.length,
       profileName: opts.target.profileName,
       remotePath,
+      expiresAt,
+      ttlMinutes: opts.target.ttlMinutes,
       prompt,
       files: fileNames,
     }),
@@ -141,13 +163,20 @@ export async function emitSuccess(opts: {
     }
   }
 
-  if (opts.sweeper === false) {
+  if (opts.sweeperStatus === "missing") {
     console.error("");
     console.error(
       color.yellow("Remote sweeper is not installed.") +
         color.dim(" Batches may linger after TTL if this machine sleeps."),
     );
     console.error(color.dim("  Reinstall:  vmup check --sweeper"));
+  } else if (opts.sweeperStatus === "outdated") {
+    console.error("");
+    console.error(
+      color.yellow("Remote sweeper is outdated.") +
+        color.dim(" Cleanup may run early or not run at all."),
+    );
+    console.error(color.dim("  Upgrade:  vmup check --sweeper"));
   }
 }
 

@@ -62,6 +62,8 @@ Sweeper: missing
   Reinstall:  vmup check --sweeper
 ```
 
+An older script is reported as `Sweeper: outdated`; upgrade it with the same command.
+
 Fix connection failures in [Fix SSH](/docs/guides/ssh).
 
 ## 4. Upload one file
@@ -84,12 +86,13 @@ Then stdout:
 ```text
 Uploaded 1 file → default
 Agent folder: ~/vmup/agents-20260911-140128-a1b2c3d4-e5f6-7890-abcd-ef1234567890/
+Expires: Sep 11, 2026, 2:06:28 PM GMT+5:30 (5-minute TTL)
 
 Prompt:
 Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4-e5f6-7890-abcd-ef1234567890/
 ```
 
-stderr adds `(copied prompt to clipboard)` when `pbcopy` (macOS), `wl-copy`, or `xclip` works. Set `clipboard_copy = "path"` if you want the folder path instead, or `"none"` to skip the copy.
+stderr adds `(copied prompt to clipboard)` when `pbcopy` (macOS), `wl-copy`, or `xclip` works. Set `clipboard_copy = "path"` if you want the folder path instead, or `"none"` to skip the copy. The expiry is informational output; vmup does not add it to either clipboard payload.
 
 The remote file is renamed to `image-01.png` (or `file-01.pdf`, `video-01.mov`) inside that folder. [How a batch is built](/docs/explain/how-it-works) explains why.
 

@@ -10,22 +10,25 @@ Each batch is a directory named `agents-<date>-<time>-<uuid>` under the remote r
 
 ## Let the sweeper do it
 
-`vmup init` (and `vmup init -y`) installs `~/vmup/.cleanup.sh` on the host and a crontab line `* * * * *` that runs it every minute. The script `find`s `agents-*` and `agents-*.partial` directories older than TTL minutes and `rm -rf`s them. It does not delete the remote root.
+`vmup init` (and `vmup init -y`) installs `~/vmup/.cleanup.sh` on the host and a crontab line `* * * * *` that runs it every minute. A completed batch has a hidden `.<batch-id>.expires` sidecar beside it. The sweeper deletes each marked batch after that timestamp, so five-minute and thirty-minute uploads can share one remote root. Unmarked batches from older vmup versions use the fallback TTL baked into the script. It does not delete the remote root.
 
-Reinstall after you change TTL, or if someone deleted the script:
+Install or upgrade the script if `vmup check` reports it missing or outdated:
 
 ```bash
 vmup check --sweeper
 ```
 
-`vmup check` without `--sweeper` only reports:
+`vmup check` without `--sweeper` reports one of:
 
 ```text
+Sweeper: installed
+Sweeper: outdated
+  Upgrade:  vmup check --sweeper
 Sweeper: missing
   Reinstall:  vmup check --sweeper
 ```
 
-A successful upload that finds no executable `~/vmup/.cleanup.sh` prints a yellow warning: batches may linger after TTL if this laptop sleeps. The client-side delete is a `sleep` then `ssh rm` in a detached process; it dies if the machine sleeps or exits.
+A successful upload also warns for missing or outdated sweepers. A missing or unscheduled sweeper can leave batches behind if this laptop sleeps. An old global-TTL script can delete a long-lived batch before its printed expiry. A script is current only when both the versioned executable and its cron entry are present. The client-side delete remains a detached `sleep` then `ssh rm` fallback; it dies if the machine sleeps or exits.
 
 ## Prune from this laptop
 
@@ -33,19 +36,19 @@ A successful upload that finds no executable `~/vmup/.cleanup.sh` prints a yello
 vmup prune
 ```
 
-Deletes remote `agents-*` directories whose mtime is older than the resolved TTL, and any `*.partial` dirs. Prints `Pruned N remote batch(es)` on stderr.
+Deletes marked remote batches whose absolute expiry has passed. Unmarked legacy batches use the resolved TTL as an mtime cutoff. A `*.partial` batch is removed after a separate 15-minute stale threshold, which protects an active transfer from the five-minute default. Prints `Pruned N remote batch(es)` on stderr.
 
 ```bash
 vmup prune --all
 ```
 
-Deletes every remote `agents-*` and `agents-*.partial` directory under the remote root, including batches still inside TTL. Does not remove `~/vmup` itself or `.cleanup.sh`. Not with `--id`.
+Deletes every remote `agents-*` and `agents-*.partial` directory under the remote root, including batches still inside TTL, plus their expiry sidecars. Does not remove `~/vmup` itself or `.cleanup.sh`. Not with `--id`.
 
 ```bash
 vmup prune --id agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
 ```
 
-Deletes that batch (and its `.partial` sibling) regardless of age. The id must match `agents-YYYYMMDD-HHMMSS-<uuid>`.
+Deletes that batch, its `.partial` sibling, and its expiry sidecar regardless of age. The id must match `agents-YYYYMMDD-HHMMSS-<uuid>`.
 
 ```bash
 vmup prune --local
@@ -63,7 +66,7 @@ Installs/refreshes the remote cron script, then prunes.
 vmup prune --ttl 1
 ```
 
-Uses 1 minute as the age cutoff for this prune (and for sweeper install if you combined `--install-sweeper`). Ignored by `--all`. Does not rewrite `config.toml`.
+Uses 1 minute as the fallback age cutoff for unmarked legacy batches (and for sweeper install if you combined `--install-sweeper`). Marked batches keep their stored expiry. Ignored by `--all`. Does not rewrite `config.toml`.
 
 ## Keep local staging after a good upload
 

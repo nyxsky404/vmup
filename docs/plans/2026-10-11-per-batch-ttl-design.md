@@ -8,7 +8,7 @@ Human output shows the expiry time and resolved TTL after the agent folder. Uplo
 
 ## Data flow
 
-After all files reach the `.partial` directory, the remote host computes `now + ttl` in epoch seconds. Finalization moves the batch into place and publishes `.<batch-id>.expires` beside it. Returning the remote timestamp avoids client/host clock skew in the displayed expiry.
+After all files reach the `.partial` directory, the remote host computes `now + ttl` in epoch seconds. Finalization publishes `.<batch-id>.expires` while the partial directory still protects it from orphan cleanup, then moves the batch into place. Returning the remote timestamp avoids client/host clock skew in the displayed expiry.
 
 The client still schedules its detached delayed delete as a backup. That delete, explicit `prune --id`, age-based prune, and `prune --all` remove both the batch and its sidecar. The minute-based sweeper removes a marked batch once the remote clock reaches its timestamp. It removes unmarked legacy batches with the installed fallback TTL and cleans orphaned sidecars.
 
@@ -16,7 +16,7 @@ The client still schedules its detached delayed delete as a backup. That delete,
 
 The installed sweeper carries a version marker. `vmup check` distinguishes current, outdated, and missing sweepers; upload JSON exposes the same status. An outdated sweeper produces an upgrade warning because the old global cutoff can still delete a long-lived batch early. `vmup check --sweeper` installs the current script. vmup does not overwrite a remote cleanup script during a normal upload.
 
-If remote finalization cannot publish the sidecar, the upload fails and cleanup removes the partial directory, final directory, and temporary metadata. Invalid marker contents fall back to the configured age cutoff so cleanup cannot become permanently stuck.
+If remote finalization cannot publish the sidecar, the upload fails and cleanup removes the partial directory, final directory, and temporary metadata. Invalid or overflowing marker contents fall back to the configured age cutoff so cleanup cannot become permanently stuck. Partial uploads use a separate 15-minute stale threshold, longer than the ten-minute per-file transfer timeout.
 
 ## Validation
 

@@ -52,7 +52,7 @@ Test SSH using saved config. Skips the init wizard.
 | `--sweeper` | Install or refresh `~/vmup/.cleanup.sh` and cron |
 | `--json` | JSON on stdout |
 
-Human success: `SSH OK`, remote dir, sweeper `installed` or `missing`.
+Human success: `SSH OK`, remote dir, sweeper `installed`, `outdated`, or `missing`.
 
 Exit: `0` ok, `1` unusable target, `3` SSH or sweeper install failure.
 
@@ -72,7 +72,7 @@ Flags: `--profile`, `--ssh-host`, `--dir`, `--video`, `--force`, `--keep-local`,
 
 ## `vmup prune`
 
-Delete remote batches. Default is age-based (older than the resolved TTL). `--all` ignores TTL. Requires a connectable target (same resolve rules as upload).
+Delete remote batches. Default removes marked batches after their stored expiry and uses the resolved TTL as an age cutoff for unmarked legacy batches. `--all` ignores TTL. Requires a connectable target (same resolve rules as upload).
 
 ```bash
 vmup prune
@@ -88,7 +88,7 @@ vmup prune --id agents-20260911-140128-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
 | `--id <batchId>` | Delete that remote batch instead of age-based prune |
 | `--all` | Delete every remote `agents-*` batch, ignoring TTL |
 | `--install-sweeper` | Install/refresh remote cron, then prune |
-| `--ttl <minutes>` | Age cutoff (and sweeper TTL if installing). Ignored by `--all` |
+| `--ttl <minutes>` | Legacy fallback age cutoff (and sweeper fallback if installing). Ignored by `--all` |
 | `--json` | Suppresses update notice only. No JSON body. |
 
 Order: `--local` first (no SSH), then resolve + preflight, then optional sweeper, then `--id` **or** `--all` **or** age prune.

@@ -9,18 +9,38 @@ import {
   stageFile,
 } from "./stage.js";
 import { resolveTarget, type VmupConfig } from "./config.js";
-import { clipboardPayload } from "./output.js";
+import { buildHumanOutput, clipboardPayload, emitSuccess } from "./output.js";
 import { isImagePath, isVideoPath, validatePaths } from "./validate.js";
 import { countBytes, formatBytes } from "./progress.js";
 import { assertKeyUsable, formatSshError } from "./ssh-key.js";
 import { fileSha256 } from "./hash.js";
 import { isNewer, detectPackageManager, updateCommand } from "./update-check.js";
-import { remotePruneScript } from "./transport/ssh.js";
-import { chmod, writeFile, mkdir, rm } from "node:fs/promises";
+import {
+  installRemoteSweeper,
+  PARTIAL_STALE_MINUTES,
+  remotePruneScript,
+  remoteSweeperScript,
+  remoteSweeperStatus,
+  uploadBatch,
+} from "./transport/ssh.js";
+import { access, chmod, readFile, writeFile, mkdir, rm, utimes } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { execFile as execFileCallback } from "node:child_process";
+import { promisify } from "node:util";
 import { PassThrough, Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+
+const execFile = promisify(execFileCallback);
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 describe("batch id", () => {
   it("matches agents-date-time-uuid", () => {
@@ -150,6 +170,61 @@ describe("clipboardPayload", () => {
   it("copies nothing when none", () => {
     assert.equal(clipboardPayload("none", path, prompt), null);
   });
+
+  it("keeps expiry details out of the copied prompt and path", () => {
+    const output = buildHumanOutput({
+      count: 1,
+      profileName: "default",
+      remotePath: path,
+      expiresAt: "2026-10-11T17:05:00.000Z",
+      ttlMinutes: 30,
+      prompt,
+      files: ["image-01.png"],
+    });
+
+    assert.match(output, /Expires:/);
+    assert.match(output, /30-minute TTL/);
+    assert.equal(clipboardPayload("prompt", path, prompt)?.text, prompt);
+    assert.equal(clipboardPayload("path", path, prompt)?.text, path);
+  });
+
+  it("adds expiry metadata to JSON without changing the prompt", async () => {
+    const target = resolveTarget(
+      {
+        default_profile: "default",
+        profiles: {
+          default: {
+            host: "1.2.3.4",
+            user: "ubuntu",
+            key: "~/.ssh/id_ed25519",
+          },
+        },
+      },
+      { ttlMinutes: 30 },
+    );
+    const lines: string[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => lines.push(args.join(" "));
+    try {
+      await emitSuccess({
+        json: true,
+        batchId: "agents-20261011-120000-00000000-0000-4000-8000-000000000000",
+        target,
+        remotePath: path,
+        expiresAtEpochSeconds: 1_799_000_000,
+        files: ["/tmp/image-01.png"],
+        sweeperStatus: "outdated",
+      });
+    } finally {
+      console.log = originalLog;
+    }
+
+    const result = JSON.parse(lines.join("\n"));
+    assert.equal(result.expiresAt, "2027-01-03T18:13:20.000Z");
+    assert.equal(result.prompt, prompt);
+    assert.equal(result.sweeper, true);
+    assert.equal(result.sweeperStatus, "outdated");
+  });
 });
 
 describe("validatePaths", () => {
@@ -266,9 +341,10 @@ describe("fileSha256", () => {
 });
 
 describe("remotePruneScript", () => {
-  it("age prune uses mmin and drops partials immediately", () => {
+  it("age prune supports per-batch markers and stale partials", () => {
     const s = remotePruneScript("~/vmup", { ttlMinutes: 5 });
     assert.match(s, /-mmin \+5/);
+    assert.match(s, /\.expires/);
     assert.match(s, /\*\.partial/);
     assert.match(s, /agents-\*/);
   });
@@ -278,6 +354,270 @@ describe("remotePruneScript", () => {
     assert.equal(s.includes("-mmin"), false);
     assert.match(s, /agents-\*/);
     assert.match(s, /rm -rf "\$d"/);
+  });
+
+  it("--all removes expiry sidecars with the batches", async () => {
+    const dir = join(tmpdir(), `vmup-prune-all-${Date.now()}`);
+    const batchId = "agents-20261011-115959-00000000-0000-4000-8000-000000000009";
+    const batch = join(dir, batchId);
+    const marker = join(dir, `.${batchId}.expires`);
+    await mkdir(batch, { recursive: true });
+    await writeFile(marker, String(Math.floor(Date.now() / 1000) + 3600));
+
+    try {
+      const { stdout } = await execFile("bash", [
+        "-c",
+        remotePruneScript(dir, { ttlMinutes: 5, all: true }),
+      ]);
+      assert.equal(stdout.trim(), "1");
+      assert.equal(await pathExists(batch), false);
+      assert.equal(await pathExists(marker), false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps an old batch whose per-batch expiry is still in the future", async () => {
+    const dir = join(tmpdir(), `vmup-prune-future-${Date.now()}`);
+    const batchId = "agents-20261011-120000-00000000-0000-4000-8000-000000000000";
+    const batch = join(dir, batchId);
+    const marker = join(dir, `.${batchId}.expires`);
+    await mkdir(batch, { recursive: true });
+    await writeFile(marker, String(Math.floor(Date.now() / 1000) + 3600));
+    const old = new Date(Date.now() - 10 * 60 * 1000);
+    await utimes(batch, old, old);
+
+    try {
+      const { stdout } = await execFile("bash", [
+        "-c",
+        remotePruneScript(dir, { ttlMinutes: 5 }),
+      ]);
+      assert.equal(stdout.trim(), "0");
+      assert.equal(await pathExists(batch), true);
+      assert.equal(await pathExists(marker), true);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("deletes an expired fresh batch and its marker", async () => {
+    const dir = join(tmpdir(), `vmup-prune-expired-${Date.now()}`);
+    const batchId = "agents-20261011-120001-00000000-0000-4000-8000-000000000001";
+    const batch = join(dir, batchId);
+    const marker = join(dir, `.${batchId}.expires`);
+    await mkdir(batch, { recursive: true });
+    await writeFile(marker, String(Math.floor(Date.now() / 1000) - 1));
+
+    try {
+      const { stdout } = await execFile("bash", [
+        "-c",
+        remotePruneScript(dir, { ttlMinutes: 5 }),
+      ]);
+      assert.equal(stdout.trim(), "1");
+      assert.equal(await pathExists(batch), false);
+      assert.equal(await pathExists(marker), false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("uses a 15-minute stale threshold for partial uploads", async () => {
+    const dir = join(tmpdir(), `vmup-prune-partial-${Date.now()}`);
+    const partial = join(
+      dir,
+      "agents-20261011-120005-00000000-0000-4000-8000-000000000005.partial",
+    );
+    await mkdir(partial, { recursive: true });
+    const active = new Date(Date.now() - 10 * 60 * 1000);
+    await utimes(partial, active, active);
+
+    try {
+      const first = await execFile("bash", [
+        "-c",
+        remotePruneScript(dir, { ttlMinutes: 5 }),
+      ]);
+      assert.equal(first.stdout.trim(), "0");
+      assert.equal(await pathExists(partial), true);
+
+      const stale = new Date(
+        Date.now() - (PARTIAL_STALE_MINUTES + 1) * 60 * 1000,
+      );
+      await utimes(partial, stale, stale);
+      const second = await execFile("bash", [
+        "-c",
+        remotePruneScript(dir, { ttlMinutes: 5 }),
+      ]);
+      assert.equal(second.stdout.trim(), "1");
+      assert.equal(await pathExists(partial), false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to age cleanup for an overflowing expiry marker", async () => {
+    const dir = join(tmpdir(), `vmup-prune-overflow-${Date.now()}`);
+    const batchId = "agents-20261011-120006-00000000-0000-4000-8000-000000000006";
+    const batch = join(dir, batchId);
+    const marker = join(dir, `.${batchId}.expires`);
+    await mkdir(batch, { recursive: true });
+    await writeFile(marker, "9".repeat(30));
+    const old = new Date(Date.now() - 10 * 60 * 1000);
+    await utimes(batch, old, old);
+
+    try {
+      const { stdout } = await execFile("bash", [
+        "-c",
+        remotePruneScript(dir, { ttlMinutes: 5 }),
+      ]);
+      assert.equal(stdout.trim(), "1");
+      assert.equal(await pathExists(batch), false);
+      assert.equal(await pathExists(marker), false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps a published marker while its partial directory still exists", async () => {
+    const dir = join(tmpdir(), `vmup-prune-finalize-${Date.now()}`);
+    const batchId = "agents-20261011-120007-00000000-0000-4000-8000-000000000007";
+    const partial = join(dir, `${batchId}.partial`);
+    const marker = join(dir, `.${batchId}.expires`);
+    await mkdir(partial, { recursive: true });
+    await writeFile(marker, String(Math.floor(Date.now() / 1000) + 3600));
+
+    try {
+      await execFile("bash", [
+        "-c",
+        remotePruneScript(dir, { ttlMinutes: 5 }),
+      ]);
+      assert.equal(await pathExists(partial), true);
+      assert.equal(await pathExists(marker), true);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("remoteSweeperScript", () => {
+  it("includes a version marker for stale-install detection", () => {
+    assert.match(remoteSweeperScript("~/vmup", 5), /vmup-sweeper-version: 2/);
+  });
+
+  it("uses independent expiries and falls back to age for legacy batches", async () => {
+    const dir = join(tmpdir(), `vmup-sweeper-${Date.now()}`);
+    const futureId = "agents-20261011-120002-00000000-0000-4000-8000-000000000002";
+    const expiredId = "agents-20261011-120003-00000000-0000-4000-8000-000000000003";
+    const legacyId = "agents-20261011-120004-00000000-0000-4000-8000-000000000004";
+    const future = join(dir, futureId);
+    const expired = join(dir, expiredId);
+    const legacy = join(dir, legacyId);
+    await mkdir(future, { recursive: true });
+    await mkdir(expired, { recursive: true });
+    await mkdir(legacy, { recursive: true });
+    await writeFile(
+      join(dir, `.${futureId}.expires`),
+      String(Math.floor(Date.now() / 1000) + 3600),
+    );
+    await writeFile(
+      join(dir, `.${expiredId}.expires`),
+      String(Math.floor(Date.now() / 1000) - 1),
+    );
+    const old = new Date(Date.now() - 10 * 60 * 1000);
+    await utimes(future, old, old);
+    await utimes(legacy, old, old);
+
+    try {
+      await execFile("bash", ["-c", remoteSweeperScript(dir, 5)]);
+      assert.equal(await pathExists(future), true);
+      assert.equal(await pathExists(expired), false);
+      assert.equal(await pathExists(legacy), false);
+      assert.equal(await pathExists(join(dir, `.${futureId}.expires`)), true);
+      assert.equal(await pathExists(join(dir, `.${expiredId}.expires`)), false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("remote transport TTL integration", () => {
+  it("publishes expiry metadata and verifies the cron-backed sweeper", async () => {
+    const root = join(tmpdir(), `vmup transport $literal ${Date.now()}`);
+    const fakeBin = join(root, "bin");
+    const remoteDir = join(root, "remote root");
+    const cronState = join(root, "crontab.txt");
+    const source = join(root, "source.txt");
+    const fakeSsh = join(fakeBin, "ssh");
+    const fakeCrontab = join(fakeBin, "crontab");
+    await mkdir(fakeBin, { recursive: true });
+    await writeFile(source, "hello");
+    await writeFile(
+      fakeSsh,
+      '#!/bin/sh\nshift\nexec /bin/sh -c "$1"\n',
+    );
+    await writeFile(
+      fakeCrontab,
+      [
+        "#!/bin/sh",
+        'if [ "$1" = "-l" ]; then',
+        '  [ -f "$VMUP_TEST_CRONTAB" ] || exit 1',
+        '  cat "$VMUP_TEST_CRONTAB"',
+        "else",
+        '  cat > "$VMUP_TEST_CRONTAB"',
+        "fi",
+        "",
+      ].join("\n"),
+    );
+    await chmod(fakeSsh, 0o755);
+    await chmod(fakeCrontab, 0o755);
+
+    const target = resolveTarget(
+      {
+        default_profile: "default",
+        profiles: {
+          default: {
+            ssh_host: "fake",
+            remote_dir: remoteDir,
+            ttl_minutes: 30,
+          },
+        },
+      },
+      {},
+    );
+    const batchId = "agents-20261011-120008-00000000-0000-4000-8000-000000000008";
+    const oldPath = process.env.PATH;
+    const oldCronState = process.env.VMUP_TEST_CRONTAB;
+    process.env.PATH = `${fakeBin}:${oldPath ?? ""}`;
+    process.env.VMUP_TEST_CRONTAB = cronState;
+
+    try {
+      await installRemoteSweeper(target, 5);
+      assert.equal(await remoteSweeperStatus(target), "current");
+      const cron = await readFile(cronState, "utf8");
+      assert.match(cron, /'[^']*remote root\/\.cleanup\.sh'/);
+
+      const uploaded = await uploadBatch({
+        target,
+        batchId,
+        files: [source],
+        ttlMinutes: 30,
+      });
+      assert.equal(uploaded.remotePath, join(remoteDir, batchId));
+      assert.equal(await readFile(join(remoteDir, batchId, "source.txt"), "utf8"), "hello");
+      const marker = Number(
+        (await readFile(join(remoteDir, `.${batchId}.expires`), "utf8")).trim(),
+      );
+      assert.equal(marker, uploaded.expiresAtEpochSeconds);
+      assert.ok(marker > Math.floor(Date.now() / 1000));
+
+      await writeFile(cronState, "");
+      assert.equal(await remoteSweeperStatus(target), "outdated");
+    } finally {
+      if (oldPath === undefined) delete process.env.PATH;
+      else process.env.PATH = oldPath;
+      if (oldCronState === undefined) delete process.env.VMUP_TEST_CRONTAB;
+      else process.env.VMUP_TEST_CRONTAB = oldCronState;
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
 

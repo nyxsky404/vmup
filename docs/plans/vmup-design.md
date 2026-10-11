@@ -346,12 +346,14 @@ Transport v1: OpenSSH (`ssh`; file bytes on stdin to remote `cat`). Interface ke
 | Case | Behavior |
 |---|---|
 | TTL | Delete matching batches after ~5 minutes |
-| Sweeper | Installed by init; run every **minute**; `mmin +5` |
+| Expiry marker | Hidden `.<batch-id>.expires` beside each completed batch |
+| Sweeper | Installed by init; run every **minute**; use per-batch timestamps, with `mmin +5` only for legacy unmarked batches |
+| Partial upload | Treat as stale after 15 minutes, longer than the ten-minute per-file transfer timeout |
 | No sweeper | Client schedules delayed `ssh rm -rf` as backup |
 | Both fire | Idempotent |
 | Naming | Only `agents-<date>-<time>-<uuid>` dirs; never wipe all of `~/vmup` |
 | Early delete | `vmup prune --id <batch>` or `vmup prune --all` |
-| Missing sweeper after VM rebuild | Detect; `vmup init` reinstalls |
+| Missing/outdated sweeper after VM rebuild or upgrade | Detect; `vmup check --sweeper` installs the current script |
 
 **Policy:** remote sweeper is source of truth when present; client delayed delete is fallback; client may miss if laptop sleeps — document this.
 
@@ -374,7 +376,7 @@ CLI (vmup)
 
 - `collect` never talks SSH  
 - `stage` owns batch id + `image-NN` / `video-NN` / `file-NN` naming  
-- `transport` returns remote path; atomic partial → final  
+- `transport` returns remote path + expiry; atomic partial → final + expiry sidecar
 - `cleanup` / `init` own sweeper install  
 - `output` has no upload logic  
 
@@ -434,9 +436,9 @@ Thin platform adapters: macOS / Linux+WSL.
 | Transport | SSH-first, pluggable internals |
 | Hosts | Profiles + `--ssh-host` + profile `ssh_host` field |
 | Config | File + env + flags |
-| TTL | Minutes (default 5); legacy `ttl_hours` still read |
-| Cleanup | Remote sweeper every minute + client fallback |
-| Output | Print + copy + prompt; optional `--json` |
+| TTL | Per-batch minutes (default 5); legacy `ttl_hours` still read |
+| Cleanup | Per-batch remote expiry + sweeper every minute + client fallback |
+| Output | Print path + expiry, copy prompt/path without expiry; optional `--json` |
 | Install | npm / pnpm / yarn / bun / npx; curl via GitHub; Homebrew later |
 | Watch | Foreground; OS default dir; only files new after start (copies included) |
 | Brands | No Azure/Codex/vendor defaults |

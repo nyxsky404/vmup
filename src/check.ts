@@ -7,7 +7,8 @@ import {
 import {
   preflight,
   installRemoteSweeper,
-  remoteSweeperPresent,
+  remoteSweeperStatus,
+  type SweeperStatus,
 } from "./transport/ssh.js";
 import { emitJsonError } from "./output.js";
 import { EXIT } from "./constants.js";
@@ -58,12 +59,13 @@ export async function runCheck(opts: {
     }
   }
 
-  let sweeper = false;
+  let sweeperStatus: SweeperStatus = "missing";
   try {
-    sweeper = await remoteSweeperPresent(target);
+    sweeperStatus = await remoteSweeperStatus(target);
   } catch {
-    sweeper = false;
+    sweeperStatus = "missing";
   }
+  const sweeper = sweeperStatus !== "missing";
 
   if (opts.json) {
     console.log(
@@ -73,6 +75,7 @@ export async function runCheck(opts: {
           profile: target.profileName,
           remoteDir: target.remoteDir,
           sweeper,
+          sweeperStatus,
         },
         null,
         2,
@@ -87,8 +90,11 @@ export async function runCheck(opts: {
       : `${target.user}@${target.host}`;
   console.log(`${color.green("SSH OK")}  ${target.profileName}  ${color.dim(who)}`);
   console.log(`${color.dim("Remote dir:")} ${target.remoteDir}`);
-  if (sweeper) {
+  if (sweeperStatus === "current") {
     console.log(`${color.dim("Sweeper:")} ${color.green("installed")}`);
+  } else if (sweeperStatus === "outdated") {
+    console.log(`${color.dim("Sweeper:")} ${color.yellow("outdated")}`);
+    console.log(color.dim("  Upgrade:  vmup check --sweeper"));
   } else {
     console.log(`${color.dim("Sweeper:")} ${color.yellow("missing")}`);
     console.log(color.dim("  Reinstall:  vmup check --sweeper"));

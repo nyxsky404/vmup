@@ -10,6 +10,10 @@ For current `--video` / `--force` behavior (path arguments vs picker vs watch), 
 
 ## Unreleased
 
+- Uploads store an absolute expiry timestamp for each remote batch, so different `--ttl` values coexist under one sweeper. The sweeper and prune use the timestamp, with the configured age cutoff retained for legacy batches.
+- Human output and upload JSON expose the expiry (`expiresAt` in JSON) without changing the copied prompt or path. Sweeper checks now distinguish current, outdated, and missing installs.
+- In-progress `.partial` uploads use a 15-minute stale threshold so the five-minute default cannot remove a slow transfer.
+
 ## 0.4.0 — 2026-09-12
 
 - `vmup prune --all` deletes every remote `agents-*` batch, including ones still inside TTL.

@@ -92,4 +92,4 @@ For a given field: **command flag → env → profile → top-level config → c
 
 TTL specifically: `--ttl` → `VMUP_TTL_MINUTES` → `VMUP_TTL_HOURS` × 60 → profile `ttl_minutes` else profile `ttl_hours` × 60 → top-level minutes else hours → `5`. Values `<= 0` or NaN become 5, then clamped to `>= 1`.
 
-After you change `ttl_minutes`, run `vmup check --sweeper` so the remote script’s `-mmin` matches. Editing the file alone does not rewrite `.cleanup.sh`. `vmup prune --all` deletes every remote batch now and does not read this cutoff.
+Each new batch stores its resolved TTL as an absolute remote expiry, so changing `ttl_minutes` does not require reinstalling the sweeper. The installed script keeps its original TTL only as a fallback for unmarked batches created by older vmup versions. Run `vmup check --sweeper` when `vmup check` reports the script as missing or outdated. `vmup prune --all` deletes every remote batch now and does not read this cutoff.

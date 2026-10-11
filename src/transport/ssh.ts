@@ -16,6 +16,16 @@ export type SshSpec = {
   destHost: string;
 };
 
+export type SweeperStatus = "current" | "outdated" | "missing";
+
+export type UploadBatchResult = {
+  remotePath: string;
+  expiresAtEpochSeconds: number;
+};
+
+export const SWEEPER_VERSION = 2;
+export const PARTIAL_STALE_MINUTES = 15;
+
 export function buildSshSpec(target: ResolvedTarget): SshSpec {
   if (target.mode === "ssh_host") {
     return {
@@ -112,8 +122,7 @@ export function remoteJoin(remoteDir: string, ...parts: string[]): string {
 function remoteShellPath(p: string): string {
   if (p === "~") return '"$HOME"';
   if (p.startsWith("~/")) {
-    const rest = p.slice(2).replace(/"/g, '\\"');
-    return `"$HOME/${rest}"`;
+    return `"$HOME"/${shellQuote(p.slice(2))}`;
   }
   return shellQuote(p);
 }
@@ -138,17 +147,23 @@ export async function uploadBatch(opts: {
   target: ResolvedTarget;
   batchId: string;
   files: string[];
+  ttlMinutes: number;
   onProgress?: (uploadedBytes: number) => void;
-}): Promise<string> {
+}): Promise<UploadBatchResult> {
   const { target, batchId, files } = opts;
   const spec = buildSshSpec(target);
   const remoteFinal = remoteJoin(target.remoteDir, batchId);
   const remotePartial = `${remoteFinal}.partial`;
+  const remoteExpiry = remoteJoin(target.remoteDir, `.${batchId}.expires`);
+  const remoteExpiryPartial = `${remoteExpiry}.partial`;
   const shellFinal = remoteShellPath(remoteFinal);
   const shellPartial = remoteShellPath(remotePartial);
+  const shellExpiry = remoteShellPath(remoteExpiry);
+  const shellExpiryPartial = remoteShellPath(remoteExpiryPartial);
 
   const prepare = [
     `rm -rf ${shellPartial} ${shellFinal}`,
+    `rm -f ${shellExpiryPartial} ${shellExpiry}`,
     `mkdir -p ${shellPartial}`,
   ].join(" && ");
 
@@ -159,11 +174,11 @@ export async function uploadBatch(opts: {
     throw new Error(formatSshError(prep.stderr.trim() || "failed to prepare remote dir"));
   }
 
-  const cleanupPartial = () =>
+  const cleanupUpload = () =>
     run("ssh", [
       ...spec.baseArgs,
       spec.destHost,
-      `rm -rf ${shellPartial}`,
+      `rm -rf ${shellPartial} ${shellFinal}; rm -f ${shellExpiryPartial} ${shellExpiry}`,
     ]).catch(() => undefined);
 
   try {
@@ -192,20 +207,34 @@ export async function uploadBatch(opts: {
       opts.onProgress?.(uploaded);
     }
   } catch (err) {
-    await cleanupPartial();
+    await cleanupUpload();
     throw err;
   }
 
-  const finalize = `mv ${shellPartial} ${shellFinal}`;
+  const ttlSeconds = Math.max(60, Math.floor(opts.ttlMinutes * 60));
+  const finalize = [
+    "set -e",
+    `expires_at=$(($(date +%s) + ${ttlSeconds}))`,
+    `printf '%s\\n' "$expires_at" > ${shellExpiryPartial}`,
+    `mv ${shellExpiryPartial} ${shellExpiry}`,
+    `mv ${shellPartial} ${shellFinal}`,
+    `printf '%s\\n' "$expires_at"`,
+  ].join("\n");
   const fin = await run("ssh", [...spec.baseArgs, spec.destHost, finalize], {
     timeoutMs: 20_000,
   });
   if (fin.code !== 0) {
-    await cleanupPartial();
+    await cleanupUpload();
     throw new Error(formatSshError(fin.stderr.trim() || "remote finalize failed"));
   }
 
-  return remoteFinal;
+  const expiresAtEpochSeconds = Number(fin.stdout.trim().split("\n").pop());
+  if (!Number.isSafeInteger(expiresAtEpochSeconds) || expiresAtEpochSeconds <= 0) {
+    await cleanupUpload();
+    throw new Error("remote finalize returned an invalid expiry time");
+  }
+
+  return { remotePath: remoteFinal, expiresAtEpochSeconds };
 }
 
 export async function removeRemoteBatch(
@@ -215,10 +244,15 @@ export async function removeRemoteBatch(
   const spec = buildSshSpec(target);
   const remoteFinal = remoteJoin(target.remoteDir, batchId);
   const remotePartial = `${remoteFinal}.partial`;
+  const remoteExpiry = remoteJoin(target.remoteDir, `.${batchId}.expires`);
+  const remoteExpiryPartial = `${remoteExpiry}.partial`;
   await run("ssh", [
     ...spec.baseArgs,
     spec.destHost,
-    `rm -rf ${remoteShellPath(remoteFinal)} ${remoteShellPath(remotePartial)}`,
+    [
+      `rm -rf ${remoteShellPath(remoteFinal)} ${remoteShellPath(remotePartial)}`,
+      `rm -f ${remoteShellPath(remoteExpiry)} ${remoteShellPath(remoteExpiryPartial)}`,
+    ].join("; "),
   ]);
 }
 
@@ -237,6 +271,7 @@ for d in "$dir"/agents-*; do
   rm -rf "$d"
   count=$((count+1))
 done
+rm -f "$dir"/.agents-*.expires "$dir"/.agents-*.expires.partial
 echo $count
 `.trim();
   }
@@ -245,19 +280,106 @@ echo $count
 set -e
 dir=${dir}
 count=0
+now=$(date +%s)
 for d in "$dir"/agents-*; do
   [ -d "$d" ] || continue
   base=$(basename "$d")
   case "$base" in
-    *.partial) rm -rf "$d"; count=$((count+1)); continue ;;
+    *.partial)
+      if find "$d" -maxdepth 0 -type d -mmin +${PARTIAL_STALE_MINUTES} | grep -q .; then
+        rm -rf "$d"
+        count=$((count+1))
+      fi
+      continue
+      ;;
   esac
-  if find "$d" -maxdepth 0 -type d -mmin +${minutes} | grep -q .; then
+  marker="$dir/.$base.expires"
+  expires_at=""
+  if [ -f "$marker" ]; then
+    expires_at=$(cat "$marker" 2>/dev/null || true)
+    case "$expires_at" in
+      ''|*[!0-9]*|???????????????????*) expires_at="" ;;
+    esac
+  fi
+  if [ -n "$expires_at" ] && [ "$now" -ge "$expires_at" ]; then
     rm -rf "$d"
+    rm -f "$marker"
     count=$((count+1))
+  elif [ -z "$expires_at" ] && find "$d" -maxdepth 0 -type d -mmin +${minutes} | grep -q .; then
+    rm -rf "$d"
+    rm -f "$marker"
+    count=$((count+1))
+  fi
+done
+for marker in "$dir"/.agents-*.expires; do
+  [ -f "$marker" ] || continue
+  base=$(basename "$marker")
+  batch=\${base#.}
+  batch=\${batch%.expires}
+  [ -d "$dir/$batch" ] || [ -d "$dir/$batch.partial" ] || rm -f "$marker"
+done
+for marker in "$dir"/.agents-*.expires.partial; do
+  [ -f "$marker" ] || continue
+  if find "$marker" -maxdepth 0 -type f -mmin +${PARTIAL_STALE_MINUTES} | grep -q .; then
+    rm -f "$marker"
   fi
 done
 echo $count
 `.trim();
+}
+
+export function remoteSweeperScript(
+  remoteDir: string,
+  ttlMinutes: number,
+): string {
+  const dirExpr = remoteShellPath(remoteDir);
+  const minutes = Math.max(1, Math.floor(ttlMinutes));
+  return `#!/bin/bash
+# vmup-sweeper-version: ${SWEEPER_VERSION}
+set -euo pipefail
+DIR=${dirExpr}
+now=$(date +%s)
+for d in "$DIR"/agents-*; do
+  [ -d "$d" ] || continue
+  base=$(basename "$d")
+  case "$base" in
+    *.partial)
+      if find "$d" -maxdepth 0 -type d -mmin +${PARTIAL_STALE_MINUTES} | grep -q .; then
+        rm -rf "$d"
+      fi
+      continue
+      ;;
+  esac
+  marker="$DIR/.$base.expires"
+  expires_at=""
+  if [ -f "$marker" ]; then
+    expires_at=$(cat "$marker" 2>/dev/null || true)
+    case "$expires_at" in
+      ''|*[!0-9]*|???????????????????*) expires_at="" ;;
+    esac
+  fi
+  if [ -n "$expires_at" ] && [ "$now" -ge "$expires_at" ]; then
+    rm -rf "$d"
+    rm -f "$marker"
+  elif [ -z "$expires_at" ] && find "$d" -maxdepth 0 -type d -mmin +${minutes} | grep -q .; then
+    rm -rf "$d"
+    rm -f "$marker"
+  fi
+done
+for marker in "$DIR"/.agents-*.expires; do
+  [ -f "$marker" ] || continue
+  base=$(basename "$marker")
+  batch=\${base#.}
+  batch=\${batch%.expires}
+  [ -d "$DIR/$batch" ] || [ -d "$DIR/$batch.partial" ] || rm -f "$marker"
+done
+for marker in "$DIR"/.agents-*.expires.partial; do
+  [ -f "$marker" ] || continue
+  if find "$marker" -maxdepth 0 -type f -mmin +${PARTIAL_STALE_MINUTES} | grep -q .; then
+    rm -f "$marker"
+  fi
+done
+`;
 }
 
 export async function pruneRemote(
@@ -286,27 +408,16 @@ export async function installRemoteSweeper(
   ttlMinutes: number,
 ): Promise<void> {
   const spec = buildSshSpec(target);
-  const minutes = Math.max(1, Math.floor(ttlMinutes));
   const scriptPath = remoteJoin(target.remoteDir, ".cleanup.sh");
-  const dirExpr = target.remoteDir.startsWith("~/")
-    ? `$HOME/${target.remoteDir.slice(2)}`
-    : target.remoteDir;
-  const scriptPathExpr = target.remoteDir.startsWith("~/")
-    ? `$HOME/${target.remoteDir.slice(2)}/.cleanup.sh`
-    : scriptPath;
-  const scriptBody = `#!/bin/bash
-set -euo pipefail
-DIR="${dirExpr}"
-find "$DIR" -maxdepth 1 -type d -name 'agents-*' -mmin +${minutes} -exec rm -rf {} +
-find "$DIR" -maxdepth 1 -type d -name 'agents-*.partial' -mmin +${minutes} -exec rm -rf {} +
-`;
+  const scriptBody = remoteSweeperScript(target.remoteDir, ttlMinutes);
+  const cronLine = `* * * * * ${remoteShellPath(scriptPath)}`;
 
   const b64 = Buffer.from(scriptBody, "utf8").toString("base64");
   const install = [
     `mkdir -p ${remoteShellPath(target.remoteDir)}`,
     `echo ${shellQuote(b64)} | base64 -d > ${remoteShellPath(scriptPath)}`,
     `chmod +x ${remoteShellPath(scriptPath)}`,
-    `(crontab -l 2>/dev/null | grep -v '.cleanup.sh' || true; echo '* * * * * ${scriptPathExpr}') | crontab -`,
+    `(crontab -l 2>/dev/null | grep -v '.cleanup.sh' || true; echo ${shellQuote(cronLine)}) | crontab -`,
   ].join(" && ");
 
   const res = await run("ssh", [...spec.baseArgs, spec.destHost, install], {
@@ -317,21 +428,38 @@ find "$DIR" -maxdepth 1 -type d -name 'agents-*.partial' -mmin +${minutes} -exec
   }
 }
 
-export async function remoteSweeperPresent(
+export async function remoteSweeperStatus(
   target: ResolvedTarget,
-): Promise<boolean> {
+): Promise<SweeperStatus> {
   const spec = buildSshSpec(target);
   const scriptPath = remoteJoin(target.remoteDir, ".cleanup.sh");
+  const marker = `# vmup-sweeper-version: ${SWEEPER_VERSION}`;
+  const cronLine = `* * * * * ${remoteShellPath(scriptPath)}`;
   const res = await run(
     "ssh",
     [
       ...spec.baseArgs,
       spec.destHost,
-      `test -x ${remoteShellPath(scriptPath)} && echo YES || echo NO`,
+      [
+        `if [ ! -x ${remoteShellPath(scriptPath)} ]; then`,
+        "  echo MISSING",
+        `elif ! grep -Fq ${shellQuote(marker)} ${remoteShellPath(scriptPath)}; then`,
+        "  echo OUTDATED",
+        `elif ! crontab -l 2>/dev/null | grep -Fqx ${shellQuote(cronLine)}; then`,
+        "  echo OUTDATED",
+        "else",
+        "  echo CURRENT",
+        "fi",
+      ].join("\n"),
     ],
     { timeoutMs: 15_000 },
   );
-  return res.stdout.includes("YES");
+  if (res.code !== 0) {
+    throw new Error(res.stderr.trim() || "failed to inspect remote sweeper");
+  }
+  if (res.stdout.includes("CURRENT")) return "current";
+  if (res.stdout.includes("OUTDATED")) return "outdated";
+  return "missing";
 }
 
 export async function scheduleClientDelete(
@@ -343,11 +471,12 @@ export async function scheduleClientDelete(
   const delaySec = Math.max(60, Math.floor(ttlMinutes * 60));
   const spec = buildSshSpec(target);
   const remoteFinal = remoteJoin(target.remoteDir, batchId);
+  const remoteExpiry = remoteJoin(target.remoteDir, `.${batchId}.expires`);
   const sshCmd = [
     "ssh",
     ...spec.baseArgs,
     spec.destHost,
-    `rm -rf ${remoteShellPath(remoteFinal)}`,
+    `rm -rf ${remoteShellPath(remoteFinal)}; rm -f ${remoteShellPath(remoteExpiry)}`,
   ]
     .map(shellQuote)
     .join(" ");

@@ -46,9 +46,10 @@ Remote layout:
 1. `rm -rf` the final dir and a sibling `*.partial`
 2. `mkdir` the partial dir
 3. Stream each staged file over `ssh` (`cat >` the remote path, local file on stdin) into `<remote>/<batchId>.partial/`
-4. `mv` partial → final
+4. Ask the remote clock for `now + TTL`, then publish `.<batchId>.expires`
+5. `mv` partial → final; orphan cleanup keeps the marker while the partial exists
 
-Agents never see a half-written folder. A failed upload removes the partial dir. Local staging stays so you can look at what would have been sent.
+Agents never see a half-written folder. A failed upload removes the partial dir. The sweeper considers a partial stale after 15 minutes, longer than the ten-minute per-file transfer timeout. Local staging stays so you can look at what would have been sent.
 
 Progress on a TTY:
 
@@ -64,10 +65,11 @@ Local staging is deleted unless `--keep-local`.
 
 vmup then:
 
-1. **Client delete:** a detached `sleep <ttlMinutes * 60>` (minimum 60s) then `ssh rm -rf` the batch. This only runs while this process’s machine stays up.
-2. **Sweeper probe:** `test -x ~/vmup/.cleanup.sh`. If missing, human mode warns.
-3. **Prompt:** `prompt_template` with `{{remote_path}}` set to the final dir plus `/`.
-4. **Clipboard:** `clipboard_copy` (`prompt` by default, or `path`, or `none`) via `pbcopy` / `wl-copy` / `xclip`. `--json` skips this.
+1. **Client delete:** a detached `sleep <ttlMinutes * 60>` (minimum 60s) then `ssh rm -rf` the batch and marker. This only runs while this process’s machine stays up.
+2. **Sweeper probe:** verify the installed script version and exact cron entry. Missing and outdated installs produce different warnings.
+3. **Output:** print the agent folder and the remote host’s absolute expiry. JSON uses `expiresAt`.
+4. **Prompt:** `prompt_template` with `{{remote_path}}` set to the final dir plus `/`.
+5. **Clipboard:** `clipboard_copy` (`prompt` by default, or `path`, or `none`) via `pbcopy` / `wl-copy` / `xclip`. Expiry is not added. `--json` skips copying.
 
 To delete batches from this laptop without waiting: `vmup prune` (expired) or `vmup prune --all` (every `agents-*` dir). Recipes: [Clean up batches](/docs/guides/cleanup).
 

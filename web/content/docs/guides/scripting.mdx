@@ -34,7 +34,7 @@ vmup shot.png notes.pdf --json
 echo $?
 ```
 
-Exit `0` and a JSON object with `"ok": true` means the remote folder exists. Parse `remotePath` and `prompt`. `--json` does not copy to the clipboard. Full schema: [JSON output](/docs/reference/json).
+Exit `0` and a JSON object with `"ok": true` means the remote folder exists. Parse `remotePath`, `expiresAt`, and `prompt`. `--json` does not copy to the clipboard. Full schema: [JSON output](/docs/reference/json).
 
 ```bash
 vmup --json shot.png | jq -r '.prompt'
@@ -57,7 +57,8 @@ vmup check --json
   "ok": true,
   "profile": "default",
   "remoteDir": "~/vmup",
-  "sweeper": true
+  "sweeper": true,
+  "sweeperStatus": "current"
 }
 ```
 

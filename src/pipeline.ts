@@ -22,7 +22,8 @@ import {
   uploadBatch,
   removeRemoteBatch,
   scheduleClientDelete,
-  remoteSweeperPresent,
+  remoteSweeperStatus,
+  type SweeperStatus,
 } from "./transport/ssh.js";
 import { emitSuccess, emitJsonError } from "./output.js";
 import { EXIT } from "./constants.js";
@@ -191,14 +192,18 @@ export async function runUpload(opts: RunOptions): Promise<number> {
       `Uploading ${nFiles} ${fileWord}  ${formatBytes(done)} / ${formatBytes(totalBytes)}`;
 
     let remotePath: string;
+    let expiresAtEpochSeconds: number;
     const spin = startSpinner(uploadLabel(0), quiet);
     try {
-      remotePath = await uploadBatch({
+      const uploaded = await uploadBatch({
         target,
         batchId: session.batchId,
         files: staged,
+        ttlMinutes: target.ttlMinutes,
         onProgress: (uploaded) => spin.update(uploadLabel(uploaded)),
       });
+      remotePath = uploaded.remotePath;
+      expiresAtEpochSeconds = uploaded.expiresAtEpochSeconds;
       spin.stop();
     } catch (err) {
       spin.stop();
@@ -229,11 +234,11 @@ export async function runUpload(opts: RunOptions): Promise<number> {
       // ignore
     }
 
-    let sweeper: boolean | undefined;
+    let sweeperStatus: SweeperStatus | undefined;
     try {
-      sweeper = await remoteSweeperPresent(target);
+      sweeperStatus = await remoteSweeperStatus(target);
     } catch {
-      sweeper = undefined;
+      sweeperStatus = undefined;
     }
 
     await emitSuccess({
@@ -241,8 +246,9 @@ export async function runUpload(opts: RunOptions): Promise<number> {
       batchId: session.batchId,
       target,
       remotePath,
+      expiresAtEpochSeconds,
       files: staged,
-      sweeper,
+      sweeperStatus,
     });
     return EXIT.OK;
   } catch (err) {

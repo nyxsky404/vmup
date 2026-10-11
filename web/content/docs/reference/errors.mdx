@@ -39,7 +39,8 @@ Exact strings (or the stable prefix) so you can grep logs and match [Fix SSH](/d
 | `Sweeper install failed: <err>` | `vmup check --sweeper` |
 | `Upload failed: <err>` + `Local staging kept: <dir>` | ssh put or remote finalize |
 | `Checking SSH…` / `Uploading N file(s)  <done> / <total>` | Spinner labels (stderr, TTY) |
-| `Remote sweeper is not installed.` + linger warning + `Reinstall:  vmup check --sweeper` | Human upload when sweeper check returned `false` |
+| `Remote sweeper is not installed.` + linger warning + `Reinstall:  vmup check --sweeper` | Human upload when the cleanup script is missing or not executable |
+| `Remote sweeper is outdated.` + cleanup warning + `Upgrade:  vmup check --sweeper` | Human upload when the script predates per-batch expiry support or its cron entry is missing |
 | `(copied prompt to clipboard)` | Human upload, `clipboard_copy = "prompt"` (default) |
 | `(copied agent folder path to clipboard)` | Human upload, `clipboard_copy = "path"` |
 | `(clipboard copy unavailable)` | `pbcopy` / `wl-copy` / `xclip` failed. Upload still succeeded. |

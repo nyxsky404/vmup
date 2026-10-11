@@ -94,7 +94,7 @@ program
   .option("--id <batchId>", "Delete a specific remote batch id")
   .option("--all", "Delete all remote batches, ignoring TTL")
   .option("--install-sweeper", "Install/refresh remote cleanup cron")
-  .option("--ttl <minutes>", "Age cutoff in minutes (default 5)", (v) => Number(v))
+  .option("--ttl <minutes>", "Legacy fallback age cutoff in minutes (default 5)", (v) => Number(v))
   .option("--json", "Print machine-readable JSON")
   .action(async (opts) => {
     try {

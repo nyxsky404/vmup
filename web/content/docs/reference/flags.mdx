@@ -20,7 +20,7 @@ Do not pass `--profile` and `--ssh-host` together. That error is thrown in `reso
 | `--video` | boolean | upload, watch | Also collect videos in images-only mode (picker and watch). Path arguments already allow video. |
 | `--force` | boolean | upload, watch | Allow extra file types in images-only mode (picker and path args). Does not skip SSH. Does not bypass size/count. Does not override the watch type filter. No effect when `accept_all_files` is true. |
 | `--keep-local` | boolean | upload, watch | Keep `~/.cache/vmup/<batchId>/` after a successful upload. |
-| `--ttl <minutes>` | number | upload, watch, prune | Remote batch lifetime in minutes (default 5). Non-finite or `<= 0` falls back to 5. Rounded to an integer `>= 1`. On prune, this is the age cutoff (ignored by `--all`). |
+| `--ttl <minutes>` | number | upload, watch, prune | Per-batch lifetime in minutes (default 5). Non-finite or `<= 0` falls back to 5. Rounded to an integer `>= 1`. On prune, this is the fallback age cutoff for legacy unmarked batches (ignored by `--all`). |
 | `--json` | boolean | upload, watch, check, prune | Print machine-readable JSON on stdout for upload/check. On prune, only hides the update notice. Spinner still on stderr when stderr is a TTY. |
 
 `--ttl` is parsed with `Number`. `--help` one-liners match Commander. `--video` / `--force` behavior is in [Restrict to images](/docs/guides/restrict-types). After upload, what lands on the clipboard is `clipboard_copy` in [config.toml](/docs/reference/config), not a flag.
@@ -41,7 +41,7 @@ There is no `--sweeper` on init. Interactive init asks a yes/no. `-y` installs t
 | `-p`, `--profile <name>` | Use saved remote (default if omitted) |
 | `--ssh-host <alias>` | Use a Host from `~/.ssh/config` |
 | `--sweeper` | Write `~/vmup/.cleanup.sh` and crontab |
-| `--json` | `{ ok, profile, remoteDir, sweeper }` |
+| `--json` | `{ ok, profile, remoteDir, sweeper, sweeperStatus }` |
 
 ## prune
 
@@ -53,7 +53,7 @@ There is no `--sweeper` on init. Interactive init asks a yes/no. `-y` installs t
 | `--id <batchId>` | One remote batch |
 | `--all` | Every remote `agents-*` batch, ignoring TTL |
 | `--install-sweeper` | Refresh remote cron |
-| `--ttl <minutes>` | Age cutoff (ignored by `--all`) |
+| `--ttl <minutes>` | Fallback age cutoff for unmarked legacy batches (ignored by `--all`) |
 | `--json` | No JSON payload |
 
 `--all` and `--id` cannot be combined (`Use either --all or --id, not both`, exit `1`).

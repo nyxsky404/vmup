@@ -27,12 +27,13 @@ After upload, stdout looks like:
 ```text
 Uploaded 3 files → default
 Agent folder: ~/vmup/agents-…/
+Expires: Sep 11, 2026, 2:06:28 PM GMT+5:30 (5-minute TTL)
 
 Prompt:
 Please inspect all files in ~/vmup/agents-…/
 ```
 
-The prompt is already on the clipboard (`clipboard_copy = "prompt"`). Paste it into Claude Code, Cursor, or Codex in the same thread. The agent inspects that directory on the host. Set `clipboard_copy = "path"` if you only want the folder, or `"none"` to skip the copy.
+The prompt is already on the clipboard (`clipboard_copy = "prompt"`). Paste it into Claude Code, Cursor, or Codex in the same thread. The agent inspects that directory on the host. Set `clipboard_copy = "path"` if you only want the folder, or `"none"` to skip the copy. The printed expiry is not added to the clipboard.
 
 Remote names are `image-01.png`, `file-01.pdf`, and so on. Original basenames are gone on the VM. [How a batch is built](/docs/explain/how-it-works) explains the rename.
 
