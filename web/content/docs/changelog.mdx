@@ -10,6 +10,8 @@ For current `--video` / `--force` behavior (path arguments vs picker vs watch), 
 
 ## Unreleased
 
+## 0.4.1 — 2026-10-11
+
 - Uploads store an absolute expiry timestamp for each remote batch, so different `--ttl` values coexist under one sweeper. The sweeper and prune use the timestamp, with the configured age cutoff retained for legacy batches.
 - Human output and upload JSON expose the expiry (`expiresAt` in JSON) without changing the copied prompt or path. Sweeper checks now distinguish current, outdated, and missing installs.
 - In-progress `.partial` uploads use a 15-minute stale threshold so the five-minute default cannot remove a slow transfer.

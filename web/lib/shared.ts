@@ -11,7 +11,7 @@ export const docsContentRoute = '/llms.mdx/docs';
 export const learnRoute = '/learn';
 export const learnImageRoute = '/og/learn';
 export const learnContentRoute = '/llms.mdx/learn';
-export const softwareVersion = '0.4.0';
+export const softwareVersion = '0.4.1';
 export type ContentCollection = 'docs' | 'learn';
 
 /** Document title that ignores the root "%s — vmup" template. */
