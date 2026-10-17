@@ -13,7 +13,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
-    "fumadocs-core": "16.15.18",
+    "fumadocs-core": "16.17.3",
     "fumadocs-mdx": "15.4.6",
     "fumadocs-ui": "npm:@fumadocs/base-ui@16.15.18",
     "geist": "^1.7.2",
