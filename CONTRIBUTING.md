@@ -30,7 +30,7 @@ User-facing CLI changes: add a line under the next version in [CHANGELOG.md](CHA
 
 ## Docs site
 
-The site lives in `web/` (Next.js). From `web/`:
+The site lives in `web/` (Next.js) and requires Node.js 22.22 or newer. From `web/`:
 
 ```bash
 npm install
