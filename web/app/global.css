@@ -208,6 +208,11 @@ html > body[data-scroll-locked] {
     word-break: normal;
   }
 
+  #main-content .learn-article :not(pre) > code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   #nd-docs-layout {
     --fd-toc-popover-height: 2.75rem;
   }
