@@ -393,7 +393,8 @@ export async function pruneRemote(
     all: opts.all,
   });
 
-  const res = await run("ssh", [...spec.baseArgs, spec.destHost, script], {
+  // Run cleanup in a POSIX shell: login shells such as zsh reject unmatched globs.
+  const res = await run("ssh", [...spec.baseArgs, spec.destHost, `sh -c ${shellQuote(script)}`], {
     timeoutMs: 60_000,
   });
   if (res.code !== 0) {

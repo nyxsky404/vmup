@@ -38,6 +38,8 @@ vmup prune
 
 Deletes marked remote batches whose absolute expiry has passed. Unmarked legacy batches use the resolved TTL as an mtime cutoff. A `*.partial` batch is removed after a separate 15-minute stale threshold, which protects an active transfer from the five-minute default. Prints `Pruned N remote batch(es)` on stderr.
 
+Default prune and `--all` run their cleanup script with `sh` on the remote host. A Zsh login shell does not make unmatched batch or expiry patterns fail; an empty remote root reports zero pruned batches.
+
 ```bash
 vmup prune --all
 ```

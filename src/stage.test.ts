@@ -18,6 +18,7 @@ import { isNewer, detectPackageManager, updateCommand } from "./update-check.js"
 import {
   installRemoteSweeper,
   PARTIAL_STALE_MINUTES,
+  pruneRemote,
   remotePruneScript,
   remoteSweeperScript,
   remoteSweeperStatus,
@@ -540,6 +541,45 @@ describe("remoteSweeperScript", () => {
 });
 
 describe("remote transport TTL integration", () => {
+  it("prunes through a remote shell that rejects unmatched globs", async () => {
+    const root = join(tmpdir(), `vmup prune 'quoted' $literal ${Date.now()}`);
+    const fakeBin = join(root, "bin");
+    const remoteDir = join(root, "remote root");
+    await mkdir(fakeBin, { recursive: true });
+    await mkdir(remoteDir);
+    const fakeSsh = join(fakeBin, "ssh");
+    await writeFile(fakeSsh, '#!/bin/sh\nshift\nexec bash -O failglob -c "$1"\n');
+    await chmod(fakeSsh, 0o755);
+    const target = resolveTarget({ profiles: { default: { ssh_host: "fake", remote_dir: remoteDir } } });
+    const oldPath = process.env.PATH;
+    process.env.PATH = `${fakeBin}:${oldPath ?? ""}`;
+
+    try {
+      assert.equal(await pruneRemote(target, 5), 0);
+      assert.equal(await pruneRemote(target, 5, { all: true }), 0);
+      const batchId = "agents-20261011-120009-00000000-0000-4000-8000-000000000009";
+      const batch = join(remoteDir, batchId);
+      const marker = join(remoteDir, `.${batchId}.expires`);
+      await mkdir(batch);
+      await writeFile(marker, String(Math.floor(Date.now() / 1000) + 3600));
+      assert.equal(await pruneRemote(target, 5), 0);
+      assert.equal(await pathExists(batch), true);
+      await writeFile(marker, String(Math.floor(Date.now() / 1000) - 1));
+      assert.equal(await pruneRemote(target, 5), 1);
+      assert.equal(await pathExists(batch), false);
+      assert.equal(await pathExists(marker), false);
+      await mkdir(batch);
+      await writeFile(marker, String(Math.floor(Date.now() / 1000) + 3600));
+      assert.equal(await pruneRemote(target, 5, { all: true }), 1);
+      assert.equal(await pathExists(batch), false);
+      assert.equal(await pathExists(marker), false);
+    } finally {
+      if (oldPath === undefined) delete process.env.PATH;
+      else process.env.PATH = oldPath;
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("publishes expiry metadata and verifies the cron-backed sweeper", async () => {
     const root = join(tmpdir(), `vmup transport $literal ${Date.now()}`);
     const fakeBin = join(root, "bin");

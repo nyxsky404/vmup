@@ -24,6 +24,8 @@ The script only touches `agents-*` directories one level under the remote root. 
 
 **Prune.** `vmup prune` is a third path: you decide, now, from this machine. Default prune honors stored expiries, applies its resolved age cutoff to unmarked legacy batches, and drops leftover `*.partial` dirs. `vmup prune --all` deletes every `agents-*` batch and marker immediately, including ones still inside TTL. `vmup prune --id <batchId>` deletes one batch and its marker. Not `--all` and `--id` together.
 
+Default prune and `--all` execute their cleanup script through the remote host's `sh`, so a Zsh login shell cannot reject unmatched batch or expiry patterns. An empty root is a successful no-op.
+
 ## TTL resolution
 
 Minutes, not hours, as of 0.3.0. Old configs with `ttl_hours` still work: hours × 60, and only if `ttl_minutes` is absent. Same for `VMUP_TTL_HOURS`.

@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+- `vmup prune` and `vmup prune --all` run cleanup in a POSIX shell so unmatched batch or expiry patterns do not fail on Zsh remotes.
+
 ## 0.4.1 — 2026-10-11
 
 - Uploads store an absolute expiry timestamp for each remote batch, so different `--ttl` values coexist under one sweeper. The sweeper and prune use the timestamp, with the configured age cutoff retained for legacy batches.
