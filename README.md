@@ -310,6 +310,8 @@ vmup prune --install-sweeper
 
 `vmup prune --all` deletes every remote `agents-*` batch immediately, even if TTL has not elapsed. `--local` also deletes staging under `~/.cache/vmup/` older than 24 hours. Successful uploads already delete that cache unless you pass `--keep-local`. Failed SSH or upload **keeps** local staging.
 
+Default prune and `--all` run cleanup through `sh` on the remote host, including when its login shell is Zsh. Unmatched batch or expiry patterns are harmless; an empty remote root reports zero pruned batches.
+
 > **Warning:** The client-side delete is a detached `sleep` then `ssh rm`. It dies if this machine sleeps or exits. Missing, outdated, or unscheduled sweepers make remote cleanup unreliable. Install or upgrade with `vmup check --sweeper`.
 
 ## JSON and exit codes

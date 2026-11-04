@@ -74,6 +74,8 @@ Flags: `--profile`, `--ssh-host`, `--dir`, `--video`, `--force`, `--keep-local`,
 
 Delete remote batches. Default removes marked batches after their stored expiry and uses the resolved TTL as an age cutoff for unmarked legacy batches. `--all` ignores TTL. Requires a connectable target (same resolve rules as upload).
 
+Default prune and `--all` run cleanup with the remote host's `sh`, so unmatched batch or expiry patterns do not fail when the login shell is Zsh. An empty root prunes zero batches successfully.
+
 ```bash
 vmup prune
 vmup prune --all
