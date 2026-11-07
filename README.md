@@ -2,7 +2,22 @@
 
 *Send screenshots and files to your remote coding agent over SSH*
 
-**Docs:** [https://vmup.dev/docs](https://vmup.dev/docs)
+<a href="https://vmup.dev/#demo">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="https://raw.githubusercontent.com/nyxsky404/vmup/main/brand/demo-still.png">
+    <img alt="Demo: send a screenshot and PDF over SSH, then paste one folder prompt" src="https://raw.githubusercontent.com/nyxsky404/vmup/main/brand/demo.gif">
+  </picture>
+</a>
+
+```bash
+npm i -g @nyxsky404/vmup
+```
+
+Requires Node.js 18+, OpenSSH, and a host you can already SSH into. macOS, Linux, and WSL supported.
+
+[**Try the live demo**](https://vmup.dev/#demo) (sample files, no SSH connection) · [Docs](https://vmup.dev/docs) · [First upload](https://vmup.dev/docs/quickstart) · [Contribute](CONTRIBUTING.md) · [Discussions](https://github.com/nyxsky404/vmup/discussions)
+
+The GIF illustrates the workflow with sample filenames; it is not a timed transfer benchmark. [View the static demo](https://raw.githubusercontent.com/nyxsky404/vmup/main/brand/demo-still.png).
 
 [![npm version](https://img.shields.io/npm/v/@nyxsky404/vmup?style=flat-square)](https://www.npmjs.com/package/@nyxsky404/vmup)
 [![CI](https://github.com/nyxsky404/vmup/actions/workflows/ci.yml/badge.svg)](https://github.com/nyxsky404/vmup/actions/workflows/ci.yml)

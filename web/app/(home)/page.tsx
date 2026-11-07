@@ -7,6 +7,7 @@ import { FirstRunCommands, InstallTabs } from '@/components/install-tabs';
 import { JsonLd } from '@/components/json-ld';
 import { BrandMark } from '@/components/logo';
 import { WorkflowDiagram } from '@/components/workflow-diagram';
+import { UploadDemo } from '@/components/upload-demo';
 import { BUY_ME_A_COFFEE_URL, GITHUB_URL, NPM_URL } from '@/lib/install';
 import { homeJsonLd } from '@/lib/schema';
 import {
@@ -212,19 +213,7 @@ export default function HomePage() {
         </p>
       </section>
 
-      <figure className="mt-6 overflow-hidden rounded-xl border border-border bg-card">
-        <figcaption className="border-b border-border px-4 py-3 text-sm leading-relaxed text-muted-foreground">
-          Paste the printed prompt into the agent. It is already on your
-          clipboard.
-        </figcaption>
-        <pre className="vmup-code-scroll overflow-x-auto px-4 py-4 font-mono text-[13px] leading-relaxed text-foreground sm:text-sm">
-          <code>{`Uploaded 3 files → default
-Agent folder: ~/vmup/agents-20260911-140128-a1b2c3d4/
-
-Prompt:
-Please inspect all files in ~/vmup/agents-20260911-140128-a1b2c3d4/`}</code>
-        </pre>
-      </figure>
+      <UploadDemo />
 
       <section className="mt-16">
         <WorkflowDiagram />
